@@ -4,3 +4,4 @@ export * from './enums/generation-status.enum';
 
 // DTOs
 export * from './dtos/api-response.dto';
+export * from './dtos/generation.dto';

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Button, Input, Select, Card, Alert, Spinner, Badge, Label } from 'flowbite-svelte';
-	import { Provider, GenerationStatus } from '@api/shared';
+	import { Provider, GenerationStatus, type GenerationDto } from '@api/shared';
 	import type { ProgressEvent, ErrorInfo } from '$lib/types/ui.types';
-	import type { Generation } from '$lib/api/generations.service';
 	import { generationsService } from '$lib/api';
 	import ResultDisplay from './ResultDisplay.svelte';
 
@@ -12,7 +11,7 @@
 	let provider = $state<Provider>(Provider.OLLAMA);
 	let websiteUrl = $state('');
 
-	let currentGeneration = $state<Generation | null>(null);
+	let currentGeneration = $state<GenerationDto | null>(null);
 	let status = $state<GenerationStatus>(GenerationStatus.WAITING);
 	let progress = $state<ProgressEvent>({ current: 0, total: 100, message: '' });
 	let result = $state<string>('');
@@ -35,7 +34,7 @@
 		currentGeneration = null;
 	}
 
-	function updateProgressMessage(generation: Generation) {
+	function updateProgressMessage(generation: GenerationDto) {
 		status = generation.status;
 
 		switch (generation.status) {
