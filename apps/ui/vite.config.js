@@ -1,6 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import path from 'path';
 
 if (!process.env.PORT) {
 	throw new Error('PORT environment variable is required');
@@ -8,22 +7,50 @@ if (!process.env.PORT) {
 
 const port = parseInt(process.env.PORT);
 
+// Plugin to stub server-side imports
+/**
+ * @type {import('vite').Plugin}
+ */
+const stubServerImports = {
+	name: 'stub-server-imports',
+	resolveId(id) {
+		switch (true) {
+			case id === 'class-validator':
+			case id === 'robots-parser':
+			case id.includes('common/validators'):
+				return id;
+			default:
+				return null;
+		}
+	},
+	load(id) {
+		switch (true) {
+			case id === 'class-validator': {
+				// Все популярные декораторы class-validator
+				const decorators = [
+					'IsString', 'IsNotEmpty', 'IsEnum', 'Matches', 'IsInt', 'IsNumber',
+					'IsBoolean', 'IsArray', 'IsObject', 'IsDate', 'IsEmail', 'IsUrl',
+					'MinLength', 'MaxLength', 'Min', 'Max', 'IsOptional', 'ValidateNested',
+					'IsIn', 'IsNotIn', 'ArrayMinSize', 'ArrayMaxSize', 'IsDefined',
+					'Equals', 'NotEquals', 'IsEmpty', 'IsPositive', 'IsNegative'
+				];
+				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				return exports;
+			}
+			case id.includes('common/validators'):
+				return `export const ValidateHostnameRobotsAndSitemap = () => () => {};`;
+			case id === 'robots-parser':
+				return `export default () => ({});`;
+			default:
+				return null;
+		}
+	}
+};
+
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [stubServerImports, sveltekit()],
 	resolve: {
-		extensions: ['.js', '.ts', '.json'],
-		alias: {
-			'class-validator': path.resolve('/app/src/lib/stubs/class-validator.ts'),
-			'../../common/validators/hostname.validator': path.resolve('/app/src/lib/stubs/hostname.validator.ts')
-		}
-	},
-	ssr: {
-		noExternal: []
-	},
-	build: {
-		rollupOptions: {
-			external: []
-		}
+		extensions: ['.js', '.ts', '.json']
 	},
 	server: {
 		host: '0.0.0.0',
