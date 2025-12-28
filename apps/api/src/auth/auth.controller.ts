@@ -3,7 +3,7 @@ import { type FastifyRequest } from 'fastify';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
 import { Session } from '../common/decorators/session.decorator';
-import { ApiResponseDto } from '../common/dto/api-response';
+import { ResponseFactory } from '../common/utils/response.factory';
 
 type FastifySessionType = FastifyRequest['session'];
 
@@ -17,7 +17,7 @@ class AuthController {
 		const user = await this.authService.validateUser(loginDto.username, loginDto.password || null);
 
 		if (!user) {
-			return ApiResponseDto.unauthorized('Invalid credentials');
+			return ResponseFactory.unauthorized('Invalid credentials');
 		}
 
 		// Migrate anonymous GenerationRequests from this session to user
@@ -26,7 +26,7 @@ class AuthController {
 		// Set session data
 		request.session.userId = user.id;
 
-		return ApiResponseDto.success({
+		return ResponseFactory.success({
 			user: {
 				id: user.id,
 				email: user.email
@@ -39,7 +39,7 @@ class AuthController {
 	@HttpCode(HttpStatus.OK)
 	async logout(@Req() request: FastifyRequest) {
 		if (!request.session.userId) {
-			return ApiResponseDto.unauthorized('Not authenticated');
+			return ResponseFactory.unauthorized('Not authenticated');
 		}
 
 		await new Promise<void>((resolve, reject) => {
@@ -49,7 +49,7 @@ class AuthController {
 			});
 		});
 
-		return ApiResponseDto.success({ message: 'Logged out successfully' });
+		return ResponseFactory.success({ message: 'Logged out successfully' });
 	}
 
 	@Get('me')
@@ -57,7 +57,7 @@ class AuthController {
 		if (session.userId) {
 			const user = await this.authService.findById(session.userId);
 			if (user) {
-				return ApiResponseDto.success({
+				return ResponseFactory.success({
 					authenticated: true,
 					sessionId: session.sessionId,
 					user: {
@@ -69,7 +69,7 @@ class AuthController {
 			}
 		}
 
-		return ApiResponseDto.success({ authenticated: false });
+		return ResponseFactory.success({ authenticated: false });
 	}
 }
 

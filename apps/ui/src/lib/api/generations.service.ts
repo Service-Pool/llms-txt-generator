@@ -2,7 +2,7 @@ import { HttpClient } from './http.client';
 import { AppConfigService } from './config.service';
 import {
 	GenerationStatus,
-	ApiResponse,
+	ApiResponseModel,
 	GenerationDto,
 	GenerationsListDto,
 	CreateGenerationDto
@@ -11,44 +11,44 @@ import {
 const configService = new AppConfigService();
 
 export class GenerationsService extends HttpClient {
-	public async create(request: CreateGenerationDto): Promise<ApiResponse<GenerationDto>> {
+	public async create(request: CreateGenerationDto): Promise<ApiResponseModel<GenerationDto>> {
 		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.base, {
 			method: 'POST',
 			body: JSON.stringify(request)
 		});
 
-		return new ApiResponse(
+		return new ApiResponseModel(
 			response.code,
 			GenerationDto.fromJson(response.message),
 			response.error
 		);
 	}
 
-	public async findById(id: number): Promise<ApiResponse<GenerationDto>> {
+	public async findById(id: number): Promise<ApiResponseModel<GenerationDto>> {
 		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.byId(id));
 
-		return new ApiResponse(
+		return new ApiResponseModel(
 			response.code,
 			GenerationDto.fromJson(response.message),
 			response.error
 		);
 	}
 
-	public async list(page = 1, limit = 20): Promise<ApiResponse<GenerationsListDto>> {
+	public async list(page = 1, limit = 20): Promise<ApiResponseModel<GenerationsListDto>> {
 		const params = new URLSearchParams({
 			page: page.toString(),
 			limit: limit.toString()
 		});
 		const response = await this.fetch<Record<string, unknown>>(`${configService.endpoints.generations.base}?${params}`);
 
-		return new ApiResponse(
+		return new ApiResponseModel(
 			response.code,
 			GenerationsListDto.fromJson(response.message),
 			response.error
 		);
 	}
 
-	public async delete(id: number): Promise<ApiResponse<{ message: string }>> {
+	public async delete(id: number): Promise<ApiResponseModel<{ message: string }>> {
 		return this.fetch<{ message: string }>(configService.endpoints.generations.byId(id), {
 			method: 'DELETE'
 		});

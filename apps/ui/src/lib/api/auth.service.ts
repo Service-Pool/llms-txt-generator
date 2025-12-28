@@ -1,4 +1,4 @@
-import { type ApiResponse } from '@api/shared';
+import { type ApiResponseModel } from '@api/shared';
 import { HttpClient } from './http.client';
 import { AppConfigService } from './config.service';
 
@@ -28,20 +28,20 @@ export interface LoginResponse {
 }
 
 export class AuthService extends HttpClient {
-	public async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+	public async login(credentials: LoginRequest): Promise<ApiResponseModel<LoginResponse>> {
 		return this.fetch<LoginResponse>(configService.endpoints.auth.login, {
 			method: 'POST',
 			body: JSON.stringify(credentials)
 		});
 	}
 
-	public async logout(): Promise<ApiResponse<{ message: string }>> {
+	public async logout(): Promise<ApiResponseModel<{ message: string }>> {
 		return this.fetch<{ message: string }>(configService.endpoints.auth.logout, {
 			method: 'POST'
 		});
 	}
 
-	public async getStatus(): Promise<ApiResponse<AuthStatusResponse>> {
+	public async getStatus(): Promise<ApiResponseModel<AuthStatusResponse>> {
 		return this.fetch<AuthStatusResponse>(configService.endpoints.auth.status);
 	}
 }

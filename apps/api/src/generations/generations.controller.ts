@@ -4,36 +4,36 @@ import { type FastifySessionObject } from '@fastify/session';
 import { GenerationsService } from './services/generations.service';
 import { CreateGenerationDto, GenerationsListDto, GenerationDto } from '../shared/dtos/generation.dto';
 import { Session } from '../common/decorators/session.decorator';
-import { ApiResponseDto } from '../common/dto/api-response';
+import { ResponseFactory } from '../common/utils/response.factory';
 
 @Controller('api/generations')
 class GenerationsController {
 	constructor(private readonly generationsService: GenerationsService) {}
 
 	@Get()
-	public async list(@Session() session: FastifySessionObject, @Query('page') page: number = 1, @Query('limit') limit: number = 20): Promise<ReturnType<typeof ApiResponseDto.success<GenerationsListDto>>> {
+	public async list(@Session() session: FastifySessionObject, @Query('page') page: number = 1, @Query('limit') limit: number = 20): Promise<ReturnType<typeof ResponseFactory.success<GenerationsListDto>>> {
 		const userId = session.userId || null;
 		const sessionId = session.sessionId;
 
 		const result = await this.generationsService.listUserGenerations(userId, sessionId, page, limit);
 
-		return ApiResponseDto.success(result);
+		return ResponseFactory.success(result);
 	}
 
 	@Get(':id')
-	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ApiResponseDto.success<GenerationDto>> | ReturnType<typeof ApiResponseDto.notFound>> {
+	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<GenerationDto>> | ReturnType<typeof ResponseFactory.notFound>> {
 		const generation = await this.generationsService.findById(parseInt(id));
 
 		if (!generation) {
-			return ApiResponseDto.notFound('Generation not found');
+			return ResponseFactory.notFound('Generation not found');
 		}
 
-		return ApiResponseDto.success(GenerationDto.fromEntity(generation));
+		return ResponseFactory.success(GenerationDto.fromEntity(generation));
 	}
 
 	@Post()
 	@HttpCode(HttpStatus.ACCEPTED)
-	public async create(@Body() createGenerationDto: CreateGenerationDto, @Session() session: FastifySessionObject, @Req() request: FastifyRequest): Promise<ReturnType<typeof ApiResponseDto.success<GenerationDto>>> {
+	public async create(@Body() createGenerationDto: CreateGenerationDto, @Session() session: FastifySessionObject, @Req() request: FastifyRequest): Promise<ReturnType<typeof ResponseFactory.success<GenerationDto>>> {
 		const userId = session.userId || null;
 		const sessionId = session.sessionId;
 
@@ -52,14 +52,14 @@ class GenerationsController {
 			sessionId
 		);
 
-		return ApiResponseDto.success(GenerationDto.fromEntity(generation));
+		return ResponseFactory.success(GenerationDto.fromEntity(generation));
 	}
 
 	@Delete(':id')
-	public async delete(@Param('id') id: string): Promise<ReturnType<typeof ApiResponseDto.success<{ message: string }>>> {
+	public async delete(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<{ message: string }>>> {
 		await this.generationsService.delete(parseInt(id));
 
-		return ApiResponseDto.success({ message: 'Generation deleted' });
+		return ResponseFactory.success({ message: 'Generation deleted' });
 	}
 }
 

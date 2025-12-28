@@ -1,8 +1,8 @@
 /**
- * API Response utility
+ * Response Factory
  * Provides standardized JSON response methods for NestJS controllers
  */
-export class ApiResponseDto {
+export class ResponseFactory {
 	/**
 	 * Send a successful response
 	 */

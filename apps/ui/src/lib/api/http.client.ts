@@ -1,4 +1,4 @@
-import { ApiResponse } from '@api/shared';
+import { ApiResponseModel } from '@api/shared';
 import { AppConfigService } from './config.service';
 
 const configService = new AppConfigService();
@@ -22,7 +22,7 @@ export class HttpClient {
 		this.timeout = configService.http.timeout;
 	}
 
-	protected async fetch<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+	protected async fetch<T>(endpoint: string, options?: RequestInit): Promise<ApiResponseModel<T>> {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		const controller = new AbortController();
@@ -44,7 +44,7 @@ export class HttpClient {
 			clearTimeout(timeoutId);
 
 			const json = await response.json() as Record<string, unknown>;
-			const data = new ApiResponse<T>(
+			const data = new ApiResponseModel<T>(
 				json.code as number,
 				json.message as T,
 				json.error as string | undefined

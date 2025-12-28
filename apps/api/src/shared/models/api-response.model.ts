@@ -1,4 +1,4 @@
-class ApiResponse<T> {
+class ApiResponseModel<T> {
 	constructor(
 		public code: number,
 		public message: T,
@@ -6,4 +6,4 @@ class ApiResponse<T> {
 	) {}
 }
 
-export { ApiResponse };
+export { ApiResponseModel };
