@@ -1,5 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import path from 'path';
 
 if (!process.env.PORT) {
 	throw new Error('PORT environment variable is required');
@@ -10,7 +11,19 @@ const port = parseInt(process.env.PORT);
 export default defineConfig({
 	plugins: [sveltekit()],
 	resolve: {
-		extensions: ['.js', '.ts', '.json']
+		extensions: ['.js', '.ts', '.json'],
+		alias: {
+			'class-validator': path.resolve('/app/src/lib/stubs/class-validator.ts'),
+			'../../common/validators/hostname.validator': path.resolve('/app/src/lib/stubs/hostname.validator.ts')
+		}
+	},
+	ssr: {
+		noExternal: []
+	},
+	build: {
+		rollupOptions: {
+			external: []
+		}
 	},
 	server: {
 		host: '0.0.0.0',

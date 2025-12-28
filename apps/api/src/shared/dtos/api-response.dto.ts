@@ -1,5 +1,9 @@
-export interface ApiResponse<T> {
-	code: number;
-	message: T;
-	error?: string;
+class ApiResponse<T> {
+	constructor(
+		public code: number,
+		public message: T,
+		public error?: string
+	) {}
 }
+
+export { ApiResponse };

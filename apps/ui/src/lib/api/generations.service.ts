@@ -2,24 +2,36 @@ import { HttpClient } from './http.client';
 import { AppConfigService } from './config.service';
 import {
 	GenerationStatus,
-	type ApiResponse,
-	type GenerationDto,
-	type GenerationsListDto,
-	type CreateGenerationDto
+	ApiResponse,
+	GenerationDto,
+	GenerationsListDto,
+	CreateGenerationDto
 } from '@api/shared';
 
 const configService = new AppConfigService();
 
 export class GenerationsService extends HttpClient {
 	public async create(request: CreateGenerationDto): Promise<ApiResponse<GenerationDto>> {
-		return this.fetch<GenerationDto>(configService.endpoints.generations.base, {
+		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.base, {
 			method: 'POST',
 			body: JSON.stringify(request)
 		});
+
+		return new ApiResponse(
+			response.code,
+			GenerationDto.fromJson(response.message),
+			response.error
+		);
 	}
 
 	public async findById(id: number): Promise<ApiResponse<GenerationDto>> {
-		return this.fetch<GenerationDto>(configService.endpoints.generations.byId(id));
+		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.byId(id));
+
+		return new ApiResponse(
+			response.code,
+			GenerationDto.fromJson(response.message),
+			response.error
+		);
 	}
 
 	public async list(page = 1, limit = 20): Promise<ApiResponse<GenerationsListDto>> {
@@ -27,7 +39,13 @@ export class GenerationsService extends HttpClient {
 			page: page.toString(),
 			limit: limit.toString()
 		});
-		return this.fetch<GenerationsListDto>(`${configService.endpoints.generations.base}?${params}`);
+		const response = await this.fetch<Record<string, unknown>>(`${configService.endpoints.generations.base}?${params}`);
+
+		return new ApiResponse(
+			response.code,
+			GenerationsListDto.fromJson(response.message),
+			response.error
+		);
 	}
 
 	public async delete(id: number): Promise<ApiResponse<{ message: string }>> {

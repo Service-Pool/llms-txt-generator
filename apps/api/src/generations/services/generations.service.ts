@@ -7,7 +7,7 @@ import { GenerationStatus } from '../../enums/generation-status.enum';
 import { QueueService } from '../../queue/queue.service';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { AppConfigService, Provider } from '../../config/config.service';
-import { GenerationsListDto } from '../dto/response.dto';
+import { GenerationsListDto } from '../../shared/dtos/generation.dto';
 
 @Injectable()
 class GenerationsService {
@@ -40,7 +40,7 @@ class GenerationsService {
 			take: limit
 		});
 
-		return new GenerationsListDto(items, total, page, limit);
+		return GenerationsListDto.fromEntities(items, total, page, limit);
 	}
 
 	public async findOrCreateGenerationRequest(hostname: string, provider: Provider, userId: number | null, sessionId: string): Promise<Generation> {

@@ -1,4 +1,4 @@
-import { type ApiResponse } from '@api/shared';
+import { ApiResponse } from '@api/shared';
 import { AppConfigService } from './config.service';
 
 const configService = new AppConfigService();
@@ -43,8 +43,12 @@ export class HttpClient {
 
 			clearTimeout(timeoutId);
 
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-			const data: ApiResponse<T> = await response.json();
+			const json = await response.json() as Record<string, unknown>;
+			const data = new ApiResponse<T>(
+				json.code as number,
+				json.message as T,
+				json.error as string | undefined
+			);
 
 			if (!response.ok || (data.code >= 400)) {
 				const errorMessage = data.error || 'Request failed';

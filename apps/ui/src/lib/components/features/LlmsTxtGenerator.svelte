@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, Input, Select, Card, Alert, Spinner, Badge, Label } from 'flowbite-svelte';
-	import { Provider, GenerationStatus, type GenerationDto } from '@api/shared';
+	import { Provider, GenerationStatus, GenerationDto, CreateGenerationDto } from '@api/shared';
 	import type { ProgressEvent, ErrorInfo } from '$lib/types/ui.types';
 	import { generationsService } from '$lib/api';
 	import ResultDisplay from './ResultDisplay.svelte';
@@ -63,10 +63,9 @@
 			const url = new URL(websiteUrl);
 			const hostname = url.origin;
 
-			const createResponse = await generationsService.create({
-				hostname,
-				provider
-			});
+			const createResponse = await generationsService.create(
+				new CreateGenerationDto(hostname, provider)
+			);
 
 			if (!createResponse.message) {
 				throw new Error(createResponse.error || 'Failed to create generation');
