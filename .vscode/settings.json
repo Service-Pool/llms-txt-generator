@@ -1,0 +1,31 @@
+{
+	"editor.formatOnSave": false,
+	"editor.formatOnSaveMode": "file",
+		"[svelte]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"[html]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"eslint.enable": true,
+	"eslint.validate": ["javascript", "typescript"],
+	"eslint.options": {
+		"overrideConfigFile": "eslint.config.mjs"
+	},
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"typescript.tsdk": "node_modules/typescript/lib"
+}

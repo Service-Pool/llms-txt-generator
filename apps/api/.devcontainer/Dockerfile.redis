@@ -1,0 +1,12 @@
+FROM redis:7-alpine
+
+# Install bash
+RUN apk add --no-cache bash
+
+# Copy custom Redis configuration if needed
+# COPY _configs/redis.conf /usr/local/etc/redis/redis.conf
+
+# Redis runs on port 6379 by default
+EXPOSE 6379
+
+CMD ["bash", "/tmp/app/cmd-redis.sh"]

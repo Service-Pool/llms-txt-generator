@@ -1,0 +1,201 @@
+name: ${COMPOSE_PROJECT_NAME}
+
+services:
+  llms-txt-generator-api:
+    image: ${COMPOSE_PROJECT_NAME}-app
+    hostname: app
+    container_name: ${COMPOSE_PROJECT_NAME}-App
+    build:
+      context: ..
+      dockerfile: Dockerfile.app
+    working_dir: /app
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    env_file:
+      - .env
+    volumes:
+      - ../../:/app
+      - ./cmd-llms-txt-generator-api.sh:/tmp/app/cmd-llms-txt-generator-api.sh
+      - /var/run/docker.sock:/var/run/docker.sock
+      - node_modules:/app/node_modules
+      - claude_data:/home/www-data/.claude
+      - claude_cache:/home/www-data/.cache/claude
+      - vscode_server:/home/www-data/.vscode-server
+    ports:
+      - ${PORT}:${PORT}
+    # Ports are not exposed externally - Multivisor will connect via Docker network
+    # - "9001:9001"  # Supervisor web UI (internal only)
+    # - "9002:9002"  # Multivisor RPC (internal only)
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/supervisor/supervisor.sock"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      npm-network:
+
+  ollama:
+    image: ${COMPOSE_PROJECT_NAME}-ollama
+    hostname: ${OLLAMA_HOST}
+    container_name: ${COMPOSE_PROJECT_NAME}-Ollama
+    build:
+      context: ..
+      dockerfile: Dockerfile.ollama
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    env_file:
+      - .env
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./cmd-ollama.sh:/tmp/app/cmd-ollama.sh
+    # Port is not exposed - accessible only via Docker network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://$${OLLAMA_HOST}:$${OLLAMA_PORT}/api/version"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${OLLAMA_MEMORY_LIMIT}
+    networks:
+      npm-network:
+    # Uncomment if you have NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2G
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  mysql:
+    image: ${COMPOSE_PROJECT_NAME}-mysql
+    hostname: ${DB_HOST}
+    container_name: ${COMPOSE_PROJECT_NAME}-MySQL
+    build:
+      context: ..
+      dockerfile: Dockerfile.mysql
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./cmd-mysql.sh:/tmp/app/cmd-mysql.sh
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      npm-network:
+
+  redis:
+    image: ${COMPOSE_PROJECT_NAME}-redis
+    hostname: ${REDIS_HOST}
+    container_name: ${COMPOSE_PROJECT_NAME}-Redis
+    build:
+      context: ..
+      dockerfile: Dockerfile.redis
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    env_file:
+      - .env
+    volumes:
+      - redis_data:/data
+      - ./cmd-redis.sh:/tmp/app/cmd-redis.sh
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      npm-network:
+
+  redisinsight:
+    image: ${COMPOSE_PROJECT_NAME}-redisinsight
+    hostname: ${REDIS_INSIGHT_HOST}
+    container_name: ${COMPOSE_PROJECT_NAME}-RedisInsight
+    build:
+      context: ..
+      dockerfile: Dockerfile.redisinsight
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        compress: "true"
+    environment:
+      - RI_REDIS_HOST=${REDIS_HOST}
+      - RI_REDIS_PORT=${REDIS_PORT}
+      - RI_REDIS_ALIAS=Local Redis
+    volumes:
+      - redisinsight_data:/data
+    ports:
+      - ${REDIS_INSIGHT_PORT}:5540
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5540/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      npm-network:
+
+volumes:
+  node_modules:
+  ollama_data:
+  mysql_data:
+  redis_data:
+  redisinsight_data:
+  claude_data:
+  claude_cache:
+  vscode_server:
+
+networks:
+  npm-network:
+    external: true

@@ -1,0 +1,46 @@
+name: ${COMPOSE_PROJECT_NAME}
+
+services:
+  llms-txt-generator-ui:
+    image: ${COMPOSE_PROJECT_NAME}-app
+    hostname: app
+    container_name: ${COMPOSE_PROJECT_NAME}-App
+    build:
+      context: ..
+      dockerfile: Dockerfile.app
+    working_dir: /app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../../:/app
+      - ../../../api/src/shared:/api/src/shared
+      - ./cmd-llms-txt-generator-ui.sh:/tmp/app/cmd-llms-txt-generator-ui.sh
+      - /var/run/docker.sock:/var/run/docker.sock
+      - node_modules:/app/node_modules
+      - claude_data:/home/www-data/.claude
+      - claude_cache:/home/www-data/.cache/claude
+      - vscode_server:/home/www-data/.vscode-server
+    ports:
+      - ${PORT}:${PORT}
+    # Ports are not exposed externally - Multivisor will connect via Docker network
+    # - "9001:9001"  # Supervisor web UI (internal only)
+    # - "9002:9002"  # Multivisor RPC (internal only)
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/supervisor/supervisor.sock"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      npm-network:
+
+volumes:
+  node_modules:
+  claude_data:
+  claude_cache:
+  vscode_server:
+
+networks:
+  npm-network:
+    external: true

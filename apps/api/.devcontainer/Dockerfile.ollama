@@ -1,0 +1,17 @@
+FROM ollama/ollama:latest
+
+USER root
+
+# Install required packages
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Expose Ollama default port
+EXPOSE 11434
+
+ENTRYPOINT []
+
+CMD ["bash", "/tmp/app/cmd-ollama.sh"]
