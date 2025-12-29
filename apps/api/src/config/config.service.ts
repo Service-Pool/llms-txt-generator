@@ -96,6 +96,12 @@ function validateEnv(): ValidatedEnv {
 
 const env = validateEnv();
 
+// Validation constants
+const HOSTNAME_VALIDATION = {
+	regex: /^https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+	message: 'Hostname must be a valid domain with protocol (http:// or https://) without path, query or trailing slash'
+};
+
 @Injectable()
 class AppConfigService {
 	// Generic database connection config (для pg-boss, session store, etc.)
@@ -190,4 +196,4 @@ const AppDataSource = new DataSource({
 	synchronize: false
 });
 
-export { AppConfigService, AppDataSource, PROVIDERS, Provider };
+export { AppConfigService, AppDataSource, PROVIDERS, HOSTNAME_VALIDATION };

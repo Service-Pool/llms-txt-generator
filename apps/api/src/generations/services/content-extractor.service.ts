@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpService } from '../../common/http.module';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 
@@ -25,12 +24,12 @@ export class ContentExtractorService {
 	public async extractText(pageUrl: string): Promise<ExtractedContent> {
 		try {
 			// Fetch HTML using HttpService
-			const response = await firstValueFrom(this.httpService.get<string>(pageUrl, {
+			const response = await this.httpService.axios.get<string>(pageUrl, {
 				responseType: 'text',
 				headers: {
 					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 				}
-			}));
+			});
 
 			// Create DOM from HTML
 			const dom = new JSDOM(response.data, {

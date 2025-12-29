@@ -22,7 +22,7 @@ class GenerationsController {
 	}
 
 	@Get(':id')
-	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<CreateGenerationDtoRequest>> | ReturnType<typeof ResponseFactory.notFound>> {
+	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<GenerationDtoResponse>> | ReturnType<typeof ResponseFactory.notFound>> {
 		const generation = await this.generationsService.findById(parseInt(id));
 
 		if (!generation) {

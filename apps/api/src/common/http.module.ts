@@ -1,24 +1,18 @@
-import { Module, Global } from '@nestjs/common';
-import { HttpModule, HttpService } from '@nestjs/axios';
+import { Module, Global, Injectable } from '@nestjs/common';
+import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 
-@Global()
-@Module({
-	imports: [
-		HttpModule.registerAsync({
-			useFactory: () => ({
-				timeout: 10000,
-				maxRedirects: 5
-			})
-		})
-	],
-	exports: [HttpModule]
-})
-export class GlobalHttpModule {
-	constructor(private readonly httpService: HttpService) {
-		const axiosInstance = this.httpService.axiosRef;
+@Injectable()
+class HttpService {
+	private readonly axiosInstance: AxiosInstance;
 
-		axiosRetry(axiosInstance, {
+	constructor() {
+		this.axiosInstance = axios.create({
+			timeout: 10000,
+			maxRedirects: 5
+		});
+
+		axiosRetry(this.axiosInstance, {
 			retries: 3,
 			retryDelay: retryCount => axiosRetry.exponentialDelay(retryCount),
 			retryCondition: (error) => {
@@ -26,4 +20,17 @@ export class GlobalHttpModule {
 			}
 		});
 	}
+
+	public get axios(): AxiosInstance {
+		return this.axiosInstance;
+	}
 }
+
+@Global()
+@Module({
+	providers: [HttpService],
+	exports: [HttpService]
+})
+class HttpModule {}
+
+export { HttpModule, HttpService };

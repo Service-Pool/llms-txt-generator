@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { HttpService } from '../http.module';
 import robotsParser from 'robots-parser';
 
 /**
@@ -20,9 +19,9 @@ export class RobotsService {
 	public async getSitemaps(hostname: string): Promise<string[]> {
 		try {
 			const robotsUrl = `${hostname}/robots.txt`;
-			const response = await firstValueFrom(this.httpService.get<string>(robotsUrl, {
+			const response = await this.httpService.axios.get<string>(robotsUrl, {
 				responseType: 'text'
-			}));
+			});
 
 			const robotsTxt = response.data;
 			const robots = robotsParser(robotsUrl, robotsTxt);

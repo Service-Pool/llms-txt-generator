@@ -114,25 +114,4 @@ class GenerationsListDtoResponse {
 	}
 }
 
-/**
- * DTO для результата анализа hostname
- */
-class AnalyzeHostnameDtoResponse {
-	constructor(
-		public hostname: string,
-		public urlsCount: number
-	) {}
-
-	static fromData(hostname: string, urlsCount: number): AnalyzeHostnameDtoResponse {
-		return new AnalyzeHostnameDtoResponse(hostname, urlsCount);
-	}
-
-	static fromJson(json: Record<string, unknown>): AnalyzeHostnameDtoResponse {
-		return new AnalyzeHostnameDtoResponse(
-			json.hostname as string,
-			json.urlsCount as number
-		);
-	}
-}
-
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationsListDtoResponse, AnalyzeHostnameDtoResponse };
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationsListDtoResponse };

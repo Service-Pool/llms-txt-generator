@@ -1,4 +1,4 @@
-import { Provider } from '../../config/config.service';
+import { Provider } from '../../enums/provider.enum';
 
 class GenerationJobMessage {
 	constructor(

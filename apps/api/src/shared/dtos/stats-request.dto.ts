@@ -1,12 +1,11 @@
-import { IsString, IsNotEmpty, IsEnum, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, Matches } from 'class-validator';
 import { ValidateHostnameRobotsAndSitemap } from '../../common/validators/hostname.validator';
-import { Provider } from '../enums/provider.enum';
 import { HOSTNAME_VALIDATION } from '../../config/config.service';
 
 /**
- * DTO для создания генерации
+ * DTO для анализа hostname
  */
-class CreateGenerationDtoRequest {
+class AnalyzeHostnameDtoRequest {
 	@IsString()
 	@IsNotEmpty()
 	@Matches(HOSTNAME_VALIDATION.regex, {
@@ -17,14 +16,9 @@ class CreateGenerationDtoRequest {
 	})
 	public hostname: string;
 
-	@IsEnum(Provider)
-	@IsNotEmpty()
-	public provider: Provider;
-
-	constructor(hostname: string, provider: Provider) {
+	constructor(hostname: string) {
 		this.hostname = hostname;
-		this.provider = provider;
 	}
 }
 
-export { CreateGenerationDtoRequest };
+export { AnalyzeHostnameDtoRequest };

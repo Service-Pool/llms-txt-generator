@@ -2,15 +2,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GenerationsModule } from './generations/generations.module';
+import { StatsModule } from './stats/stats.module';
 import { AppConfigModule } from './config/config.module';
 import { AppConfigService } from './config/config.service';
-import { GlobalHttpModule } from './common/http.module';
+import { HttpModule } from './common/http.module';
+import { RobotsModule } from './common/robots.module';
+import { SitemapModule } from './common/sitemap.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
 	imports: [
 		AppConfigModule,
-		GlobalHttpModule,
+		HttpModule,
+		RobotsModule,
+		SitemapModule,
 		ConfigModule.forRoot({
 			isGlobal: true,
 			ignoreEnvFile: true
@@ -20,7 +25,8 @@ import { AuthModule } from './auth/auth.module';
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		}),
 		AuthModule,
-		GenerationsModule
+		GenerationsModule,
+		StatsModule
 	]
 })
 export class AppModule {}

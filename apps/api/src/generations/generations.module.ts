@@ -3,8 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GenerationsController } from './generations.controller';
 import { GenerationsService } from './services/generations.service';
 import { QueueModule } from '../queue/queue.module';
-import { RobotsService } from './services/robots.service';
-import { SitemapService } from './services/sitemap.service';
 import { ContentExtractorService } from './services/content-extractor.service';
 import { GenerationJobHandler } from '../queue/handlers/generation-job.handler';
 import { OllamaService } from './services/llm/ollama.service';
@@ -22,8 +20,6 @@ import { User } from '../auth/entitites/user.entity';
 	providers: [
 		GenerationsService,
 		GenerationJobHandler,
-		RobotsService,
-		SitemapService,
 		ContentExtractorService,
 		OllamaService,
 		GeminiService

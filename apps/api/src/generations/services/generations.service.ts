@@ -6,7 +6,8 @@ import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationStatus } from '../../enums/generation-status.enum';
 import { QueueService } from '../../queue/queue.service';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
-import { AppConfigService, Provider } from '../../config/config.service';
+import { AppConfigService } from '../../config/config.service';
+import { Provider } from '../../enums/provider.enum';
 import { GenerationsListDtoResponse } from '../../shared/dtos/generation-response.dto';
 
 @Injectable()
