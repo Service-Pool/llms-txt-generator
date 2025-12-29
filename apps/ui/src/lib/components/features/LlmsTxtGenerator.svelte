@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, Input, Select, Card, Alert, Spinner, Badge, Label } from 'flowbite-svelte';
-	import { Provider, GenerationStatus, GenerationDto, CreateGenerationDto } from '@api/shared';
+	import { Provider, GenerationStatus, GenerationDtoResponse, CreateGenerationDtoRequest } from '@api/shared';
 	import type { ProgressEvent, ErrorInfo } from '$lib/types/ui.types';
 	import { generationsService } from '$lib/api';
 	import ResultDisplay from './ResultDisplay.svelte';
@@ -11,7 +11,7 @@
 	let provider = $state<Provider>(Provider.OLLAMA);
 	let websiteUrl = $state('');
 
-	let currentGeneration = $state<GenerationDto | null>(null);
+	let currentGeneration = $state<GenerationDtoResponse | null>(null);
 	let status = $state<GenerationStatus>(GenerationStatus.WAITING);
 	let progress = $state<ProgressEvent>({ current: 0, total: 100, message: '' });
 	let result = $state<string>('');
@@ -34,7 +34,7 @@
 		currentGeneration = null;
 	}
 
-	function updateProgressMessage(generation: GenerationDto) {
+	function updateProgressMessage(generation: GenerationDtoResponse) {
 		status = generation.status;
 
 		switch (generation.status) {
@@ -64,7 +64,7 @@
 			const hostname = url.origin;
 
 			const createResponse = await generationsService.create(
-				new CreateGenerationDto(hostname, provider)
+				new CreateGenerationDtoRequest(hostname, provider)
 			);
 
 			if (!createResponse.message) {

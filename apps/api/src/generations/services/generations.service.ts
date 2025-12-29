@@ -7,7 +7,7 @@ import { GenerationStatus } from '../../enums/generation-status.enum';
 import { QueueService } from '../../queue/queue.service';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { AppConfigService, Provider } from '../../config/config.service';
-import { GenerationsListDto } from '../../shared/dtos/generation.dto';
+import { GenerationsListDtoResponse } from '../../shared/dtos/generation-response.dto';
 
 @Injectable()
 class GenerationsService {
@@ -29,7 +29,7 @@ class GenerationsService {
 		await this.generationRepository.delete(id);
 	}
 
-	public async listUserGenerations(userId: number | null, sessionId: string, page: number, limit: number): Promise<GenerationsListDto> {
+	public async listUserGenerations(userId: number | null, sessionId: string, page: number, limit: number): Promise<GenerationsListDtoResponse> {
 		const offset = (page - 1) * limit;
 
 		const [items, total] = await this.generationRequestRepository.findAndCount({
@@ -40,7 +40,7 @@ class GenerationsService {
 			take: limit
 		});
 
-		return GenerationsListDto.fromEntities(items, total, page, limit);
+		return GenerationsListDtoResponse.fromEntities(items, total, page, limit);
 	}
 
 	public async findOrCreateGenerationRequest(hostname: string, provider: Provider, userId: number | null, sessionId: string): Promise<Generation> {

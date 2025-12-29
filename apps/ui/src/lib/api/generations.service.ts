@@ -3,15 +3,15 @@ import { AppConfigService } from './config.service';
 import {
 	GenerationStatus,
 	ApiResponseModel,
-	GenerationDto,
-	GenerationsListDto,
-	CreateGenerationDto
+	GenerationDtoResponse,
+	GenerationsListDtoResponse,
+	CreateGenerationDtoRequest
 } from '@api/shared';
 
 const configService = new AppConfigService();
 
 export class GenerationsService extends HttpClient {
-	public async create(request: CreateGenerationDto): Promise<ApiResponseModel<GenerationDto>> {
+	public async create(request: CreateGenerationDtoRequest): Promise<ApiResponseModel<GenerationDtoResponse>> {
 		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.base, {
 			method: 'POST',
 			body: JSON.stringify(request)
@@ -19,22 +19,22 @@ export class GenerationsService extends HttpClient {
 
 		return new ApiResponseModel(
 			response.code,
-			GenerationDto.fromJson(response.message),
+			GenerationDtoResponse.fromJson(response.message),
 			response.error
 		);
 	}
 
-	public async findById(id: number): Promise<ApiResponseModel<GenerationDto>> {
+	public async findById(id: number): Promise<ApiResponseModel<GenerationDtoResponse>> {
 		const response = await this.fetch<Record<string, unknown>>(configService.endpoints.generations.byId(id));
 
 		return new ApiResponseModel(
 			response.code,
-			GenerationDto.fromJson(response.message),
+			GenerationDtoResponse.fromJson(response.message),
 			response.error
 		);
 	}
 
-	public async list(page = 1, limit = 20): Promise<ApiResponseModel<GenerationsListDto>> {
+	public async list(page = 1, limit = 20): Promise<ApiResponseModel<GenerationsListDtoResponse>> {
 		const params = new URLSearchParams({
 			page: page.toString(),
 			limit: limit.toString()
@@ -43,7 +43,7 @@ export class GenerationsService extends HttpClient {
 
 		return new ApiResponseModel(
 			response.code,
-			GenerationsListDto.fromJson(response.message),
+			GenerationsListDtoResponse.fromJson(response.message),
 			response.error
 		);
 	}
@@ -54,12 +54,12 @@ export class GenerationsService extends HttpClient {
 		});
 	}
 
-	public async pollUntilComplete(id: number, onProgress?: (generation: GenerationDto) => void): Promise<GenerationDto> {
+	public async pollUntilComplete(id: number, onProgress?: (generation: GenerationDtoResponse) => void): Promise<GenerationDtoResponse> {
 		const interval = configService.polling.interval;
 		const maxAttempts = configService.polling.maxAttempts;
 		let attempts = 0;
 
-		return new Promise<GenerationDto>((resolve, reject) => {
+		return new Promise<GenerationDtoResponse>((resolve, reject) => {
 			const poll = async (): Promise<void> => {
 				try {
 					attempts++;

@@ -6,4 +6,5 @@ export * from './enums/generation-status.enum';
 export * from './models/api-response.model';
 
 // DTOs
-export * from './dtos/generation.dto';
+export * from './dtos/generation-request.dto';
+export * from './dtos/generation-response.dto';
