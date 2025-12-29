@@ -20,6 +20,9 @@ class AppConfigService {
 		generations: {
 			base: '/api/generations',
 			byId: (id: number) => `/api/generations/${id}`
+		},
+		stats: {
+			host: (hostname: string) => `/api/stats/host?hostname=${encodeURIComponent(hostname)}`
 		}
 	};
 
