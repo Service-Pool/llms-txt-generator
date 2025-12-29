@@ -6,42 +6,49 @@
 	"workspaceFolder": "/app",
 	"shutdownAction": "none",
 	"remoteUser": "root",
-	"forwardPorts": [4200, 6379],
+	"forwardPorts": [
+		6060
+	],
 	"features": {
 		// "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
 	},
-	"mounts": ["source=${localEnv:HOME}/.ssh,target=/root/.ssh,readonly,type=bind"],
+	"mounts": [
+		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,readonly,type=bind"
+	],
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-azuretools.vscode-docker",
 				"svelte.svelte-vscode",
-				"dbaeumer.vscode-eslint",
-				"prettier.prettier-vscode"
+				"dbaeumer.vscode-eslint"
 			],
 			"settings": {
 				"editor.formatOnSave": true,
 				"editor.formatOnSaveMode": "file",
 				"[svelte]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[javascript]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[typescript]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[css]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[html]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[json]": {
-					"editor.defaultFormatter": "prettier.prettier-vscode"
+					"editor.defaultFormatter": "vscode.json-language-features"
 				},
 				"typescript.tsdk": "node_modules/typescript/lib",
-				"eslint.validate": ["javascript", "typescript", "html"],
+				"eslint.validate": [
+					"javascript",
+					"typescript",
+					"html"
+				],
 				"terminal.integrated.defaultProfile.linux": "bash"
 			},
 			"launch": {
@@ -55,7 +62,10 @@
 						"port": 9229,
 						"localRoot": "${workspaceFolder}",
 						"remoteRoot": "/app",
-						"skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+						"skipFiles": [
+							"<node_internals>/**",
+							"**/node_modules/**"
+						],
 						"sourceMaps": true,
 						"restart": true,
 						"timeout": 30000

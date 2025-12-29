@@ -1,0 +1,52 @@
+# Caddy reverse proxy для UI
+# Роутит запросы: /api/* → API, остальное → UI
+{
+        auto_https off
+        admin off
+}
+
+:${PORT_PROXY} {
+        # API endpoints
+        handle /api/* {
+                reverse_proxy llms-txt-generator-api:${PORT_API}
+        }
+
+        # WebSocket (Socket.IO)
+        # handle /socket.io/* {
+        #         reverse_proxy llms-txt-generator-api:${PORT_API}
+        # }
+
+        # Health check
+        handle /health {
+                reverse_proxy llms-txt-generator-api:${PORT_API}
+        }
+
+        # Vite HMR WebSocket (dev only)
+        @vite_hmr {
+                path /?token=*
+                not path /api/*
+                not path /socket.io/*
+                header Connection *Upgrade*
+                header Upgrade websocket
+        }
+
+        handle @vite_hmr {
+                reverse_proxy ${COMPOSE_PROJECT_NAME}-App:${PORT} {
+                        header_up Host {host}
+                        header_up X-Real-IP {remote}
+                        header_up X-Forwarded-For {remote}
+                        header_up X-Forwarded-Proto {scheme}
+                        flush_interval -1
+                }
+        }
+
+        # Frontend (всё остальное)
+        handle {
+                reverse_proxy ${COMPOSE_PROJECT_NAME}-App:${PORT}
+        }
+
+        log {
+                output stdout
+                format console
+        }
+}

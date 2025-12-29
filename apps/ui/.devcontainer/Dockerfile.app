@@ -8,4 +8,6 @@ RUN apt-get update \
 
 COPY _configs/supervisord-app.conf /etc/supervisord.conf
 
+EXPOSE 3301
+
 CMD ["bash", "/tmp/app/cmd-llms-txt-generator-ui.sh"]

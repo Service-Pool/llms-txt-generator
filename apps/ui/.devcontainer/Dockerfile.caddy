@@ -1,0 +1,7 @@
+FROM caddy:2-alpine
+
+RUN apk add --no-cache bash gettext
+
+COPY _configs/Caddyfile /etc/caddy/Caddyfile
+
+CMD ["bash", "/tmp/app/cmd-caddy.sh"]

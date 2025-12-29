@@ -5,7 +5,12 @@ if (!process.env.PORT) {
 	throw new Error('PORT environment variable is required');
 }
 
+if (!process.env.PORT_PROXY) {
+	throw new Error('PORT_PROXY environment variable is required');
+}
+
 const port = parseInt(process.env.PORT);
+const portProxy = parseInt(process.env.PORT_PROXY);
 
 // Plugin to stub server-side imports
 /**
@@ -18,7 +23,9 @@ const stubServerImports = {
 			case id === 'class-validator':
 			case id === 'robots-parser':
 			case id.includes('common/validators'):
+			case id.includes('config/config.service'):
 				return id;
+
 			default:
 				return null;
 		}
@@ -37,10 +44,16 @@ const stubServerImports = {
 				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
 				return exports;
 			}
+
 			case id.includes('common/validators'):
 				return `export const ValidateHostnameRobotsAndSitemap = () => () => {};`;
+
+			case id.includes('config/config.service'):
+				return `export const HOSTNAME_VALIDATION = () => () => {};`;
+
 			case id === 'robots-parser':
 				return `export default () => ({});`;
+
 			default:
 				return null;
 		}
@@ -55,19 +68,19 @@ export default defineConfig({
 	server: {
 		host: '0.0.0.0',
 		port: port,
-		allowedHosts: ['.svcpool.com'], // Разрешить все поддомены svcpool.com
+		strictPort: true,
+		allowedHosts: ['.svcpool.com'],
 		watch: {
 			usePolling: true,
 			interval: 100
 		},
 		hmr: {
-			host: 'localhost',
-			port: port,
+			// host: 'localhost',
+			// port: port,
+			clientPort: portProxy,
 			overlay: true
 		},
 		fs: {
-			// /app - working directory in Docker container where UI app is mounted
-			// /api/shared - shared folder from API mounted in Docker container
 			allow: ['/app', '/api']
 		}
 	}

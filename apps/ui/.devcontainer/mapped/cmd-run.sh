@@ -34,4 +34,3 @@ docker exec $CONTAINER_APP sh -c "
 
 echo ""
 echo "✅ All services started successfully!"
-echo "✅ Frontend (Svelte): http://localhost:${PORT}"

@@ -1,6 +1,28 @@
 name: ${COMPOSE_PROJECT_NAME}
 
 services:
+  caddy:
+    image: ${COMPOSE_PROJECT_NAME}-caddy
+    hostname: caddy
+    container_name: ${COMPOSE_PROJECT_NAME}-Caddy
+    build:
+      context: ..
+      dockerfile: Dockerfile.caddy
+    working_dir: /srv
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../_configs/Caddyfile:/tmp/Caddyfile
+      - ./cmd-caddy.sh:/tmp/app/cmd-caddy.sh
+    ports:
+      - ${PORT_PROXY}:${PORT_PROXY}
+    depends_on:
+      llms-txt-generator-ui:
+        condition: service_healthy
+    networks:
+      npm-network:
+
   llms-txt-generator-ui:
     image: ${COMPOSE_PROJECT_NAME}-app
     hostname: app
@@ -21,8 +43,6 @@ services:
       - claude_data:/home/www-data/.claude
       - claude_cache:/home/www-data/.cache/claude
       - vscode_server:/home/www-data/.vscode-server
-    ports:
-      - ${PORT}:${PORT}
     # Ports are not exposed externally - Multivisor will connect via Docker network
     # - "9001:9001"  # Supervisor web UI (internal only)
     # - "9002:9002"  # Multivisor RPC (internal only)

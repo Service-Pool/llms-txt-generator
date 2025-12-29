@@ -7,7 +7,7 @@ import { User } from '../auth/entitites/user.entity';
 import { Generation } from '../generations/entities/generation.entity';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { Session } from '../auth/entitites/session.entity';
-import { Provider } from '../shared/index';
+import { Provider } from '../shared/enums/provider.enum';
 
 dotenvConfig();
 
@@ -63,7 +63,7 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
-	CORS_ORIGIN: Joi.string().uri().required()
+	CORS_ORIGIN: Joi.string().allow('').required()
 });
 
 const PROVIDERS: Record<Provider, ProviderConfig> = {

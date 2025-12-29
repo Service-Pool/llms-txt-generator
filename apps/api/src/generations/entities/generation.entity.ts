@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Unique, OneToMany } from 'typeorm';
-import { GenerationStatus, Provider } from '../../shared/index';
+import { GenerationStatus } from '../../shared/enums/generation-status.enum';
+import { Provider } from '../../shared/enums/provider.enum';
 import { GenerationRequest } from './generation-request.entity';
 
 @Entity('generations')
