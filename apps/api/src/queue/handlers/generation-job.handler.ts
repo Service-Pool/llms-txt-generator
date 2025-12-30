@@ -6,9 +6,9 @@ import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GenerationJobMessage } from '../messages/generation-job.message';
 import { Generation } from '../../generations/entities/generation.entity';
-import { GenerationStatus } from '../../enums/generation-status.enum';
+import { GenerationStatus } from '../../shared/enums/generation-status.enum';
 import { AppConfigService } from '../../config/config.service';
-import { Provider } from '../../enums/provider.enum';
+import { Provider } from '../../shared/enums/provider.enum';
 import { RobotsService } from '../../common/services/robots.service';
 import { SitemapService } from '../../common/services/sitemap.service';
 import { ContentExtractorService } from '../../generations/services/content-extractor.service';
@@ -17,7 +17,7 @@ import { OllamaService } from '../../generations/services/llm/ollama.service';
 import { GeminiService } from '../../generations/services/llm/gemini.service';
 import { UrlSummary } from '../../generations/models/url-summary';
 import { UrlSummaryBatch } from '../../generations/models/url-summary-batch';
-import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/websocket.gateway';
+import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/events';
 
 /**
  * Generation job handler

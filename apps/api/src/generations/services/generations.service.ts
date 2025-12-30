@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
 import { Generation } from '../entities/generation.entity';
 import { GenerationRequest } from '../entities/generation-request.entity';
-import { GenerationStatus } from '../../enums/generation-status.enum';
+import { GenerationStatus } from '../../shared/enums/generation-status.enum';
 import { QueueService } from '../../queue/queue.service';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { AppConfigService } from '../../config/config.service';
-import { Provider } from '../../enums/provider.enum';
+import { Provider } from '../../shared/enums/provider.enum';
 import { GenerationsListDtoResponse } from '../../shared/dtos/generation-response.dto';
 
 @Injectable()
@@ -53,7 +53,7 @@ class GenerationsService {
 		});
 
 		// 2. Если generation завершена - вернуть её без создания job
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+
 		if (existingGeneration?.status === GenerationStatus.COMPLETED) {
 			await this.ensureGenerationRequest(existingGeneration.id, userId, sessionId);
 			return existingGeneration;
@@ -106,7 +106,7 @@ class GenerationsService {
 		}
 
 		// Если generation в статусе FAILED - сбросить на WAITING
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+
 		if (existing.status === GenerationStatus.FAILED) {
 			await this.manager.update(Generation, existing.id, {
 				status: GenerationStatus.WAITING,

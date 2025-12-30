@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsEnum, Matches } from 'class-validator';
 import { ValidateHostnameRobotsAndSitemap } from '../../common/validators/hostname.validator';
-import { Provider } from '../enums/provider.enum';
 import { HOSTNAME_VALIDATION } from '../../config/config.service';
+import { Provider } from '../enums/provider.enum';
 
 /**
  * DTO для создания генерации

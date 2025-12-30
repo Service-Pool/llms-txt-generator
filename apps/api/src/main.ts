@@ -1,15 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import fastifyCookie from '@fastify/cookie';
-import fastifySession from '@fastify/session';
+import { fastifyCookie } from '@fastify/cookie';
+import { fastifySession } from '@fastify/session';
+import { fastifyWebsocket } from '@fastify/websocket';
 import { DataSource } from 'typeorm';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { createWinstonLogger } from './config/config.logger';
 import { Session } from './auth/entitites/session.entity';
 import { TypeORMSessionStore } from './auth/typeorm-session.store';
-import { WebSocketAdapter } from './websocket/websocket.adapter';
 
 async function bootstrap() {
 	if (!process.env.PORT) {
@@ -25,8 +25,8 @@ async function bootstrap() {
 		{ logger }
 	);
 
-	// Setup WebSocket adapter
-	app.useWebSocketAdapter(new WebSocketAdapter(app));
+	// Register WebSocket plugin
+	await app.register(fastifyWebsocket);
 
 	// Enable CORS
 	app.enableCors({

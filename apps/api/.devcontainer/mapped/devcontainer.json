@@ -46,19 +46,20 @@
 				"configurations": [
 					{
 						"type": "node",
-						"request": "attach",
-						"name": "Attach to SvelteKit",
-						"address": "localhost",
-						"port": 9229,
-						"localRoot": "${workspaceFolder}",
-						"remoteRoot": "/app",
+						"request": "launch",
+						"name": "Debug APP (devcontainer)",
+						"runtimeExecutable": "npm",
+						"runtimeArgs": [
+							"run",
+							"app:dev"
+						],
+						"cwd": "${workspaceFolder}",
 						"skipFiles": [
 							"<node_internals>/**",
 							"**/node_modules/**"
 						],
-						"sourceMaps": true,
-						"restart": true,
-						"timeout": 30000
+						"console": "integratedTerminal",
+						"internalConsoleOptions": "neverOpen"
 					}
 				]
 			}

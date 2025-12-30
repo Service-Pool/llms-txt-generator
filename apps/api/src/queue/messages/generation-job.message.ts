@@ -1,4 +1,4 @@
-import { Provider } from '../../enums/provider.enum';
+import { Provider } from '../../shared/enums/provider.enum';
 
 class GenerationJobMessage {
 	constructor(

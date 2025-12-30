@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Queue, Worker, Job, JobsOptions, ConnectionOptions } from 'bullmq';
 import { AppConfigService } from '../../config/config.service';
 import { Generation } from '../../generations/entities/generation.entity';
-import { GenerationStatus } from '../../enums/generation-status.enum';
+import { GenerationStatus } from '../../shared/enums/generation-status.enum';
 
 @Injectable()
 export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
