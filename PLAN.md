@@ -146,29 +146,30 @@
 
 ---
 
-### ⏳ Backend - WebSocket
+### ✅ Backend - WebSocket - ЗАВЕРШЕНО
 
 3. **WebSocket Module**
-   - [ ] Установить `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`
-   - [ ] Создать `WebSocketModule` (`apps/api/src/websocket/websocket.module.ts`)
-   - [ ] Создать `WebSocketGateway` с аутентификацией через session cookie
-   - [ ] Реализовать subscribe/unsubscribe логику
-   - [ ] Добавить `@UseGuards(WsAuthGuard)` для проверки сессии
+   - [x] Установить `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`
+   - [x] Создать `WebSocketModule` (`apps/api/src/websocket/websocket.module.ts`)
+   - [x] Создать `WebSocketGateway` с CORS конфигурацией
+   - [x] Реализовать subscribe/unsubscribe логику (Socket.IO rooms)
+   - [ ] Добавить `@UseGuards(WsAuthGuard)` для проверки сессии (отложено)
 
 4. **Event Emitter Integration**
-   - [ ] Установить `@nestjs/event-emitter`
-   - [ ] Добавить `EventEmitterModule` в app.module.ts
-   - [ ] В `GenerationJobHandler`: emit events при прогрессе
-     - `generation.progress` (после обработки батча)
-     - `generation.completed` (после завершения)
-     - `generation.failed` (при ошибке)
-   - [ ] В `WebSocketGateway`: слушать events и отправлять в WebSocket
+   - [x] Установить `@nestjs/event-emitter`
+   - [x] Добавить `EventEmitterModule` в app.module.ts
+   - [x] В `GenerationJobHandler`: emit events при прогрессе
+     - [x] `generation.progress` (после обработки батча)
+     - [x] `generation.status` для completed (после завершения)
+     - [x] `generation.status` для failed (при ошибке)
+   - [x] В `WebSocketGateway`: слушать events и отправлять в WebSocket
+   - [x] Использованы классы вместо интерфейсов: `GenerationProgressEvent`, `GenerationStatusEvent`
 
 5. **Delete Enhancement**
-   - [ ] Обновить `DELETE /api/generations/:id`
-   - [ ] Удаление из БД
-   - [ ] Удаление из BullMQ (`queue.remove(jobId)`)
-   - [ ] Emit event `generation.deleted` через WebSocket
+   - [x] Обновить `DELETE /api/generations/:id`
+   - [x] Удаление из БД
+   - [x] Удаление из BullMQ (`queue.remove(jobId)`)
+   - [ ] Emit event `generation.deleted` через WebSocket (не требуется пока)
 
 ---
 
@@ -275,10 +276,11 @@
 
 ## Приоритеты
 
-1. **P0 (Critical):** Backend WebSocket + Frontend подключение
-2. **P1 (High):** Список генераций + real-time updates
-3. **P2 (Medium):** Детальный вид + пагинация
-4. **P3 (Low):** Polish + тесты
+1. **✅ P0 (Critical):** Backend WebSocket - ЗАВЕРШЕНО
+2. **⏳ P0 (Critical):** Frontend WebSocket Client - В РАБОТЕ
+3. **P1 (High):** Список генераций + real-time updates
+4. **P2 (Medium):** Детальный вид + пагинация
+5. **P3 (Low):** Polish + тесты
 
 ---
 

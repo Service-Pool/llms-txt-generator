@@ -33,8 +33,7 @@ export class TypeORMSessionStore {
 				}
 
 				console.log('[SessionStore] get() returning session data');
-				const sessionData = JSON.parse(session.sess) as FastifySession;
-				callback(null, sessionData);
+				callback(null, session.sess);
 			})
 			.catch((error: unknown) => {
 				console.error('[SessionStore] get() error:', error);
@@ -47,12 +46,11 @@ export class TypeORMSessionStore {
 
 		const maxAge = sessionData.cookie?.maxAge || this.defaultMaxAge;
 		const expire = new Date(Date.now() + maxAge);
-		const sess = JSON.stringify(sessionData);
 
 		console.log('[SessionStore] set() saving session');
 		this.sessionRepository.save({
 			sid,
-			sess,
+			sess: sessionData,
 			expire
 		})
 			.then(() => {

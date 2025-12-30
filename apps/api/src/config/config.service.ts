@@ -33,6 +33,7 @@ interface ValidatedEnv {
 	SESSION_MAX_AGE: number;
 	SESSION_SECRET: string;
 	CORS_ORIGIN: string;
+	SOCKET_PATH: string;
 }
 
 interface ProviderConfig {
@@ -63,7 +64,8 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
-	CORS_ORIGIN: Joi.string().allow('').required()
+	CORS_ORIGIN: Joi.string().allow('').required(),
+	SOCKET_PATH: Joi.string()
 });
 
 const PROVIDERS: Record<Provider, ProviderConfig> = {
@@ -148,6 +150,11 @@ class AppConfigService {
 			password: env.DB_PASSWORD,
 			database: env.DB_NAME
 		}
+	};
+
+	// WebSocket config
+	public readonly websocket = {
+		path: env.SOCKET_PATH
 	};
 
 	// Providers config

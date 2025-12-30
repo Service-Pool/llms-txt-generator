@@ -1,0 +1,1 @@
+Always use classes instead of interfaces for data structures. Classes should have constructor with readonly properties. Export classes at the bottom of the file in a single export statement.

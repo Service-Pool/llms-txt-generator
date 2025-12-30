@@ -9,6 +9,7 @@ import { AppConfigService } from './config/config.service';
 import { createWinstonLogger } from './config/config.logger';
 import { Session } from './auth/entitites/session.entity';
 import { TypeORMSessionStore } from './auth/typeorm-session.store';
+import { WebSocketAdapter } from './websocket/websocket.adapter';
 
 async function bootstrap() {
 	if (!process.env.PORT) {
@@ -23,6 +24,9 @@ async function bootstrap() {
 		new FastifyAdapter(),
 		{ logger }
 	);
+
+	// Setup WebSocket adapter
+	app.useWebSocketAdapter(new WebSocketAdapter(app));
 
 	// Enable CORS
 	app.enableCors({

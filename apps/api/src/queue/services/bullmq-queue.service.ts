@@ -13,10 +13,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	private readonly jobOptions: JobsOptions;
 	private readonly redisConnection: ConnectionOptions;
 
-	constructor(
-		private readonly configService: AppConfigService,
-		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>
-	) {
+	constructor(private readonly configService: AppConfigService, @InjectRepository(Generation) private readonly generationRepository: Repository<Generation>) {
 		this.jobOptions = {
 			attempts: this.configService.queue.retryLimit + 1, // retryLimit + initial attempt
 			backoff: {
@@ -86,6 +83,19 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 
 		const job = await queue.add('generate', data, options);
 		this.logger.log(`Job added to ${queueName} with ID ${job.id}`);
+	}
+
+	public async remove(jobId: string): Promise<void> {
+		// Try to remove from all queues (job can be in any provider queue)
+		for (const [queueName, queue] of this.queues.entries()) {
+			const job = await queue.getJob(jobId);
+			if (job) {
+				await job.remove();
+				this.logger.log(`Job ${jobId} removed from ${queueName}`);
+				return;
+			}
+		}
+		this.logger.warn(`Job ${jobId} not found in any queue`);
 	}
 
 	/**

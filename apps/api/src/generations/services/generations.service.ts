@@ -27,7 +27,9 @@ class GenerationsService {
 	}
 
 	public async delete(id: number): Promise<void> {
+		const jobId = this.generateJobId(id);
 		await this.generationRepository.delete(id);
+		await this.queueService.remove(jobId);
 	}
 
 	public async listUserGenerations(userId: number | null, sessionId: string, page: number, limit: number): Promise<GenerationsListDtoResponse> {

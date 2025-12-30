@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { Redis } from 'ioredis';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GenerationJobMessage } from '../messages/generation-job.message';
 import { Generation } from '../../generations/entities/generation.entity';
 import { GenerationStatus } from '../../enums/generation-status.enum';
@@ -16,6 +17,7 @@ import { OllamaService } from '../../generations/services/llm/ollama.service';
 import { GeminiService } from '../../generations/services/llm/gemini.service';
 import { UrlSummary } from '../../generations/models/url-summary';
 import { UrlSummaryBatch } from '../../generations/models/url-summary-batch';
+import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/websocket.gateway';
 
 /**
  * Generation job handler
@@ -26,6 +28,22 @@ export class GenerationJobHandler {
 	private readonly logger = new Logger(GenerationJobHandler.name);
 	private readonly redis: Redis;
 	private readonly cacheTtl: number;
+	private context: {
+		generationId: number;
+		totalUrls: number;
+		provider: Provider;
+		hostname: string;
+		cleanHostname: string;
+		llmService: AiServiceInterface;
+		batchSize: number;
+	} | null = null;
+
+	private get ctx() {
+		if (!this.context) {
+			throw new Error('Context is not initialized');
+		}
+		return this.context;
+	}
 
 	public constructor(
 		private readonly configService: AppConfigService,
@@ -34,6 +52,7 @@ export class GenerationJobHandler {
 		private readonly contentExtractor: ContentExtractorService,
 		private readonly ollamaService: OllamaService,
 		private readonly geminiService: GeminiService,
+		private readonly eventEmitter: EventEmitter2,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>
 	) {
 		this.redis = new Redis({
@@ -50,51 +69,56 @@ export class GenerationJobHandler {
 
 		try {
 			const sitemapUrls = await this.robotsService.getSitemaps(hostname);
-			const llmService = this.getLlmService(provider);
-			const batchSize = this.configService.providers[provider].batchSize;
-			const cleanHostname = this.cleanHostname(hostname);
+			const totalUrls = await this.countTotalUrls(sitemapUrls);
 
-			await this.countTotalUrls(sitemapUrls);
+			// Set context for the job
+			this.context = {
+				generationId,
+				totalUrls,
+				provider,
+				hostname,
+				cleanHostname: this.cleanHostname(hostname),
+				llmService: this.getLlmService(provider),
+				batchSize: this.configService.providers[provider].batchSize
+			};
 
-			const allSummaries = await this.processUrlsInBatches(sitemapUrls, llmService, provider, cleanHostname, batchSize);
-			const websiteDescription = await this.getWebsiteDescription(llmService, allSummaries, provider, cleanHostname);
+			const allSummaries = await this.processUrlsInBatches(sitemapUrls);
+			const websiteDescription = await this.getWebsiteDescription(allSummaries);
 
-			await this.completeGeneration(generationId, hostname, websiteDescription, allSummaries, job.id);
+			await this.completeGeneration(websiteDescription, allSummaries, job.id);
 		} catch (error) {
-			await this.handleJobError(generationId, job, error);
+			await this.handleJobError(job, error);
 			throw error;
+		} finally {
+			this.context = null;
 		}
 	}
 
-	private cleanHostname(hostname: string): string {
-		return hostname.replace(/^https?:\/\//, '').replace(/\/$/, '');
-	}
-
-	private async countTotalUrls(sitemapUrls: string[]): Promise<void> {
-		let totalUrls = 0;
-		for await (const _url of this.sitemapService.getUrlsStream(sitemapUrls)) {
-			totalUrls++;
-		}
-		this.logger.log(`Total URLs found: ${totalUrls}`);
-	}
-
-	private async processUrlsInBatches(sitemapUrls: string[], llmService: AiServiceInterface, provider: Provider, cleanHostname: string, batchSize: number): Promise<UrlSummary[]> {
+	private async processUrlsInBatches(sitemapUrls: string[]): Promise<UrlSummary[]> {
 		const allSummaries: UrlSummary[] = [];
 		let batchItems: UrlSummary[] = [];
 
-		this.logger.log(`Processing a job with batch size: ${batchSize}`);
+		this.logger.log(`Processing a job with batch size: ${this.ctx.batchSize}`);
 
 		const urls = this.sitemapService.getUrlsStream(sitemapUrls);
 
 		for await (const url of urls) {
 			batchItems.push(new UrlSummary(url, this.contentExtractor));
 
-			if (batchItems.length >= batchSize) {
+			if (batchItems.length >= this.ctx.batchSize) {
 				const batch = new UrlSummaryBatch(batchItems, this.redis);
 				this.logger.log(`Processing batch of ${batch.size} URLs`);
 
-				await this.processBatch(batch, llmService, provider, cleanHostname);
+				await this.processBatch(batch);
 				allSummaries.push(...batch.getItems());
+
+				// Emit progress event
+				this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
+					this.ctx.generationId,
+					GenerationStatus.ACTIVE,
+					allSummaries.length,
+					this.ctx.totalUrls
+				));
 
 				batchItems = [];
 			}
@@ -104,15 +128,28 @@ export class GenerationJobHandler {
 			const batch = new UrlSummaryBatch(batchItems, this.redis);
 			this.logger.log(`Processing final batch of ${batch.size} URLs`);
 
-			await this.processBatch(batch, llmService, provider, cleanHostname);
+			await this.processBatch(batch);
 			allSummaries.push(...batch.getItems());
+
+			// Emit final progress event
+			this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
+				this.ctx.generationId,
+				GenerationStatus.ACTIVE,
+				allSummaries.length,
+				this.ctx.totalUrls
+			));
 		}
 
 		return allSummaries;
 	}
 
-	private async getWebsiteDescription(llmService: AiServiceInterface, summaries: UrlSummary[], provider: Provider, cleanHostname: string): Promise<string> {
-		const cacheKey = `summary:${provider}:${cleanHostname}`;
+	private async processBatch(batch: UrlSummaryBatch): Promise<void> {
+		const cacheKey = `summary:${this.ctx.provider}:${this.ctx.cleanHostname}`;
+		await batch.loadSummaries(this.ctx.llmService, cacheKey, this.cacheTtl);
+	}
+
+	private async getWebsiteDescription(summaries: UrlSummary[]): Promise<string> {
+		const cacheKey = `summary:${this.ctx.provider}:${this.ctx.cleanHostname}`;
 		const cachedDescription = await this.redis.hget(cacheKey, '__webDescription__');
 
 		if (cachedDescription) {
@@ -121,7 +158,7 @@ export class GenerationJobHandler {
 		}
 
 		this.logger.log(`Generating website description from ${summaries.length} summaries`);
-		const websiteDescription = await llmService.generateWebsiteDescription(summaries);
+		const websiteDescription = await this.ctx.llmService.generateWebsiteDescription(summaries);
 		this.logger.log(`Generated website description: ${websiteDescription.substring(0, 100)}...`);
 
 		await this.redis.hset(cacheKey, '__webDescription__', websiteDescription);
@@ -130,20 +167,29 @@ export class GenerationJobHandler {
 		return websiteDescription;
 	}
 
-	private async completeGeneration(generationId: number, hostname: string, websiteDescription: string, summaries: UrlSummary[], jobId: string | undefined): Promise<void> {
-		const llmsTxt = this.formatLlmsTxt(hostname, websiteDescription, summaries);
+	private async completeGeneration(websiteDescription: string, summaries: UrlSummary[], jobId: string | undefined): Promise<void> {
+		const llmsTxt = this.formatLlmsTxt(this.ctx.hostname, websiteDescription, summaries);
 
-		await this.generationRepository.update(generationId, {
+		await this.generationRepository.update(this.ctx.generationId, {
 			status: GenerationStatus.COMPLETED,
 			content: llmsTxt,
 			entriesCount: summaries.length
 		});
 
-		this.logger.log(`Completed job ${jobId} for generation ${generationId}`);
+		// Emit completion event
+		this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
+			this.ctx.generationId,
+			GenerationStatus.COMPLETED,
+			llmsTxt,
+			undefined,
+			summaries.length
+		));
+
+		this.logger.log(`Completed job ${jobId} for generation ${this.ctx.generationId}`);
 	}
 
-	private async handleJobError(generationId: number, job: Job, error: unknown): Promise<void> {
-		this.logger.error(`Failed job ${job.id} for generation ${generationId}:`, error);
+	private async handleJobError(job: Job, error: unknown): Promise<void> {
+		this.logger.error(`Failed job ${job.id} for generation ${this.ctx.generationId}:`, error);
 
 		const maxAttempts = this.configService.queue.retryLimit + 1;
 		const currentAttempt = job.attemptsStarted;
@@ -153,17 +199,42 @@ export class GenerationJobHandler {
 		const isLastAttempt = currentAttempt >= maxAttempts;
 
 		if (isLastAttempt) {
-			this.logger.error(`Final attempt failed, marking generation ${generationId} as FAILED`);
-			await this.generationRepository.update(generationId, {
+			this.logger.error(`Final attempt failed, marking generation ${this.ctx.generationId} as FAILED`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+
+			await this.generationRepository.update(this.ctx.generationId, {
 				status: GenerationStatus.FAILED,
-				errorMessage: error instanceof Error ? error.message : String(error)
+				errorMessage
 			});
+
+			// Emit failure event
+			this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
+				this.ctx.generationId,
+				GenerationStatus.FAILED,
+				undefined,
+				errorMessage
+			));
 		} else {
 			this.logger.warn(`Will retry (${maxAttempts - currentAttempt} attempts remaining)`);
-			await this.generationRepository.update(generationId, {
+			await this.generationRepository.update(this.ctx.generationId, {
 				errorMessage: error instanceof Error ? error.message : String(error)
 			});
 		}
+	}
+
+	private cleanHostname(hostname: string): string {
+		return hostname.replace(/^https?:\/\//, '').replace(/\/$/, '');
+	}
+
+	private async countTotalUrls(sitemapUrls: string[]): Promise<number> {
+		let totalUrls = 0;
+
+		for await (const _url of this.sitemapService.getUrlsStream(sitemapUrls)) {
+			totalUrls++;
+		}
+		this.logger.log(`Total URLs found: ${totalUrls}`);
+
+		return totalUrls;
 	}
 
 	private getLlmService(provider: Provider): AiServiceInterface {
@@ -175,11 +246,6 @@ export class GenerationJobHandler {
 			default:
 				throw new Error(`Unknown provider: ${provider as string}`);
 		}
-	}
-
-	private async processBatch(batch: UrlSummaryBatch, llmService: AiServiceInterface, provider: Provider, hostname: string): Promise<void> {
-		const cacheKey = `summary:${provider}:${hostname}`;
-		await batch.loadSummaries(llmService, cacheKey, this.cacheTtl);
 	}
 
 	/**
