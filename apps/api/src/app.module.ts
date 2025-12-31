@@ -9,24 +9,28 @@ import { AppConfigService } from './config/config.service';
 import { HttpModule } from './common/http.module';
 import { RobotsModule } from './common/robots.module';
 import { SitemapModule } from './common/sitemap.module';
+import { QueueModule } from './queue/queue.module';
 import { AuthModule } from './auth/auth.module';
 import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
 	imports: [
-		AppConfigModule,
-		HttpModule,
-		RobotsModule,
-		SitemapModule,
 		ConfigModule.forRoot({
 			isGlobal: true,
 			ignoreEnvFile: true
 		}),
-		EventEmitterModule.forRoot(),
+		EventEmitterModule.forRoot({
+			global: true
+		}),
+		AppConfigModule,
+		HttpModule,
+		RobotsModule,
+		SitemapModule,
 		TypeOrmModule.forRootAsync({
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		}),
+		QueueModule,
 		AuthModule,
 		GenerationsModule,
 		StatsModule,

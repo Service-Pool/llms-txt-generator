@@ -1,15 +1,21 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { type FastifyRequest } from 'fastify';
 import { type FastifySessionObject } from '@fastify/session';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GenerationsService } from './services/generations.service';
 import { CreateGenerationDtoRequest } from '../shared/dtos/generation-request.dto';
 import { GenerationsListDtoResponse, GenerationDtoResponse } from '../shared/dtos/generation-response.dto';
 import { Session } from '../common/decorators/session.decorator';
 import { ResponseFactory } from '../common/utils/response.factory';
+import { GenerationProgressEvent, GenerationStatusEvent } from '../websocket/events';
+import { GenerationStatus } from '../shared/enums/generation-status.enum';
 
 @Controller('api/generations')
 class GenerationsController {
-	constructor(private readonly generationsService: GenerationsService) {}
+	constructor(
+		private readonly generationsService: GenerationsService,
+		private readonly eventEmitter: EventEmitter2
+	) {}
 
 	@Get()
 	public async list(@Session() session: FastifySessionObject, @Query('page') page: number = 1, @Query('limit') limit: number = 20): Promise<ReturnType<typeof ResponseFactory.success<GenerationsListDtoResponse>>> {
@@ -61,6 +67,33 @@ class GenerationsController {
 		await this.generationsService.delete(parseInt(id));
 
 		return ResponseFactory.success({ message: 'Generation deleted' });
+	}
+
+	@Post(':id/test-event')
+	@HttpCode(HttpStatus.OK)
+	public testEvent(@Param('id') id: string): ReturnType<typeof ResponseFactory.success<{ message: string }>> {
+		const generationId = parseInt(id);
+
+		// Emit test progress event
+		this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
+			generationId,
+			GenerationStatus.ACTIVE,
+			5,
+			10
+		));
+
+		// Emit test status event
+		setTimeout(() => {
+			this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
+				generationId,
+				GenerationStatus.COMPLETED,
+				'# Test\n\nTest content',
+				undefined,
+				10
+			));
+		}, 2000);
+
+		return ResponseFactory.success({ message: 'Test events emitted' });
 	}
 }
 

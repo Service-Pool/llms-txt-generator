@@ -5,5 +5,8 @@
 	"testRegex": ".e2e-spec.ts$",
 	"transform": {
 		"^.+\\.(t|j)s$": "ts-jest"
-	}
+	},
+	"transformIgnorePatterns": [
+		"node_modules/(?!(jsdom|parse5|entities|dom-serializer|domhandler|htmlparser2|sitemapper|p-limit|yocto-queue)/)"
+	]
 }

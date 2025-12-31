@@ -182,6 +182,7 @@ class WebSocketGateway implements OnModuleInit {
 	// Broadcasting
 	private broadcast(room: string, message: unknown): void {
 		const clients = this.clients.get(room);
+		this.logger.log(`Broadcasting to room: ${room}, clients: ${clients?.size || 0}`);
 		if (clients && clients.size > 0) {
 			const messageStr = JSON.stringify(message);
 			for (const socket of clients) {
@@ -191,13 +192,16 @@ class WebSocketGateway implements OnModuleInit {
 					this.logger.error('Broadcast error:', error);
 				}
 			}
-			this.logger.log(`Broadcast: ${room} (${clients.size} clients)`);
+			this.logger.log(`Broadcast sent to ${clients.size} clients`);
+		} else {
+			this.logger.warn(`No clients in room: ${room}`);
 		}
 	}
 
 	// Event Handlers
 	@OnEvent('generation.progress')
 	handleGenerationProgress(event: GenerationProgressEvent): void {
+		this.logger.log(`Received generation.progress event for ${event.generationId}`);
 		this.broadcast(`generation-${event.generationId}`, {
 			type: 'generation:progress',
 			payload: event
@@ -206,6 +210,7 @@ class WebSocketGateway implements OnModuleInit {
 
 	@OnEvent('generation.status')
 	handleGenerationStatus(event: GenerationStatusEvent): void {
+		this.logger.log(`Received generation.status event for ${event.generationId}`);
 		this.broadcast(`generation-${event.generationId}`, {
 			type: 'generation:status',
 			payload: event

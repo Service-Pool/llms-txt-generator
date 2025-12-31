@@ -9,6 +9,7 @@ import { GenerationJobMessage } from '../../queue/messages/generation-job.messag
 import { AppConfigService } from '../../config/config.service';
 import { Provider } from '../../shared/enums/provider.enum';
 import { GenerationsListDtoResponse } from '../../shared/dtos/generation-response.dto';
+import { JobIdUtil } from '../../shared/utils/job-id.util';
 
 @Injectable()
 class GenerationsService {
@@ -165,7 +166,7 @@ class GenerationsService {
 	}
 
 	private generateJobId(generationId: number): string {
-		return `genId-${generationId}`;
+		return JobIdUtil.generate(generationId);
 	}
 }
 

@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { Redis } from 'ioredis';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GenerationJobMessage } from '../messages/generation-job.message';
 import { Generation } from '../../generations/entities/generation.entity';
 import { GenerationStatus } from '../../shared/enums/generation-status.enum';
@@ -17,7 +16,6 @@ import { OllamaService } from '../../generations/services/llm/ollama.service';
 import { GeminiService } from '../../generations/services/llm/gemini.service';
 import { UrlSummary } from '../../generations/models/url-summary';
 import { UrlSummaryBatch } from '../../generations/models/url-summary-batch';
-import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/events';
 
 /**
  * Generation job handler
@@ -29,6 +27,7 @@ export class GenerationJobHandler {
 	private readonly redis: Redis;
 	private readonly cacheTtl: number;
 	private context: {
+		job: Job<GenerationJobMessage>;
 		generationId: number;
 		totalUrls: number;
 		provider: Provider;
@@ -52,7 +51,6 @@ export class GenerationJobHandler {
 		private readonly contentExtractor: ContentExtractorService,
 		private readonly ollamaService: OllamaService,
 		private readonly geminiService: GeminiService,
-		private readonly eventEmitter: EventEmitter2,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>
 	) {
 		this.redis = new Redis({
@@ -73,6 +71,7 @@ export class GenerationJobHandler {
 
 			// Set context for the job
 			this.context = {
+				job,
 				generationId,
 				totalUrls,
 				provider,
@@ -112,13 +111,11 @@ export class GenerationJobHandler {
 				await this.processBatch(batch);
 				allSummaries.push(...batch.getItems());
 
-				// Emit progress event
-				this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
-					this.ctx.generationId,
-					GenerationStatus.ACTIVE,
-					allSummaries.length,
-					this.ctx.totalUrls
-				));
+				// Update job progress (will be picked up by BullMQ worker)
+				await this.ctx.job.updateProgress({
+					processedUrls: allSummaries.length,
+					totalUrls: this.ctx.totalUrls
+				});
 
 				batchItems = [];
 			}
@@ -131,13 +128,11 @@ export class GenerationJobHandler {
 			await this.processBatch(batch);
 			allSummaries.push(...batch.getItems());
 
-			// Emit final progress event
-			this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
-				this.ctx.generationId,
-				GenerationStatus.ACTIVE,
-				allSummaries.length,
-				this.ctx.totalUrls
-			));
+			// Update final progress
+			await this.ctx.job.updateProgress({
+				processedUrls: allSummaries.length,
+				totalUrls: this.ctx.totalUrls
+			});
 		}
 
 		return allSummaries;
@@ -176,15 +171,6 @@ export class GenerationJobHandler {
 			entriesCount: summaries.length
 		});
 
-		// Emit completion event
-		this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
-			this.ctx.generationId,
-			GenerationStatus.COMPLETED,
-			llmsTxt,
-			undefined,
-			summaries.length
-		));
-
 		this.logger.log(`Completed job ${jobId} for generation ${this.ctx.generationId}`);
 	}
 
@@ -206,14 +192,6 @@ export class GenerationJobHandler {
 				status: GenerationStatus.FAILED,
 				errorMessage
 			});
-
-			// Emit failure event
-			this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
-				this.ctx.generationId,
-				GenerationStatus.FAILED,
-				undefined,
-				errorMessage
-			));
 		} else {
 			this.logger.warn(`Will retry (${maxAttempts - currentAttempt} attempts remaining)`);
 			await this.generationRepository.update(this.ctx.generationId, {
