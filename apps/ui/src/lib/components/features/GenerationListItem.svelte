@@ -94,26 +94,32 @@
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-	<div class="flex items-start justify-between gap-4 mb-3">
-		<div class="flex-1 min-w-0">
-			<!-- Hostname -->
-			<h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate mb-2">
-				{item.hostname || 'Unknown'}
-			</h3>
-
-			<!-- Status & Provider -->
-			<div class="flex items-center gap-2 mb-3">
-				<span class="px-2.5 py-0.5 rounded text-xs font-medium {statusConfig.class}">
+	<div class="flex flex-wrap items-start justify-between gap-3">
+		<div class="flex-1">
+			<!-- Hostname with Status -->
+			<div class="flex items-baseline gap-2 mb-2">
+				<h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+					{item.hostname || 'Unknown'}
+				</h3>
+				<span class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
 					{statusConfig.text}
 				</span>
-				<span class="text-sm text-gray-500 dark:text-gray-400">
-					{item.provider || 'unknown'}
-				</span>
+			</div>
+
+			<!-- Provider & Metadata in one line -->
+			<div class="flex flex-wrap items-center gap-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+				<span>{item.provider || 'unknown'}</span>
+				<span>•</span>
+				<span>{formattedDate}</span>
+				{#if item.entriesCount}
+					<span>•</span>
+					<span>{item.entriesCount} entries</span>
+				{/if}
 			</div>
 
 			<!-- Progress Bar for Active Generations -->
 			{#if status === GenerationStatus.ACTIVE && progress}
-				<div class="mb-3">
+				<div class="mt-2">
 					<ProgressBar
 						current={progress.processedUrls}
 						total={progress.totalUrls}
@@ -126,27 +132,19 @@
 
 			<!-- Error Message -->
 			{#if status === GenerationStatus.FAILED && item.errorMessage}
-				<div class="text-sm text-red-600 dark:text-red-400 mb-2">
+				<div class="text-xs text-red-600 dark:text-red-400 mt-1">
 					Error: {item.errorMessage}
 				</div>
 			{/if}
-
-			<!-- Metadata -->
-			<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-				<span>{formattedDate}</span>
-				{#if item.entriesCount}
-					<span>{item.entriesCount} entries</span>
-				{/if}
-			</div>
 		</div>
 
 		<!-- Action Buttons -->
-		<div class="shrink-0 flex items-center gap-2">
+		<div class="shrink-0 flex items-center gap-1">
 			{#if status === GenerationStatus.COMPLETED}
 				<button
 					onclick={handleShowContent}
 					disabled={false}
-					class="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					<span>{showContent ? 'Hide' : 'Show'}</span>
 				</button>
@@ -154,7 +152,7 @@
 
 			<button
 				onclick={handleDelete}
-				class="px-3 py-1.5 text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
+				class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
 				aria-label="Delete generation"
 			>
 				Delete
@@ -164,13 +162,13 @@
 
 	<!-- Content Section -->
 	{#if showContent || isLoading}
-		<div class="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 mb-3 max-h-96 overflow-y-auto">
+		<div class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
 			{#if isLoading}
-				<div class="flex justify-center items-center py-8">
-					<Spinner size="md" color="#3b82f6" delay={1000} />
+				<div class="flex justify-center items-center py-6">
+					<Spinner size="md" color="var(--spinner-color)" delay={1000} />
 				</div>
 			{:else}
-				<p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap break-all">
+				<p class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
 					{fullContent}
 				</p>
 			{/if}
@@ -179,16 +177,16 @@
 
 	<!-- Action Buttons for Content -->
 	{#if showContent && fullContent && !isLoading}
-		<div class="flex gap-2 justify-end">
+		<div class="flex gap-1 justify-end mt-2">
 			<button
 				onclick={handleCopy}
-				class="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors"
+				class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors"
 			>
 				Copy
 			</button>
 			<button
 				onclick={handleDownload}
-				class="px-3 py-1.5 text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors"
+				class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors"
 			>
 				Download
 			</button>

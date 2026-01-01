@@ -13,10 +13,26 @@
 	--color-primary-700: #1d4ed8;
 	--color-primary-800: #1e40af;
 	--color-primary-900: #1e3a8a;
+	
+	/* Компоненты */
+	--spinner-color: rgb(59, 130, 246);
+}
+
+html,
+body {
+	overflow-x: hidden;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	max-width: 100vw;
 }
 
 html {
 	overflow-y: scroll;
+}
+
+body {
+	position: relative;
 }
 
 button {
