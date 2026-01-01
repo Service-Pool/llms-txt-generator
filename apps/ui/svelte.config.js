@@ -13,7 +13,7 @@ const config = {
 			out: 'dist'
 		}),
 		alias: {
-			'@api/shared': '../api/src/shared'
+			'@api/shared': '../api/src/shared.ts'
 		}
 	}
 };

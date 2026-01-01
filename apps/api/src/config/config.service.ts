@@ -1,13 +1,13 @@
-import * as Joi from 'joi';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { config as dotenvConfig } from 'dotenv';
-import { User } from '../auth/entitites/user.entity';
-import { Generation } from '../generations/entities/generation.entity';
-import { GenerationRequest } from '../generations/entities/generation-request.entity';
-import { Session } from '../auth/entitites/session.entity';
-import { Provider } from '../shared/enums/provider.enum';
+import { DataSource } from 'typeorm';
+import { Generation } from '../modules/generations/entities/generation.entity';
+import { GenerationRequest } from '../modules/generations/entities/generation-request.entity';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Provider } from '../enums/provider.enum';
+import { Session } from '../modules/auth/entitites/session.entity';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { User } from '../modules/auth/entitites/user.entity';
+import * as Joi from 'joi';
 
 dotenvConfig();
 

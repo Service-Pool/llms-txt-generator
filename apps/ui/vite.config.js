@@ -1,5 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import path from 'path';
 
 if (!process.env.PORT) {
 	throw new Error('PORT environment variable is required');
@@ -23,6 +24,7 @@ const stubServerImports = {
 			case id === 'class-validator':
 			case id === 'robots-parser':
 			case id.includes('common/validators'):
+			case id.includes('validators/hostname.validator'):
 			case id.includes('config/config.service'):
 				return id;
 
@@ -47,6 +49,9 @@ const stubServerImports = {
 
 			case id.includes('common/validators'):
 				return `export const ValidateHostnameRobotsAndSitemap = () => () => {};`;
+
+			case id.includes('validators/hostname.validator'):
+				return `export const ValidateHostnameRobotsAndSitemap = () => () => {}; export class HostnameRobotsAndSitemapConstraint {}`;
 
 			case id.includes('config/config.service'):
 				return `export const HOSTNAME_VALIDATION = () => () => {};`;
@@ -81,7 +86,11 @@ export default defineConfig({
 			overlay: true
 		},
 		fs: {
-			allow: ['/app', '/api']
+			allow: [
+				'/app',
+				'/api',
+				path.resolve(__dirname, '..') // Allow access to parent directory (monorepo root)
+			]
 		}
 	}
 });

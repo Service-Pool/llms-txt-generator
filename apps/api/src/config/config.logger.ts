@@ -1,7 +1,7 @@
+import { inspect } from 'util';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { inspect } from 'util';
 
 class LoggerFactory {
 	private readonly fileFormat: winston.Logform.Format;

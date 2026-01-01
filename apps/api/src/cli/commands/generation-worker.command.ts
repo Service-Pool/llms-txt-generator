@@ -1,10 +1,10 @@
-import { Command, CommandRunner } from 'nest-commander';
-import { Logger } from '@nestjs/common';
-import { Worker, Job } from 'bullmq';
-import { QueueService } from '../../queue/queue.service';
 import { AppConfigService } from '../../config/config.service';
-import { GenerationJobHandler } from '../../queue/handlers/generation-job.handler';
-import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
+import { Command, CommandRunner } from 'nest-commander';
+import { GenerationJobHandler } from '../../modules/queue/handlers/generation-job.handler';
+import { GenerationJobMessage } from '../../modules/queue/messages/generation-job.message';
+import { Logger } from '@nestjs/common';
+import { QueueService } from '../../modules/queue/queue.service';
+import { Worker, Job } from 'bullmq';
 
 @Command({
 	name: 'generation-worker:start',
