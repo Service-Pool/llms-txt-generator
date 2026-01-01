@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Session } from './entitites/session.entity';
 import { type Session as FastifySession } from 'fastify';
@@ -6,17 +7,19 @@ type Callback = (err?: Error | null) => void;
 type CallbackSession = (err: Error | null, result?: FastifySession | null) => void;
 
 export class TypeORMSessionStore {
+	private readonly logger = new Logger(TypeORMSessionStore.name);
+
 	constructor(
 		private readonly sessionRepository: Repository<Session>,
 		private readonly defaultMaxAge: number
 	) {}
 
 	get(sid: string, callback: CallbackSession): void {
-		console.log('[SessionStore] get() called for sid:', sid);
+		this.logger.log(`[get] Called for sid: ${sid}`);
 
 		this.sessionRepository.findOne({ where: { sid } })
 			.then((session) => {
-				console.log('[SessionStore] get() session found:', !!session);
+				this.logger.log(`[get] Session found: ${!!session}`);
 
 				if (!session) {
 					callback(null, null);
@@ -25,54 +28,54 @@ export class TypeORMSessionStore {
 
 				// Check if expired
 				if (session.expire < new Date()) {
-					console.log('[SessionStore] get() session expired');
+					this.logger.log('[get] Session expired');
 					this.destroy(sid, () => {
 						callback(null, null);
 					});
 					return;
 				}
 
-				console.log('[SessionStore] get() returning session data');
+				this.logger.log('[get] Returning session data');
 				callback(null, session.sess);
 			})
 			.catch((error: unknown) => {
-				console.error('[SessionStore] get() error:', error);
+				this.logger.error('[get] Error:', error);
 				callback(error instanceof Error ? error : new Error(String(error)));
 			});
 	}
 
 	set(sid: string, sessionData: FastifySession, callback: Callback): void {
-		console.log('[SessionStore] set() called for sid:', sid);
+		this.logger.log(`[set] Called for sid: ${sid}`);
 
 		const maxAge = sessionData.cookie?.maxAge || this.defaultMaxAge;
 		const expire = new Date(Date.now() + maxAge);
 
-		console.log('[SessionStore] set() saving session');
+		this.logger.log('[set] Saving session');
 		this.sessionRepository.save({
 			sid,
 			sess: sessionData,
 			expire
 		})
 			.then(() => {
-				console.log('[SessionStore] set() session saved');
+				this.logger.log('[set] Session saved');
 				callback();
 			})
 			.catch((error: unknown) => {
-				console.error('[SessionStore] set() error:', error);
+				this.logger.error('[set] Error:', error);
 				callback(error instanceof Error ? error : new Error(String(error)));
 			});
 	}
 
 	destroy(sid: string, callback: Callback): void {
-		console.log('[SessionStore] destroy() called for sid:', sid);
+		this.logger.log(`[destroy] Called for sid: ${sid}`);
 
 		this.sessionRepository.delete({ sid })
 			.then(() => {
-				console.log('[SessionStore] destroy() completed');
+				this.logger.log('[destroy] Completed');
 				callback();
 			})
 			.catch((error: unknown) => {
-				console.error('[SessionStore] destroy() error:', error);
+				this.logger.error('[destroy] Error:', error);
 				callback(error instanceof Error ? error : new Error(String(error)));
 			});
 	}

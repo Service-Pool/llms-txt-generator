@@ -2,13 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
 import { Generation } from '../entities/generation.entity';
-import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationStatus } from '../../shared/enums/generation-status.enum';
 import { QueueService } from '../../queue/queue.service';
-import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { AppConfigService } from '../../config/config.service';
 import { Provider } from '../../shared/enums/provider.enum';
-import { GenerationsListDtoResponse } from '../../shared/dtos/generation-response.dto';
 import { JobIdUtil } from '../../shared/utils/job-id.util';
 
 @Injectable()
@@ -19,8 +16,7 @@ class GenerationsService {
 		private readonly queueService: QueueService,
 		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource,
-		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
-		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
+		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>
 	) {}
 
 	public async findById(id: number): Promise<Generation | null> {
@@ -33,136 +29,64 @@ class GenerationsService {
 		await this.queueService.remove(jobId);
 	}
 
-	public async listUserGenerations(userId: number | null, sessionId: string, page: number, limit: number): Promise<GenerationsListDtoResponse> {
-		const offset = (page - 1) * limit;
-
-		const [items, total] = await this.generationRequestRepository.findAndCount({
-			where: userId ? { userId } : { sessionId },
-			relations: ['generation'],
-			order: { requestedAt: 'DESC' },
-			skip: offset,
-			take: limit
-		});
-
-		return GenerationsListDtoResponse.fromEntities(items, total, page, limit);
-	}
-
-	public async findOrCreateGenerationRequest(hostname: string, provider: Provider, userId: number | null, sessionId: string): Promise<Generation> {
+	/**
+	 * Найти существующую generation или создать новую
+	 * Если generation в статусе FAILED - сбросить на WAITING
+	 */
+	public async findOrCreateGeneration(hostname: string, provider: Provider): Promise<{ generation: Generation; isNew: boolean }> {
 		// 1. Найти существующую generation (ВКЛЮЧАЯ FAILED)
 		const existingGeneration = await this.manager.findOne(Generation, {
 			where: { hostname, provider }
 		});
 
-		// 2. Если generation завершена - вернуть её без создания job
-
+		// 2. Если generation завершена - вернуть её
 		if (existingGeneration?.status === GenerationStatus.COMPLETED) {
-			await this.ensureGenerationRequest(existingGeneration.id, userId, sessionId);
-			return existingGeneration;
+			return { generation: existingGeneration, isNew: false };
 		}
 
-		// 3-5. Транзакция: создать/обновить Generation + GenerationRequest + поставить в очередь
-		this.queryRunner = this.dataSource.createQueryRunner();
-		await this.queryRunner.connect();
-		await this.queryRunner.startTransaction();
-
-		try {
-			// 3. Найти или создать generation (если FAILED - сбросить на WAITING)
-			const { generation, isNew: isNewGeneration } = await this.ensureGeneration(hostname, provider, existingGeneration);
-
-			// 4. Найти или создать generation request
-			const { request, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, userId, sessionId);
-
-			// 5. Поставить в очередь если generation новая/сброшена или request новый
-			if (isNewGeneration || isNewRequest) {
-				await this.queueJob(generation, request, provider);
-			}
-
-			await this.queryRunner.commitTransaction();
-
-			return generation;
-		} catch (error) {
-			await this.queryRunner.rollbackTransaction();
-			throw error;
-		} finally {
-			await this.queryRunner.release();
-			this.queryRunner = null;
-		}
-	}
-
-	private get manager(): EntityManager {
-		return this.queryRunner?.manager || this.generationRepository.manager;
-	}
-
-	private async ensureGeneration(hostname: string, provider: Provider, existing: Generation | null): Promise<{ generation: Generation; isNew: boolean }> {
-		// Если generation не существует - создать новую
-		if (!existing) {
-			const entity = this.manager.create(Generation, {
-				hostname,
-				provider,
-				status: GenerationStatus.WAITING
-			});
-
-			const generation = await this.manager.save(Generation, entity);
-			return { generation, isNew: true };
-		}
-
-		// Если generation в статусе FAILED - сбросить на WAITING
-
-		if (existing.status === GenerationStatus.FAILED) {
-			await this.manager.update(Generation, existing.id, {
+		// 3. Если generation в статусе FAILED - сбросить на WAITING
+		if (existingGeneration?.status === GenerationStatus.FAILED) {
+			await this.manager.update(Generation, existingGeneration.id, {
 				status: GenerationStatus.WAITING,
 				errorMessage: null,
 				content: null,
 				entriesCount: null
 			});
 
-			existing.status = GenerationStatus.WAITING;
-			existing.errorMessage = null;
-			existing.content = null;
-			existing.entriesCount = null;
+			existingGeneration.status = GenerationStatus.WAITING;
+			existingGeneration.errorMessage = null;
+			existingGeneration.content = null;
+			existingGeneration.entriesCount = null;
 
-			return { generation: existing, isNew: true };
+			return { generation: existingGeneration, isNew: true };
 		}
 
-		// Иначе - вернуть существующую
-		return { generation: existing, isNew: false };
-	}
+		// 4. Если generation не существует - создать новую
+		if (!existingGeneration) {
+			const entity = this.manager.create(Generation, {
+				hostname,
+				provider,
+				status: GenerationStatus.WAITING
+			});
 
-	private async ensureGenerationRequest(generationId: number, userId: number | null, sessionId: string): Promise<{ request: GenerationRequest; isNew: boolean }> {
-		const whereCondition = userId
-			? { generationId, userId }
-			: { generationId, sessionId };
-
-		const existing = await this.manager.findOne(GenerationRequest, { where: whereCondition });
-
-		if (existing) {
-			return { request: existing, isNew: false };
+			const generation = await this.manager.save(entity);
+			return { generation, isNew: true };
 		}
 
-		const entity = this.manager.create(GenerationRequest, {
-			generationId,
-			userId,
-			sessionId
-		});
-
-		const request = await this.manager.save(GenerationRequest, entity);
-		return { request, isNew: true };
+		// 5. Иначе - вернуть существующую как не новую
+		return { generation: existingGeneration, isNew: false };
 	}
 
-	private async queueJob(generation: Generation, request: GenerationRequest, provider: Provider): Promise<string> {
-		const message = new GenerationJobMessage(
-			generation.id,
-			request.id,
-			generation.hostname,
-			generation.provider
-		);
+	public setQueryRunner(queryRunner: QueryRunner | null): void {
+		this.queryRunner = queryRunner;
+	}
 
-		const providerConfig = this.configService.providers[provider];
-		const jobId = this.generateJobId(generation.id);
+	public getDataSource(): DataSource {
+		return this.dataSource;
+	}
 
-		await this.queueService.send(providerConfig.queueName, message, jobId);
-
-		return jobId;
+	private get manager(): EntityManager {
+		return this.queryRunner?.manager || this.generationRepository.manager;
 	}
 
 	private generateJobId(generationId: number): string {

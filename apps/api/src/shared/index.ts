@@ -10,3 +10,6 @@ export * from './dtos/generation-request.dto';
 export * from './dtos/generation-response.dto';
 export * from './dtos/stats-request.dto';
 export * from './dtos/stats-response.dto';
+
+// Events
+export * from './events/websocket.events';

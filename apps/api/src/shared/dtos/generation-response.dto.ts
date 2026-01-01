@@ -49,7 +49,7 @@ class GenerationDtoResponse {
 }
 
 /**
- * DTO для GenerationRequest
+ * DTO для GenerationRequest (с развёрнутыми полями Generation)
  */
 class GenerationRequestDtoResponse {
 	constructor(
@@ -57,18 +57,36 @@ class GenerationRequestDtoResponse {
 		public generationId: number,
 		public userId: number | null,
 		public sessionId: string,
+		public hostname: string,
+		public provider: Provider,
+		public status: GenerationStatus,
+		public content: string | null,
+		public errorMessage: string | null,
+		public entriesCount: number | null,
 		public requestedAt: string,
-		public generation?: GenerationDtoResponse
+		public createdAt: string,
+		public updatedAt: string
 	) {}
 
 	static fromEntity(entity: GenerationRequest): GenerationRequestDtoResponse {
+		if (!entity.generation) {
+			throw new Error('GenerationRequest must have a related Generation');
+		}
+
 		return new GenerationRequestDtoResponse(
 			entity.id,
 			entity.generationId,
 			entity.userId,
 			entity.sessionId || '',
+			entity.generation.hostname,
+			entity.generation.provider,
+			entity.generation.status,
+			entity.generation.content,
+			entity.generation.errorMessage,
+			entity.generation.entriesCount,
 			entity.requestedAt.toISOString(),
-			entity.generation ? GenerationDtoResponse.fromEntity(entity.generation) : undefined
+			entity.generation.createdAt.toISOString(),
+			entity.generation.updatedAt.toISOString()
 		);
 	}
 
@@ -78,16 +96,23 @@ class GenerationRequestDtoResponse {
 			json.generationId as number,
 			json.userId as number | null,
 			json.sessionId as string,
+			json.hostname as string,
+			json.provider as Provider,
+			json.status as GenerationStatus,
+			json.content as string | null,
+			json.errorMessage as string | null,
+			json.entriesCount as number | null,
 			json.requestedAt as string,
-			json.generation ? GenerationDtoResponse.fromJson(json.generation as Record<string, unknown>) : undefined
+			json.createdAt as string,
+			json.updatedAt as string
 		);
 	}
 }
 
 /**
- * DTO для списка генераций
+ * DTO для списка GenerationRequest
  */
-class GenerationsListDtoResponse {
+class GenerationRequestsListDtoResponse {
 	constructor(
 		public items: GenerationRequestDtoResponse[],
 		public total: number,
@@ -95,8 +120,8 @@ class GenerationsListDtoResponse {
 		public limit: number
 	) {}
 
-	static fromEntities(entities: GenerationRequest[], total: number, page: number, limit: number): GenerationsListDtoResponse {
-		return new GenerationsListDtoResponse(
+	static fromEntities(entities: GenerationRequest[], total: number, page: number, limit: number): GenerationRequestsListDtoResponse {
+		return new GenerationRequestsListDtoResponse(
 			entities.map(entity => GenerationRequestDtoResponse.fromEntity(entity)),
 			total,
 			page,
@@ -104,8 +129,8 @@ class GenerationsListDtoResponse {
 		);
 	}
 
-	static fromJson(json: Record<string, unknown>): GenerationsListDtoResponse {
-		return new GenerationsListDtoResponse(
+	static fromJson(json: Record<string, unknown>): GenerationRequestsListDtoResponse {
+		return new GenerationRequestsListDtoResponse(
 			(json.items as Record<string, unknown>[]).map(item => GenerationRequestDtoResponse.fromJson(item)),
 			json.total as number,
 			json.page as number,
@@ -114,4 +139,4 @@ class GenerationsListDtoResponse {
 	}
 }
 
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationsListDtoResponse };
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse };

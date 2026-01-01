@@ -3,7 +3,7 @@
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
-		{ href: '/generator', label: 'Generator' },
+		{ href: '/generations', label: 'Generations' },
 		{ href: '/about', label: 'About' }
 	];
 </script>

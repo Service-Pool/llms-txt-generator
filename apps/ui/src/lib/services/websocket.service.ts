@@ -1,0 +1,297 @@
+import type {
+	ProgressListener,
+	StatusListener,
+	ConnectListener,
+	DisconnectListener,
+	ErrorListener,
+	WebSocketMessage,
+	ProgressMessage,
+	StatusMessage,
+	GenerationProgressEvent,
+	GenerationStatusEvent
+} from '../types/websocket.types';
+
+/**
+ * WebSocket Service Singleton
+ * Manages WebSocket connection and real-time updates for generations
+ */
+export class WebSocketService {
+	private static instance: WebSocketService | null = null;
+	private ws: WebSocket | null = null;
+	private url: string;
+	private reconnectAttempts = 0;
+	private maxReconnectAttempts = 5;
+	private reconnectDelay = 1000;
+	private subscribedGenerationIds = new Set<number>();
+
+	// Event listeners
+	private progressListeners = new Set<ProgressListener>();
+	private statusListeners = new Set<StatusListener>();
+	private connectListeners = new Set<ConnectListener>();
+	private disconnectListeners = new Set<DisconnectListener>();
+	private errorListeners = new Set<ErrorListener>();
+
+	private constructor(url: string) {
+		this.url = url;
+	}
+
+	/**
+	 * Get singleton instance
+	 */
+	public static getInstance(url?: string): WebSocketService {
+		if (!WebSocketService.instance) {
+			if (!url) {
+				throw new Error('WebSocket URL is required for first initialization');
+			}
+			WebSocketService.instance = new WebSocketService(url);
+		}
+		return WebSocketService.instance;
+	}
+
+	/**
+	 * Connect to WebSocket server
+	 */
+	public connect(): void {
+		if (this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING) {
+			return;
+		}
+
+		try {
+			this.ws = new WebSocket(this.url);
+
+			this.ws.onopen = () => {
+				this.reconnectAttempts = 0;
+				this.notifyConnectListeners();
+
+				// Resubscribe to all generation IDs after reconnect
+				if (this.subscribedGenerationIds.size > 0) {
+					this.subscribe(Array.from(this.subscribedGenerationIds));
+				}
+			};
+
+			this.ws.onmessage = (event: MessageEvent) => {
+				this.handleMessage(event.data as string);
+			};
+
+			this.ws.onerror = (_event: Event) => {
+				const error = new Error('WebSocket error occurred');
+				this.notifyErrorListeners(error);
+			};
+
+			this.ws.onclose = (_event: CloseEvent) => {
+				this.notifyDisconnectListeners();
+				this.scheduleReconnect();
+			};
+		} catch (error) {
+			const wsError = error instanceof Error ? error : new Error('Failed to connect to WebSocket');
+			this.notifyErrorListeners(wsError);
+		}
+	}
+
+	/**
+	 * Disconnect from WebSocket server
+	 */
+	public disconnect(): void {
+		this.reconnectAttempts = this.maxReconnectAttempts; // Prevent auto-reconnect
+
+		if (this.ws) {
+			this.ws.close();
+			this.ws = null;
+		}
+
+		this.subscribedGenerationIds.clear();
+	}
+
+	/**
+	 * Subscribe to generation updates
+	 */
+	public subscribe(generationIds: number[]): void {
+		generationIds.forEach(id => this.subscribedGenerationIds.add(id));
+
+		if (this.ws?.readyState === WebSocket.OPEN) {
+			this.send({
+				type: 'subscribe',
+				payload: { generationIds }
+			});
+		} else {
+			console.warn('[WS] Not connected, state:', this.ws?.readyState);
+		}
+	}
+
+	/**
+	 * Unsubscribe from generation updates
+	 */
+	public unsubscribe(generationIds: number[]): void {
+		generationIds.forEach(id => this.subscribedGenerationIds.delete(id));
+
+		if (this.ws?.readyState === WebSocket.OPEN) {
+			this.send({
+				type: 'unsubscribe',
+				payload: { generationIds }
+			});
+		}
+	}
+
+	/**
+	 * Add event listener
+	 */
+	public on(
+		event: 'progress' | 'status' | 'connect' | 'disconnect' | 'error',
+		listener: (...args: unknown[]) => void
+	): void {
+		switch (event) {
+			case 'progress':
+				this.progressListeners.add(listener as ProgressListener);
+				break;
+			case 'status':
+				this.statusListeners.add(listener as StatusListener);
+				break;
+			case 'connect':
+				this.connectListeners.add(listener as ConnectListener);
+				break;
+			case 'disconnect':
+				this.disconnectListeners.add(listener as DisconnectListener);
+				break;
+			case 'error':
+				this.errorListeners.add(listener as ErrorListener);
+				break;
+		}
+	}
+
+	/**
+	 * Remove event listener
+	 */
+	public off(
+		event: 'progress' | 'status' | 'connect' | 'disconnect' | 'error',
+		listener: (...args: unknown[]) => void
+	): void {
+		switch (event) {
+			case 'progress':
+				this.progressListeners.delete(listener as ProgressListener);
+				break;
+			case 'status':
+				this.statusListeners.delete(listener as StatusListener);
+				break;
+			case 'connect':
+				this.connectListeners.delete(listener as ConnectListener);
+				break;
+			case 'disconnect':
+				this.disconnectListeners.delete(listener as DisconnectListener);
+				break;
+			case 'error':
+				this.errorListeners.delete(listener as ErrorListener);
+				break;
+		}
+	}
+
+	/**
+	 * Get current connection state
+	 */
+	public get isConnected(): boolean {
+		return this.ws?.readyState === WebSocket.OPEN;
+	}
+
+	/**
+	 * Get subscribed generation IDs
+	 */
+	public get subscriptions(): number[] {
+		return Array.from(this.subscribedGenerationIds);
+	}
+
+	// Private methods
+
+	private send(message: WebSocketMessage): void {
+		if (this.ws?.readyState === WebSocket.OPEN) {
+			this.ws.send(JSON.stringify(message));
+		}
+	}
+
+	private handleMessage(data: string): void {
+		try {
+			const message = JSON.parse(data) as ProgressMessage | StatusMessage;
+
+			switch (message.type) {
+				case 'generation:progress':
+					if (message.payload) {
+						this.notifyProgressListeners(message.payload);
+					}
+					break;
+				case 'generation:status':
+					if (message.payload) {
+						this.notifyStatusListeners(message.payload);
+					}
+					break;
+			}
+		} catch (error) {
+			const parseError = error instanceof Error ? error : new Error('Failed to parse WebSocket message');
+			this.notifyErrorListeners(parseError);
+		}
+	}
+
+	private scheduleReconnect(): void {
+		if (this.reconnectAttempts < this.maxReconnectAttempts) {
+			this.reconnectAttempts++;
+			const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+			setTimeout(() => {
+				this.connect();
+			}, delay);
+		}
+	}
+
+	private notifyProgressListeners(event: ProgressMessage['payload']): void {
+		this.progressListeners.forEach((listener) => {
+			try {
+				if (event) {
+					const fn = listener as unknown as (event: GenerationProgressEvent) => void;
+					fn(event as unknown as GenerationProgressEvent);
+				}
+			} catch (error) {
+				console.error('Error in progress listener:', error);
+			}
+		});
+	}
+
+	private notifyStatusListeners(event: StatusMessage['payload']): void {
+		this.statusListeners.forEach((listener) => {
+			try {
+				if (event) {
+					const fn = listener as unknown as (event: GenerationStatusEvent) => void;
+					fn(event as unknown as GenerationStatusEvent);
+				}
+			} catch (error) {
+				console.error('Error in status listener:', error);
+			}
+		});
+	}
+
+	private notifyConnectListeners(): void {
+		this.connectListeners.forEach((listener) => {
+			try {
+				listener();
+			} catch (error) {
+				console.error('Error in connect listener:', error);
+			}
+		});
+	}
+
+	private notifyDisconnectListeners(): void {
+		this.disconnectListeners.forEach((listener) => {
+			try {
+				listener();
+			} catch (error) {
+				console.error('Error in disconnect listener:', error);
+			}
+		});
+	}
+
+	private notifyErrorListeners(error: Error): void {
+		this.errorListeners.forEach((listener) => {
+			try {
+				listener(error);
+			} catch (err) {
+				console.error('Error in error listener:', err);
+			}
+		});
+	}
+}

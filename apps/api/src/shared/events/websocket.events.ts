@@ -1,3 +1,8 @@
+/**
+ * WebSocket Events
+ * Shared between backend and frontend
+ */
+
 class GenerationProgressEvent {
 	constructor(
 		public readonly generationId: number,
@@ -17,4 +22,13 @@ class GenerationStatusEvent {
 	) {}
 }
 
-export { GenerationProgressEvent, GenerationStatusEvent };
+class WebSocketMessage {
+	constructor(
+		public readonly type: string,
+		public readonly payload?: {
+			generationIds?: number[];
+		}
+	) {}
+}
+
+export { GenerationProgressEvent, GenerationStatusEvent, WebSocketMessage };

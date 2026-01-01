@@ -1,5 +1,5 @@
 {
-	"name": "LLMs Generator",
+	"name": "LLMs Generator UI",
 	"dockerComposeFile": "./docker-compose.yml",
 	"service": "llms-txt-generator-ui",
 	"runServices": [],

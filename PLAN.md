@@ -149,91 +149,108 @@
 ### ✅ Backend - WebSocket - ЗАВЕРШЕНО
 
 3. **WebSocket Module**
-   - [x] Установить `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`
+   - [x] ~~Установить `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`~~
+     - ✅ Использован **нативный WebSocket** + `@fastify/websocket` (ws)
    - [x] Создать `WebSocketModule` (`apps/api/src/websocket/websocket.module.ts`)
-   - [x] Создать `WebSocketGateway` с CORS конфигурацией
-   - [x] Реализовать subscribe/unsubscribe логику (Socket.IO rooms)
-   - [ ] Добавить `@UseGuards(WsAuthGuard)` для проверки сессии (отложено)
+   - [x] Создать `WebSocketGateway` с аутентификацией через session cookie
+   - [x] Реализовать subscribe/unsubscribe логику (rooms через Map<string, Set<WebSocket>>)
+   - [x] JSON message protocol: `{ type: 'subscribe', payload: { generationIds: [...] } }`
 
 4. **Event Emitter Integration**
    - [x] Установить `@nestjs/event-emitter`
    - [x] Добавить `EventEmitterModule` в app.module.ts
-   - [x] В `GenerationJobHandler`: emit events при прогрессе
-     - [x] `generation.progress` (после обработки батча)
-     - [x] `generation.status` для completed (после завершения)
-     - [x] `generation.status` для failed (при ошибке)
-   - [x] В `WebSocketGateway`: слушать events и отправлять в WebSocket
-   - [x] Использованы классы вместо интерфейсов: `GenerationProgressEvent`, `GenerationStatusEvent`
+   - [x] **BullMQ QueueEvents** для cross-process событий (Worker → Main App)
+   - [x] В `BullMqQueueService`:
+     - [x] QueueEvents слушает Redis streams
+     - [x] Emit `generation.progress` при обновлении прогресса
+     - [x] Emit `generation.status` при completed/failed
+   - [x] В `GenerationJobHandler`:
+     - [x] `job.updateProgress()` публикует в Redis
+     - [x] Контекст вынесен в `context` объект (включая job)
+   - [x] В `WebSocketGateway`:
+     - [x] @OnEvent слушатели для `generation.progress` и `generation.status`
+     - [x] Broadcast в rooms через `socket.send()`
+   - [x] Использованы классы: `GenerationProgressEvent`, `GenerationStatusEvent`
 
 5. **Delete Enhancement**
    - [x] Обновить `DELETE /api/generations/:id`
    - [x] Удаление из БД
    - [x] Удаление из BullMQ (`queue.remove(jobId)`)
-   - [ ] Emit event `generation.deleted` через WebSocket (не требуется пока)
+   - [x] Поиск job во всех очередях (ollama-queue, gemini-queue)
+
+6. **Тестирование Backend**
+   - [x] E2E тест WebSocket (`test/websocket.e2e-spec.ts`)
+   - [x] Программный запуск App + Worker в тесте
+   - [x] Проверка progress и completion событий
+   - [x] Настройка Jest для ESM модулей (jsdom, sitemapper, etc.)
+   - [x] Функциональный тест (`test-websocket.js`)
 
 ---
 
-### ⏳ Frontend - WebSocket Client
+### ✅ Frontend - WebSocket Client - ЗАВЕРШЕНО
 
 6. **WebSocket Service**
-   - [ ] Установить `socket.io-client`
-   - [ ] Создать `websocket.service.ts` (singleton)
-   - [ ] Методы: connect, subscribe, unsubscribe, on, disconnect
-   - [ ] Автоматический reconnect
+   - [x] ~~Установить `socket.io-client`~~
+     - ✅ Использован **нативный WebSocket API** (как и на бэкенде)
+   - [x] Создать `websocket.service.ts` (singleton)
+   - [x] Методы: connect, subscribe, unsubscribe, on, disconnect
+   - [x] Автоматический reconnect с экспоненциальной задержкой
+   - [x] Реализован в `apps/ui/src/lib/services/websocket.service.ts`
 
 7. **Types**
-   - [ ] Создать типы для WebSocket events:
+   - [x] Создать типы для WebSocket events:
      - `GenerationProgressEvent` - generationId, status, processedUrls, totalUrls
      - `GenerationStatusEvent` - generationId, status, content?, errorMessage?, entriesCount?
+   - [x] WebSocket message types (SubscribeMessage, UnsubscribeMessage, etc.)
+   - [x] Event listener types (ProgressListener, StatusListener, etc.)
+   - [x] Реализованы в `apps/ui/src/lib/types/websocket.types.ts`
+
+8. **Config**
+   - [x] Добавлен `websocket` config в `AppConfigService`
+   - [x] Автоматическое определение WebSocket URL из API URL
+   - [x] Поддержка ws:// и wss:// (http → ws, https → wss)
 
 ---
 
 ### ⏳ Frontend - UI Components
 
-8. **Главная страница (`/`)**
-   - [ ] Создать `routes/+page.svelte`
-   - [ ] Компоненты:
-     - [ ] `GenerationsList.svelte` - список + пагинация
-     - [ ] `GenerationListItem.svelte` - элемент (hostname, status, progress, date, delete)
-     - [ ] `NewGenerationForm.svelte` - форма (hostname → analyze → provider select → create)
-     - [ ] `ProgressBar.svelte` - переиспользуемый прогресс бар
-   - [ ] WebSocket integration (subscribe к списку генераций)
-   - [ ] Обработка real-time updates (progress, status)
-   - [ ] Delete функционал
+9. **Главная страница (`/`)**
+   - [x] Создать `routes/(app)/generations/+page.svelte`
+   - [x] Компоненты:
+     - [x] `GenerationsList.svelte` - список + пагинация
+     - [x] `GenerationListItem.svelte` - элемент (hostname, status, progress, date, delete)
+     - [x] `NewGenerationForm.svelte` - форма (hostname → analyze → provider select → create)
+     - [x] `ProgressBar.svelte` - переиспользуемый прогресс бар
+   - [x] WebSocket integration (subscribe к списку генераций)
+   - [x] Обработка real-time updates (progress, status)
+   - [x] Delete функционал
+   - [x] Spinner компонент с задержкой отображения
+   - [x] Global button cursor style
+   - [x] Download with llms-hostname.txt filename
 
-9. **Детальная страница (`/generations/[id]`)**
-   - [ ] Создать `routes/generations/[id]/+page.svelte`
-   - [ ] Компоненты:
-     - [ ] `GenerationDetail.svelte` - основной компонент
-     - [ ] Переиспользовать `ProgressBar.svelte`
-     - [ ] Переиспользовать `ContentDisplay.svelte` (из текущего ResultDisplay)
-   - [ ] WebSocket integration (subscribe к одной генерации)
-   - [ ] Кнопки: Copy, Download, Delete
-   - [ ] Обработка обновлений прогресса
-
-10. **Пагинация**
+10. **Пагинация** - ⏳ PENDING
     - [ ] Компонент `Pagination.svelte`
     - [ ] State: page, limit, total
     - [ ] UI: Previous/Next + выбор кол-ва элементов (5, 10, 20, 50)
 
 ---
 
-### Тестирование
+### ⏳ Тестирование - PENDING
 
-11. **Backend Tests**
+12. **Backend Tests**
     - [ ] WebSocket connection с аутентификацией
     - [ ] Subscribe/unsubscribe логика
     - [ ] Event emission из BullMQ → WebSocket
     - [ ] Delete с удалением из очереди
 
-12. **Frontend Tests**
+13. **Frontend Tests**
     - [ ] WebSocket reconnect при потере соединения
     - [ ] Обновление прогресса в real-time
     - [ ] Перезагрузка страницы (восстановление состояния)
     - [ ] Пагинация
     - [ ] Delete операция
 
-13. **Integration Tests**
+14. **Integration Tests**
     - [ ] Создание генерации → появление в списке → обновления через WebSocket
     - [ ] Клик на генерацию → детальный вид → прогресс updates
     - [ ] Delete из списка → удаление из БД и очереди
@@ -274,12 +291,12 @@
 
 ---
 
-## Приоритеты
+### ✅ Приоритеты
 
 1. **✅ P0 (Critical):** Backend WebSocket - ЗАВЕРШЕНО
-2. **⏳ P0 (Critical):** Frontend WebSocket Client - В РАБОТЕ
-3. **P1 (High):** Список генераций + real-time updates
-4. **P2 (Medium):** Детальный вид + пагинация
+2. **✅ P0 (Critical):** Frontend WebSocket Client - ЗАВЕРШЕНО
+3. **✅ P1 (High):** Список генераций + real-time updates - ЗАВЕРШЕНО
+4. **P2 (Medium):** Пагинация
 5. **P3 (Low):** Polish + тесты
 
 ---

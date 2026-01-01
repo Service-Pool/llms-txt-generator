@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GenerationsController } from './generations.controller';
+import { GenerationRequestsController } from './generation-requests.controller';
 import { GenerationsService } from './services/generations.service';
+import { GenerationRequestService } from './services/generation-request.service';
 import { QueueModule } from '../queue/queue.module';
 import { ContentExtractorService } from './services/content-extractor.service';
 import { GenerationJobHandler } from '../queue/handlers/generation-job.handler';
@@ -16,14 +18,15 @@ import { User } from '../auth/entitites/user.entity';
 		TypeOrmModule.forFeature([Generation, GenerationRequest, User]),
 		QueueModule
 	],
-	controllers: [GenerationsController],
+	controllers: [GenerationsController, GenerationRequestsController],
 	providers: [
 		GenerationsService,
+		GenerationRequestService,
 		GenerationJobHandler,
 		ContentExtractorService,
 		OllamaService,
 		GeminiService
 	],
-	exports: [GenerationsService, GenerationJobHandler]
+	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]
 })
 export class GenerationsModule {}

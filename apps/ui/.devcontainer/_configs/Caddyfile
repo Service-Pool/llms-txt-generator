@@ -11,10 +11,21 @@
                 reverse_proxy llms-txt-generator-api:${PORT_API}
         }
 
-        # WebSocket (Socket.IO)
-        # handle /socket.io/* {
-        #         reverse_proxy llms-txt-generator-api:${PORT_API}
-        # }
+        # WebSocket
+        @websocket {
+                path ${PUBLIC_SOCKET_PATH}
+                header Connection *Upgrade*
+                header Upgrade websocket
+        }
+
+        handle @websocket {
+                reverse_proxy llms-txt-generator-api:${PORT_API} {
+                        header_up Host {host}
+                        header_up X-Real-IP {remote}
+                        header_up X-Forwarded-For {remote}
+                        header_up X-Forwarded-Proto {scheme}
+                }
+        }
 
         # Health check
         handle /health {
@@ -25,7 +36,7 @@
         @vite_hmr {
                 path /?token=*
                 not path /api/*
-                not path /socket.io/*
+                not path ${PUBLIC_SOCKET_PATH}/*
                 header Connection *Upgrade*
                 header Upgrade websocket
         }

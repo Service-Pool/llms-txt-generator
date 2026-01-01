@@ -6,7 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppConfigService } from '../../config/config.service';
 import { Generation } from '../../generations/entities/generation.entity';
 import { GenerationStatus } from '../../shared/enums/generation-status.enum';
-import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/events';
+import { GenerationProgressEvent, GenerationStatusEvent } from '../../shared';
 import { JobIdUtil } from '../../shared/utils/job-id.util';
 
 @Injectable()

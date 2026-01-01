@@ -18,11 +18,32 @@ class AppConfigService {
 			status: '/auth/me'
 		},
 		generations: {
-			base: '/api/generations',
 			byId: (id: number) => `/api/generations/${id}`
+		},
+		generationRequests: {
+			base: '/api/generation-requests',
+			byId: (id: number) => `/api/generation-requests/${id}`
 		},
 		stats: {
 			host: (hostname: string) => `/api/stats/host?hostname=${encodeURIComponent(hostname)}`
+		}
+	};
+
+	// WebSocket config
+	public readonly websocket = {
+		path: String(env.PUBLIC_SOCKET_PATH),
+		get url(): string {
+			const baseUrl = String(env.PUBLIC_API_URL);
+
+			// If baseUrl is empty, use current window location
+			if (!baseUrl) {
+				const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+				return `${protocol}//${window.location.host}/ws`;
+			}
+
+			// Convert http(s) to ws(s)
+			const wsUrl = baseUrl.replace(/^http/, 'ws');
+			return `${wsUrl}${this.path}`;
 		}
 	};
 
@@ -35,13 +56,6 @@ class AppConfigService {
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT),
 		retries: 3,
 		retryDelay: 1000
-	};
-
-	// Polling config
-	public readonly polling = {
-		interval: Number(env.PUBLIC_POLLING_INTERVAL),
-		maxAttempts: Number(env.PUBLIC_POLLING_MAX_ATTEMPTS),
-		timeout: (Number(env.PUBLIC_POLLING_INTERVAL)) * (Number(env.PUBLIC_POLLING_MAX_ATTEMPTS))
 	};
 }
 

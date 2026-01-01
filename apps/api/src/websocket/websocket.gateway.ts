@@ -8,16 +8,7 @@ import { type RawData, type WebSocket } from 'ws';
 import { Session } from '../auth/entitites/session.entity';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { AppConfigService } from '../config/config.service';
-import { GenerationProgressEvent, GenerationStatusEvent } from './events';
-
-class WebSocketMessage {
-	constructor(
-		public readonly type: string,
-		public readonly payload?: {
-			generationIds?: number[];
-		}
-	) {}
-}
+import { GenerationProgressEvent, GenerationStatusEvent, WebSocketMessage } from '../shared';
 
 class SessionData {
 	constructor(
@@ -112,9 +103,11 @@ class WebSocketGateway implements OnModuleInit {
 	private async handleMessage(socket: WebSocket, message: RawData, sessionData: SessionData): Promise<void> {
 		try {
 			const messageStr = this.rawDataToString(message);
+			this.logger.log(`Received message: ${messageStr}`);
 			const data = JSON.parse(messageStr) as WebSocketMessage;
 
 			if (data.type === 'subscribe' && data.payload?.generationIds) {
+				this.logger.log(`Subscribe request for: ${data.payload.generationIds.join(', ')}`);
 				await this.handleSubscribe(socket, data.payload.generationIds, sessionData);
 			} else if (data.type === 'unsubscribe' && data.payload?.generationIds) {
 				this.handleUnsubscribe(socket, data.payload.generationIds);
