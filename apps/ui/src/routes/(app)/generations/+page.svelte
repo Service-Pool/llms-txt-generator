@@ -16,7 +16,6 @@
 	let total = $state(0);
 	let page = $state(1);
 	let limit = $state(5);
-	let loading = $state(true);
 	let showLoadingSpinner = $state(true);
 	let error = $state<string | null>(null);
 
@@ -27,7 +26,6 @@
 
 	const loadGenerations = async () => {
 		try {
-			loading = true;
 			showLoadingSpinner = true;
 			error = null;
 
@@ -45,7 +43,6 @@
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Unknown error';
 		} finally {
-			loading = false;
 			showLoadingSpinner = false;
 		}
 	};

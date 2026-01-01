@@ -228,10 +228,11 @@
    - [x] Global button cursor style
    - [x] Download with llms-hostname.txt filename
 
-10. **Пагинация** - ⏳ PENDING
-    - [ ] Компонент `Pagination.svelte`
-    - [ ] State: page, limit, total
-    - [ ] UI: Previous/Next + выбор кол-ва элементов (5, 10, 20, 50)
+10. **Пагинация** - ✅ ЗАВЕРШЕНО
+    - [x] Компонент встроен в `GenerationsList.svelte`
+    - [x] State: page, limit, total
+    - [x] UI: Previous/Next + выбор кол-ва элементов (5, 10, 20, 50)
+    - [x] Счётчик "Page X of Y (total)"
 
 ---
 
