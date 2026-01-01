@@ -2,14 +2,15 @@ import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req } from '@nestjs/
 import { type FastifyRequest } from 'fastify';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
-import { Session } from '../common/decorators/session.decorator';
 import { ResponseFactory } from '../common/utils/response.factory';
-
-type FastifySessionType = FastifyRequest['session'];
+import { CurrentUserService } from '../common/services/current-user.service';
 
 @Controller('auth')
 class AuthController {
-	constructor(private readonly authService: AuthService) {}
+	constructor(
+		private readonly authService: AuthService,
+		private readonly currentUserService: CurrentUserService
+	) {}
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
@@ -53,13 +54,16 @@ class AuthController {
 	}
 
 	@Get('me')
-	async status(@Session() session: FastifySessionType) {
-		if (session.userId) {
-			const user = await this.authService.findById(session.userId);
+	async status() {
+		const userId = this.currentUserService.getUserId();
+		const sessionId = this.currentUserService.getSessionId();
+
+		if (userId) {
+			const user = await this.authService.findById(userId);
 			if (user) {
 				return ResponseFactory.success({
 					authenticated: true,
-					sessionId: session.sessionId,
+					sessionId: sessionId,
 					user: {
 						id: user.id,
 						username: user.username,

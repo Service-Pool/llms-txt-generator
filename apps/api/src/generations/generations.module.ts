@@ -12,6 +12,7 @@ import { GeminiService } from './services/llm/gemini.service';
 import { Generation } from './entities/generation.entity';
 import { GenerationRequest } from './entities/generation-request.entity';
 import { User } from '../auth/entitites/user.entity';
+import { CurrentUserService } from '../common/services/current-user.service';
 
 @Module({
 	imports: [
@@ -25,7 +26,8 @@ import { User } from '../auth/entitites/user.entity';
 		GenerationJobHandler,
 		ContentExtractorService,
 		OllamaService,
-		GeminiService
+		GeminiService,
+		CurrentUserService
 	],
 	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]
 })

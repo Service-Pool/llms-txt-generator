@@ -1,24 +1,25 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { type FastifyRequest } from 'fastify';
-import { type FastifySessionObject } from '@fastify/session';
 import { GenerationRequestService } from './services/generation-request.service';
 import { CreateGenerationDtoRequest } from '../shared/dtos/generation-request.dto';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from '../shared/dtos/generation-response.dto';
-import { Session } from '../common/decorators/session.decorator';
 import { ResponseFactory } from '../common/utils/response.factory';
+import { CurrentUserService } from '../common/services/current-user.service';
 
 @Controller('api/generation-requests')
 class GenerationRequestsController {
-	constructor(private readonly generationRequestService: GenerationRequestService) {}
+	constructor(
+		private readonly generationRequestService: GenerationRequestService,
+		private readonly currentUserService: CurrentUserService
+	) {}
 
 	@Get()
 	public async list(
-		@Session() session: FastifySessionObject,
 		@Query('page') page: number = 1,
 		@Query('limit') limit: number = 20
 	): Promise<ReturnType<typeof ResponseFactory.success<GenerationRequestsListDtoResponse>>> {
-		const userId = session.userId || null;
-		const sessionId = session.sessionId;
+		const userId = this.currentUserService.getUserId();
+		const sessionId = this.currentUserService.getSessionId();
 
 		const result = await this.generationRequestService.listUserGenerations(userId, sessionId, page, limit);
 
@@ -29,11 +30,10 @@ class GenerationRequestsController {
 	@HttpCode(HttpStatus.ACCEPTED)
 	public async create(
 		@Body() createGenerationDto: CreateGenerationDtoRequest,
-		@Session() session: FastifySessionObject,
 		@Req() httpRequest: FastifyRequest
 	): Promise<ReturnType<typeof ResponseFactory.success<GenerationRequestDtoResponse>>> {
-		const userId = session.userId || null;
-		const sessionId = session.sessionId;
+		const userId = this.currentUserService.getUserId();
+		const sessionId = this.currentUserService.getSessionId();
 
 		// Save session to DB before creating generation (for FK constraint)
 		await new Promise<void>((resolve, reject) => {
@@ -58,12 +58,9 @@ class GenerationRequestsController {
 	}
 
 	@Delete(':requestId')
-	public async delete(
-		@Param('requestId') requestId: string,
-		@Session() session: FastifySessionObject
-	): Promise<ReturnType<typeof ResponseFactory.success<string>>> {
-		const userId = session.userId || null;
-		const sessionId = session.sessionId;
+	public async delete(@Param('requestId') requestId: string): Promise<ReturnType<typeof ResponseFactory.success<string>>> {
+		const userId = this.currentUserService.getUserId();
+		const sessionId = this.currentUserService.getSessionId();
 		const id = parseInt(requestId);
 
 		if (isNaN(id)) {

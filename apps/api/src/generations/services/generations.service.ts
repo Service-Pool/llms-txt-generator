@@ -8,6 +8,7 @@ import { AppConfigService } from '../../config/config.service';
 import { Provider } from '../../shared/enums/provider.enum';
 import { JobIdUtil } from '../../shared/utils/job-id.util';
 import { GenerationRequest } from '../entities/generation-request.entity';
+import { CurrentUserService } from '../../common/services/current-user.service';
 
 @Injectable()
 class GenerationsService {
@@ -17,6 +18,7 @@ class GenerationsService {
 		private readonly queueService: QueueService,
 		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource,
+		private readonly currentUserService: CurrentUserService,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
 	) {}
@@ -25,7 +27,7 @@ class GenerationsService {
 		return this.generationRepository.findOneBy({ id });
 	}
 
-	public async findByIdAndUser(id: number, userId: number | null, sessionId: string): Promise<Generation | null> {
+	public async findByIdAndUser(id: number): Promise<Generation | null> {
 		const generation = await this.generationRepository.findOneBy({ id });
 
 		if (!generation) {
@@ -33,6 +35,9 @@ class GenerationsService {
 		}
 
 		// Check if user has access through GenerationRequest
+		const userId = this.currentUserService.getUserId();
+		const sessionId = this.currentUserService.getSessionId();
+
 		const hasAccess = await this.generationRequestRepository.findOne({
 			where: [
 				userId ? { generationId: id, userId } : {},
