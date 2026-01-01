@@ -7,6 +7,7 @@ import { QueueService } from '../../queue/queue.service';
 import { AppConfigService } from '../../config/config.service';
 import { Provider } from '../../shared/enums/provider.enum';
 import { JobIdUtil } from '../../shared/utils/job-id.util';
+import { GenerationRequest } from '../entities/generation-request.entity';
 
 @Injectable()
 class GenerationsService {
@@ -16,11 +17,30 @@ class GenerationsService {
 		private readonly queueService: QueueService,
 		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource,
-		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>
+		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
+		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
 	) {}
 
 	public async findById(id: number): Promise<Generation | null> {
 		return this.generationRepository.findOneBy({ id });
+	}
+
+	public async findByIdAndUser(id: number, userId: number | null, sessionId: string): Promise<Generation | null> {
+		const generation = await this.generationRepository.findOneBy({ id });
+
+		if (!generation) {
+			return null;
+		}
+
+		// Check if user has access through GenerationRequest
+		const hasAccess = await this.generationRequestRepository.findOne({
+			where: [
+				userId ? { generationId: id, userId } : {},
+				sessionId ? { generationId: id, sessionId } : {}
+			]
+		});
+
+		return hasAccess ? generation : null;
 	}
 
 	public async delete(id: number): Promise<void> {

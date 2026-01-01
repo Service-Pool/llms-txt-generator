@@ -1,10 +1,12 @@
 import { Controller, Get, Post, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GenerationsService } from './services/generations.service';
 import { GenerationDtoResponse } from '../shared/dtos/generation-response.dto';
 import { GenerationProgressEvent, GenerationStatusEvent } from '../shared';
+import { GenerationsService } from './services/generations.service';
 import { GenerationStatus } from '../shared/enums/generation-status.enum';
 import { ResponseFactory } from '../common/utils/response.factory';
+import { Session } from '../common/decorators/session.decorator';
+import { type FastifySessionObject } from '@fastify/session';
 
 @Controller('api/generations')
 class GenerationsController {
@@ -14,8 +16,14 @@ class GenerationsController {
 	) {}
 
 	@Get(':id')
-	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<GenerationDtoResponse>> | ReturnType<typeof ResponseFactory.notFound>> {
-		const generation = await this.generationsService.findById(parseInt(id));
+	public async getOne(
+		@Param('id') id: string,
+		@Session() session: FastifySessionObject
+	): Promise<ReturnType<typeof ResponseFactory.success<GenerationDtoResponse>> | ReturnType<typeof ResponseFactory.notFound>> {
+		const userId = session.userId || null;
+		const sessionId = session.sessionId;
+
+		const generation = await this.generationsService.findByIdAndUser(parseInt(id), userId, sessionId);
 
 		if (!generation) {
 			return ResponseFactory.notFound('Generation not found');
