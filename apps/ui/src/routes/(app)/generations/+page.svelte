@@ -65,22 +65,33 @@
 		loadGenerations();
 	};
 
-	const handleDelete = async (generationId: number) => {
+	const handleDelete = async (requestId: number) => {
 		try {
-			const response = await generationsService.delete(generationId);
+			const response = await generationsService.delete(requestId);
 
 			if (response.code < 400) {
+				// Find the item to get generationId
+				const deletedItem = items.find(item => item.id === requestId);
+				
 				// Remove from list
-				items = items.filter(item => item.generationId !== generationId);
+				items = items.filter(item => item.id !== requestId);
 				total = total - 1;
 
 				// Unsubscribe from WebSocket
-				if (ws) {
-					ws.unsubscribe([generationId]);
+				if (ws && deletedItem?.generationId) {
+					ws.unsubscribe([deletedItem.generationId]);
 				}
 
 				// Remove progress
-				delete progressMap[generationId];
+				if (deletedItem?.generationId) {
+					delete progressMap[deletedItem.generationId];
+				}
+
+				// If page is now empty and not first page, go to previous page
+				if (items.length === 0 && page > 1) {
+					page = page - 1;
+					await loadGenerations();
+				}
 			} else {
 				alert(response.error || 'Failed to delete generation');
 			}

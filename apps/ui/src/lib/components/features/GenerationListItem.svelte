@@ -46,7 +46,7 @@
 		e.stopPropagation();
 
 		if (confirm(`Delete generation for ${item.hostname}?`)) {
-			onDelete(item.generationId);
+			onDelete(item.id);
 		}
 	};
 
