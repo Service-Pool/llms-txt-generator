@@ -1,21 +1,25 @@
+import { MessageSuccess } from '../../utils/response/message-success';
 import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { CreateGenerationDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestService } from './services/generation-request.service';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
-import { ResponseFactory } from '../../utils/response.factory';
+import { ApiResponse } from '../../utils/response/api-response';
 import { type FastifyRequest } from 'fastify';
 
 @Controller('api/generation-requests')
 class GenerationRequestsController {
-	constructor(private readonly generationRequestService: GenerationRequestService) {}
+	constructor(
+		private readonly generationRequestService: GenerationRequestService,
+		private readonly apiResponse: ApiResponse
+	) { }
 
 	@Get()
 	public async list(
 		@Query('page') page: number = 1,
 		@Query('limit') limit: number = 20
-	): Promise<ReturnType<typeof ResponseFactory.success<GenerationRequestsListDtoResponse>>> {
+	): Promise<ApiResponse<MessageSuccess<GenerationRequestsListDtoResponse>>> {
 		const result = await this.generationRequestService.listUserGenerations(page, limit);
-		return ResponseFactory.success(result);
+		return this.apiResponse.success(result);
 	}
 
 	@Post()
@@ -23,7 +27,7 @@ class GenerationRequestsController {
 	public async create(
 		@Body() createGenerationDto: CreateGenerationDtoRequest,
 		@Req() httpRequest: FastifyRequest
-	): Promise<ReturnType<typeof ResponseFactory.success<GenerationRequestDtoResponse>>> {
+	): Promise<ApiResponse<MessageSuccess<GenerationRequestDtoResponse>>> {
 		// Save session to DB before creating generation (for FK constraint)
 		await new Promise<void>((resolve, reject) => {
 			httpRequest.session.save((err) => {
@@ -41,11 +45,11 @@ class GenerationRequestsController {
 		result.generationRequest.generation = result.generation;
 
 		const response = GenerationRequestDtoResponse.fromEntity(result.generationRequest);
-		return ResponseFactory.success(response);
+		return this.apiResponse.success(response);
 	}
 
 	@Delete(':requestId')
-	public async delete(@Param('requestId') requestId: string): Promise<ReturnType<typeof ResponseFactory.success<string>>> {
+	public async delete(@Param('requestId') requestId: string): Promise<ApiResponse<MessageSuccess<string>>> {
 		const id = parseInt(requestId);
 
 		if (isNaN(id)) {
@@ -53,7 +57,7 @@ class GenerationRequestsController {
 		}
 
 		await this.generationRequestService.deleteRequest(id);
-		return ResponseFactory.success('Generation request deleted');
+		return this.apiResponse.success('Generation request deleted');
 	}
 }
 

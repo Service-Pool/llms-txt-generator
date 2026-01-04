@@ -1,24 +1,32 @@
 import { AuthService } from './services/auth.service';
+import { MessageSuccess } from '../../utils/response/message-success';
+import { MessageError } from '../../utils/response/message-error';
 import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { CurrentUserService } from './services/current-user.service';
 import { LoginDto } from './dto/login.dto';
-import { ResponseFactory } from '../../utils/response.factory';
+import { ApiResponse } from '../../utils/response/api-response';
+import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
+import { AuthLoginResponse, AuthLogoutResponse, AuthStatusResponse } from './dto/auth-response.dto';
 
 @Controller('auth')
 class AuthController {
 	constructor(
 		private readonly authService: AuthService,
-		private readonly currentUserService: CurrentUserService
-	) {}
+		private readonly currentUserService: CurrentUserService,
+		private readonly apiResponse: ApiResponse
+	) { }
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
-	async login(@Body() loginDto: LoginDto, @Req() request: FastifyRequest) {
+	async login(
+		@Body() loginDto: LoginDto,
+		@Req() request: FastifyRequest
+	): Promise<ApiResponse<MessageSuccess<AuthLoginResponse> | MessageError>> {
 		const user = await this.authService.validateUser(loginDto.username, loginDto.password || null);
 
 		if (!user) {
-			return ResponseFactory.unauthorized('Invalid credentials');
+			return this.apiResponse.error(ResponseCode.ERROR, 'Invalid credentials');
 		}
 
 		// Migrate anonymous GenerationRequests from this session to user
@@ -27,20 +35,17 @@ class AuthController {
 		// Set session data
 		request.session.userId = user.id;
 
-		return ResponseFactory.success({
-			user: {
-				id: user.id,
-				email: user.email
-			},
-			migratedRequests: migratedCount
-		});
+		return this.apiResponse.success(AuthLoginResponse.fromEntity(
+			user,
+			migratedCount
+		));
 	}
 
 	@Post('logout')
 	@HttpCode(HttpStatus.OK)
-	async logout(@Req() request: FastifyRequest) {
+	async logout(@Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLogoutResponse> | MessageError>> {
 		if (!request.session.userId) {
-			return ResponseFactory.unauthorized('Not authenticated');
+			return this.apiResponse.error(ResponseCode.ERROR, 'Not authenticated');
 		}
 
 		await new Promise<void>((resolve, reject) => {
@@ -50,30 +55,26 @@ class AuthController {
 			});
 		});
 
-		return ResponseFactory.success({ message: 'Logged out successfully' });
+		return this.apiResponse.success(AuthLogoutResponse.fromEntity('Logged out successfully'));
 	}
 
 	@Get('me')
-	async status() {
+	async status(): Promise<ApiResponse<MessageSuccess<AuthStatusResponse>>> {
 		const userId = this.currentUserService.getUserId();
 		const sessionId = this.currentUserService.getSessionId();
 
 		if (userId) {
 			const user = await this.authService.findById(userId);
 			if (user) {
-				return ResponseFactory.success({
-					authenticated: true,
-					sessionId: sessionId,
-					user: {
-						id: user.id,
-						username: user.username,
-						email: user.email
-					}
-				});
+				return this.apiResponse.success(AuthStatusResponse.fromEntity(
+					true,
+					sessionId,
+					user
+				));
 			}
 		}
 
-		return ResponseFactory.success({ authenticated: false });
+		return this.apiResponse.success(AuthStatusResponse.fromEntity(false));
 	}
 }
 

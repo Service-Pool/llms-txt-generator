@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { GenerationStatus, type GenerationRequestDtoResponse } from '@api/shared';
-	import ProgressBar from '../common/ProgressBar.svelte';
-	import { GenerationsService } from '$lib/api/generations.service';
-	import Spinner from '../common/Spinner.svelte';
+	import {
+		GenerationStatus,
+		type GenerationRequestDtoResponse,
+	} from "@api/shared";
+	import ProgressBar from "../common/ProgressBar.svelte";
+	import { GenerationsService } from "$lib/api/generations.service";
+	import Spinner from "../common/Spinner.svelte";
+	import { formatNumber } from "$lib/utils/number-format";
 
 	interface Props {
 		item: GenerationRequestDtoResponse;
@@ -11,11 +15,11 @@
 	}
 
 	let { item, progress = null, onDelete }: Props = $props();
-	
+
 	let showContent = $state(false);
 	let fullContent = $state<string | null>(null);
 	let isLoading = $state(false);
-	
+
 	const generationsService = new GenerationsService();
 
 	const status = $derived.by(() => {
@@ -25,20 +29,35 @@
 	const statusConfig = $derived.by(() => {
 		switch (status) {
 			case GenerationStatus.WAITING:
-				return { text: 'Waiting', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' };
+				return {
+					text: "Waiting",
+					class: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+				};
 			case GenerationStatus.ACTIVE:
-				return { text: 'Processing', class: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' };
+				return {
+					text: "Processing",
+					class: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+				};
 			case GenerationStatus.COMPLETED:
-				return { text: 'Completed', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' };
+				return {
+					text: "Completed",
+					class: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+				};
 			case GenerationStatus.FAILED:
-				return { text: 'Failed', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' };
+				return {
+					text: "Failed",
+					class: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+				};
 			default:
-				return { text: 'Unknown', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' };
+				return {
+					text: "Unknown",
+					class: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+				};
 		}
 	});
 
 	const formattedDate = $derived(
-		item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'
+		item.createdAt ? new Date(item.createdAt).toLocaleString() : "-",
 	);
 
 	const handleDelete = (e: MouseEvent) => {
@@ -58,11 +77,13 @@
 
 		isLoading = true;
 		try {
-			const response = await generationsService.findById(item.generationId);
-			fullContent = response.message.content;
+			const response = await generationsService.findById(
+				item.generationId,
+			);
+			fullContent = response.getMessage().data.content;
 			showContent = true;
 		} catch (error) {
-			alert('Failed to load content');
+			alert("Failed to load content");
 			console.error(error);
 		} finally {
 			isLoading = false;
@@ -73,9 +94,9 @@
 		if (!fullContent) return;
 		try {
 			await navigator.clipboard.writeText(fullContent);
-			alert('Content copied to clipboard');
+			alert("Content copied to clipboard");
 		} catch {
-			alert('Failed to copy content');
+			alert("Failed to copy content");
 		}
 	};
 
@@ -83,37 +104,44 @@
 		if (!fullContent) return;
 		// Extract domain from hostname (e.g., "https://mototechna.cz" -> "mototechna.cz")
 		const domain = new URL(item.hostname).hostname;
-		const element = document.createElement('a');
-		element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(fullContent));
-		element.setAttribute('download', `llms-${domain}.txt`);
-		element.style.display = 'none';
+		const element = document.createElement("a");
+		element.setAttribute(
+			"href",
+			"data:text/plain;charset=utf-8," + encodeURIComponent(fullContent),
+		);
+		element.setAttribute("download", `llms-${domain}.txt`);
+		element.style.display = "none";
 		document.body.appendChild(element);
 		element.click();
 		document.body.removeChild(element);
 	};
 </script>
 
-<div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+<div
+	class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div class="flex-1">
 			<!-- Hostname with Status -->
 			<div class="flex items-baseline gap-2 mb-2">
-				<h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-					{item.hostname || 'Unknown'}
+				<h3
+					class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+					{item.hostname || "Unknown"}
 				</h3>
-				<span class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
+				<span
+					class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
 					{statusConfig.text}
 				</span>
 			</div>
 
 			<!-- Provider & Metadata in one line -->
-			<div class="flex flex-wrap items-center gap-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-				<span>{item.provider || 'unknown'}</span>
+			<div
+				class="flex flex-wrap items-center gap-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+				<span>{item.provider || "unknown"}</span>
 				<span>•</span>
 				<span>{formattedDate}</span>
 				{#if item.entriesCount}
 					<span>•</span>
-					<span>{item.entriesCount} entries</span>
+					<span>{formatNumber(item.entriesCount)} entries</span>
 				{/if}
 			</div>
 
@@ -125,8 +153,7 @@
 						total={progress.totalUrls}
 						size="sm"
 						showPercentage={true}
-						showNumbers={true}
-					/>
+						showNumbers={true} />
 				</div>
 			{/if}
 
@@ -144,17 +171,15 @@
 				<button
 					onclick={handleShowContent}
 					disabled={false}
-					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					<span>{showContent ? 'Hide' : 'Show'}</span>
+					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+					<span>{showContent ? "Hide" : "Show"}</span>
 				</button>
 			{/if}
 
 			<button
 				onclick={handleDelete}
 				class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
-				aria-label="Delete generation"
-			>
+				aria-label="Delete generation">
 				Delete
 			</button>
 		</div>
@@ -162,13 +187,18 @@
 
 	<!-- Content Section -->
 	{#if showContent || isLoading}
-		<div class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
+		<div
+			class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
 			{#if isLoading}
 				<div class="flex justify-center items-center py-6">
-					<Spinner size="md" color="var(--spinner-color)" delay={1000} />
+					<Spinner
+						size="md"
+						color="var(--spinner-color)"
+						delay={1000} />
 				</div>
 			{:else}
-				<p class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
+				<p
+					class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
 					{fullContent}
 				</p>
 			{/if}
@@ -180,14 +210,12 @@
 		<div class="flex gap-1 justify-end mt-2">
 			<button
 				onclick={handleCopy}
-				class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors"
-			>
+				class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors">
 				Copy
 			</button>
 			<button
 				onclick={handleDownload}
-				class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors"
-			>
+				class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors">
 				Download
 			</button>
 		</div>

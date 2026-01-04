@@ -8,7 +8,7 @@ import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobIdUtil } from '../../../utils/job-id.util';
+import { JobUtils } from '../../../utils/job.utils';
 import { Provider } from '../../../enums/provider.enum';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
@@ -158,7 +158,7 @@ class GenerationRequestService {
 		);
 
 		const providerConfig = this.configService.providers[provider];
-		const jobId = JobIdUtil.generate(generation.id);
+		const jobId = JobUtils.generateId(generation.id);
 
 		await this.queueService.send(providerConfig.queueName, message, jobId);
 

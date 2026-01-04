@@ -1,21 +1,27 @@
 import { AnalyzeHostnameDtoRequest } from './dto/stats-request.dto';
 import { AnalyzeHostnameDtoResponse } from './dto/stats-response.dto';
+import { MessageSuccess } from '../../utils/response/message-success';
+import { MessageError } from '../../utils/response/message-error';
 import { Controller, Get, Query } from '@nestjs/common';
-import { ResponseFactory } from '../../utils/response.factory';
+import { ApiResponse } from '../../utils/response/api-response';
+import { ResponseCode } from '../../enums/response-code.enum';
 import { StatsService } from './stats.service';
 
 @Controller('api/stats')
 class StatsController {
-	constructor(private readonly statsService: StatsService) {}
+	constructor(
+		private readonly statsService: StatsService,
+		private readonly responseFactory: ApiResponse
+	) { }
 
 	@Get('host')
-	public async host(@Query() query: AnalyzeHostnameDtoRequest): Promise<ReturnType<typeof ResponseFactory.success<AnalyzeHostnameDtoResponse>> | ReturnType<typeof ResponseFactory.error>> {
+	public async host(@Query() query: AnalyzeHostnameDtoRequest): Promise<ApiResponse<MessageSuccess<AnalyzeHostnameDtoResponse> | MessageError>> {
 		try {
 			const analysis = await this.statsService.analyzeHostname(query.hostname);
-			return ResponseFactory.success(analysis);
+			return this.responseFactory.success(analysis);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Failed to analyze hostname';
-			return ResponseFactory.error(message);
+			return this.responseFactory.error(ResponseCode.ERROR, message);
 		}
 	}
 }

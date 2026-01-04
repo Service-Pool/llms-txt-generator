@@ -7,9 +7,13 @@ import { fastifyCookie } from '@fastify/cookie';
 import { fastifySession } from '@fastify/session';
 import { fastifyWebsocket } from '@fastify/websocket';
 import { NestFactory } from '@nestjs/core';
+import { ApiResponse } from '../utils/response/api-response';
 import { Session } from '../modules/auth/entitites/session.entity';
 import { TypeORMSessionStore } from '../modules/auth/typeorm-session.store';
 import { ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from '../filters/global-exception.filter';
+import { ValidationException } from '../exceptions/validation.exception';
+import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
 	if (!process.env.PORT) {
@@ -61,8 +65,15 @@ async function bootstrap() {
 	app.useGlobalPipes(new ValidationPipe({
 		whitelist: true,
 		forbidNonWhitelisted: true,
-		transform: true
+		transform: true,
+		exceptionFactory: (errors: ValidationError[]) => {
+			return new ValidationException(errors);
+		}
 	}));
+
+	// Global exception filter
+	const responseFactory = app.get(ApiResponse);
+	app.useGlobalFilters(new GlobalExceptionFilter(responseFactory));
 
 	// Health check endpoint
 	app.getHttpAdapter().get('/health', (req, res) => {

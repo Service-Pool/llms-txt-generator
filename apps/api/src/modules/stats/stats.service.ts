@@ -16,7 +16,7 @@ class StatsService {
 		// Get sitemap URLs from robots.txt (or fallback to /sitemap.xml)
 		const sitemapUrls = await this.robotsService.getSitemaps(hostname);
 
-		const MAX_DURATION_MS = 10000; // 10 seconds
+		const MAX_DURATION_MS = 40000; // 40 seconds
 		const startTime = Date.now();
 
 		let urlsCount = 0;

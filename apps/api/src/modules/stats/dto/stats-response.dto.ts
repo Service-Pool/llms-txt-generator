@@ -12,7 +12,7 @@ class AnalyzeHostnameDtoResponse {
 		return new AnalyzeHostnameDtoResponse(hostname, urlsCount, isComplete);
 	}
 
-	static fromJson(json: Record<string, unknown>): AnalyzeHostnameDtoResponse {
+	static fromJSON(json: Record<string, unknown>): AnalyzeHostnameDtoResponse {
 		return new AnalyzeHostnameDtoResponse(
 			json.hostname as string,
 			json.urlsCount as number,

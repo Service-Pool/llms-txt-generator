@@ -1,15 +1,18 @@
-import { ApiResponseModel } from '@api/shared';
+import { ApiResponse, ResponseCode, MessageInvalid, MessageError, MessageSuccess, type Deserializable } from '@api/shared';
 import { AppConfigService } from './config.service';
 
 const configService = new AppConfigService();
 
-export class ApiError extends Error {
+export class HttpClientError extends Error {
 	constructor(
-		public readonly status: number,
-		message: string
+		public readonly code: number,
+		public readonly message: string,
+		public readonly violations: string[] | null = null
 	) {
 		super(message);
-		this.name = 'ApiError';
+		this.code = code;
+		this.name = 'HttpClientError';
+		this.violations = violations;
 	}
 }
 
@@ -22,7 +25,7 @@ export class HttpClient {
 		this.timeout = configService.http.timeout;
 	}
 
-	protected async fetch<T>(endpoint: string, options?: RequestInit): Promise<ApiResponseModel<T>> {
+	protected async fetch<T>(endpoint: string, options?: RequestInit, DataClass?: Deserializable<T>): Promise<ApiResponse<MessageSuccess<T>>> {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		const controller = new AbortController();
@@ -49,31 +52,48 @@ export class HttpClient {
 
 			clearTimeout(timeoutId);
 
-			const json = await response.json() as Record<string, unknown>;
-			const data = new ApiResponseModel<T>(
-				json.code as number,
-				json.message as T,
-				json.error as string | undefined
-			);
+			const json: unknown = await response.json();
 
-			if (!response.ok || (data.code >= 400)) {
-				const errorMessage = data.error || 'Request failed';
-				throw new ApiError(data.code || response.status, errorMessage);
+			try {
+				const apiResponse = ApiResponse.fromJSON<T>(json as { code: ResponseCode; message: unknown }, DataClass);
+
+				// Handle error responses
+				const message = apiResponse.getMessage();
+
+				if (message instanceof MessageInvalid) {
+					throw new HttpClientError(apiResponse.getСode(), 'Invalid request', message.violations);
+				}
+
+				if (message instanceof MessageError) {
+					throw new HttpClientError(apiResponse.getСode(), 'Unexpected error', [message.error]);
+				}
+
+				return apiResponse as ApiResponse<MessageSuccess<T>>;
+			} catch (error) {
+				// Re-throw HttpClientError as is
+				if (error instanceof HttpClientError) {
+					throw error;
+				}
+
+				const code = ((json as Record<string, unknown>).code as number) || 0;
+				const message = error instanceof Error ? error.message : 'Unknown error';
+				throw new HttpClientError(code, message);
 			}
-
-			return data;
 		} catch (error) {
 			clearTimeout(timeoutId);
 
-			if (error instanceof ApiError) {
+			// Re-throw HttpClientError as is
+			if (error instanceof HttpClientError) {
 				throw error;
 			}
 
+			// AbortError
 			if (error instanceof Error && error.name === 'AbortError') {
-				throw new ApiError(0, 'Request timeout');
+				throw new HttpClientError(0, 'Request timeout');
 			}
 
-			throw new ApiError(0, error instanceof Error ? error.message : 'Network error');
+			// Network errors, JSON parse errors, etc.
+			throw new HttpClientError(0, error instanceof Error ? error.message : 'Network error');
 		}
 	}
 }

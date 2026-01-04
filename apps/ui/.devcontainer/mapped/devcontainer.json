@@ -26,13 +26,13 @@
 				"editor.formatOnSave": true,
 				"editor.formatOnSaveMode": "file",
 				"[svelte]": {
-					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+					"editor.defaultFormatter": "svelte.svelte-vscode"
 				},
 				"[javascript]": {
 					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 				},
 				"[typescript]": {
-					"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+					"editor.defaultFormatter": "vscode.typescript-language-features"
 				},
 				"[css]": {
 					"editor.defaultFormatter": "dbaeumer.vscode-eslint"

@@ -1,32 +1,36 @@
+import { MessageSuccess } from '../../utils/response/message-success';
+import { MessageError } from '../../utils/response/message-error';
 import { Controller, Get, Post, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GenerationDtoResponse } from './dto/generation-response.dto';
 import { GenerationProgressEvent, GenerationStatusEvent } from '../websocket/websocket.events';
 import { GenerationsService } from './services/generations.service';
 import { GenerationStatus } from '../../enums/generation-status.enum';
-import { ResponseFactory } from '../../utils/response.factory';
+import { ApiResponse } from '../../utils/response/api-response';
+import { ResponseCode } from '../../enums/response-code.enum';
 
 @Controller('api/generations')
 class GenerationsController {
 	constructor(
 		private readonly generationsService: GenerationsService,
-		private readonly eventEmitter: EventEmitter2
-	) {}
+		private readonly eventEmitter: EventEmitter2,
+		private readonly apiResponse: ApiResponse
+	) { }
 
 	@Get(':id')
-	public async getOne(@Param('id') id: string): Promise<ReturnType<typeof ResponseFactory.success<GenerationDtoResponse>> | ReturnType<typeof ResponseFactory.notFound>> {
-		const generation = await this.generationsService.findByIdAndUser(parseInt(id));
+	public async getOne(@Param('id') id: number): Promise<ApiResponse<MessageSuccess<GenerationDtoResponse> | MessageError>> {
+		const generation = await this.generationsService.findById(id);
 
 		if (!generation) {
-			return ResponseFactory.notFound('Generation not found');
+			return this.apiResponse.error(ResponseCode.ERROR, 'Generation not found');
 		}
 
-		return ResponseFactory.success(GenerationDtoResponse.fromEntity(generation));
+		return this.apiResponse.success(GenerationDtoResponse.fromEntity(generation));
 	}
 
 	@Post(':id/test-event')
 	@HttpCode(HttpStatus.OK)
-	public testEvent(@Param('id') id: string): ReturnType<typeof ResponseFactory.success<{ message: string }>> {
+	public testEvent(@Param('id') id: string): ApiResponse<MessageSuccess<{ message: string }>> {
 		const generationId = parseInt(id);
 
 		// Emit test progress event
@@ -48,7 +52,7 @@ class GenerationsController {
 			));
 		}, 2000);
 
-		return ResponseFactory.success({ message: 'Test events emitted' });
+		return this.apiResponse.success({ message: 'Test events emitted' });
 	}
 }
 

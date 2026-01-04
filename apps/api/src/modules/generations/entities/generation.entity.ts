@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Unique, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Unique, OneToMany, type Relation } from 'typeorm';
 import { GenerationRequest } from './generation-request.entity';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Provider } from '../../../enums/provider.enum';
@@ -38,7 +38,7 @@ class Generation {
 	public entriesCount: number | null;
 
 	@OneToMany(() => GenerationRequest, request => request.generation)
-	public requests: GenerationRequest[];
+	public requests: Relation<GenerationRequest[]>;
 
 	@CreateDateColumn({ name: 'created_at' })
 	public createdAt: Date;

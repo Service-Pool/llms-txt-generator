@@ -3,6 +3,7 @@ import { AuthService } from './services/auth.service';
 import { CurrentUserService } from './services/current-user.service';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { Module } from '@nestjs/common';
+import { ApiResponse } from '../../utils/response/api-response';
 import { Session } from './entitites/session.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entitites/user.entity';
@@ -16,8 +17,9 @@ import { User } from './entitites/user.entity';
 	controllers: [AuthController],
 	providers: [
 		AuthService,
-		CurrentUserService
+		CurrentUserService,
+		ApiResponse
 	],
 	exports: [AuthService]
 })
-export class AuthModule {}
+export class AuthModule { }

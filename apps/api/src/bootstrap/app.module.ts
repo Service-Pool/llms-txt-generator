@@ -7,6 +7,7 @@ import { GenerationsModule } from '../modules/generations/generations.module';
 import { HttpModule } from '../modules/http/http.module';
 import { Module } from '@nestjs/common';
 import { QueueModule } from '../modules/queue/queue.module';
+import { ApiResponse } from '../utils/response/api-response';
 import { RobotsModule } from '../modules/robots/robots.module';
 import { SitemapModule } from '../modules/sitemap/sitemap.module';
 import { StatsModule } from '../modules/stats/stats.module';
@@ -35,6 +36,8 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		GenerationsModule,
 		StatsModule,
 		WebSocketModule
-	]
+	],
+	providers: [ApiResponse],
+	exports: [ApiResponse]
 })
-export class AppModule {}
+export class AppModule { }

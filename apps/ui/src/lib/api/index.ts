@@ -1,5 +1,5 @@
 export { AppConfigService } from './config.service';
-export { HttpClient, ApiError } from './http.client';
+export { HttpClient, HttpClientError } from './http.client';
 export { AuthService } from './auth.service';
 export { GenerationsService } from './generations.service';
 export { StatsService } from './stats.service';

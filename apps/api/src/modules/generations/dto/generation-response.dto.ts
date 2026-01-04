@@ -33,7 +33,7 @@ class GenerationDtoResponse {
 		);
 	}
 
-	static fromJson(json: Record<string, unknown>): GenerationDtoResponse {
+	static fromJSON(json: Record<string, unknown>): GenerationDtoResponse {
 		return new GenerationDtoResponse(
 			json.id as number,
 			json.hostname as string,
@@ -90,7 +90,7 @@ class GenerationRequestDtoResponse {
 		);
 	}
 
-	static fromJson(json: Record<string, unknown>): GenerationRequestDtoResponse {
+	static fromJSON(json: Record<string, unknown>): GenerationRequestDtoResponse {
 		return new GenerationRequestDtoResponse(
 			json.id as number,
 			json.generationId as number,
@@ -129,9 +129,9 @@ class GenerationRequestsListDtoResponse {
 		);
 	}
 
-	static fromJson(json: Record<string, unknown>): GenerationRequestsListDtoResponse {
+	static fromJSON(json: Record<string, unknown>): GenerationRequestsListDtoResponse {
 		return new GenerationRequestsListDtoResponse(
-			(json.items as Record<string, unknown>[]).map(item => GenerationRequestDtoResponse.fromJson(item)),
+			(json.items as Record<string, unknown>[]).map(item => GenerationRequestDtoResponse.fromJSON(item)),
 			json.total as number,
 			json.page as number,
 			json.limit as number

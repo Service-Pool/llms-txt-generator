@@ -1,14 +1,14 @@
 {
-	"editor.formatOnSave": false,
+	"editor.formatOnSave": true,
 	"editor.formatOnSaveMode": "file",
-		"[svelte]": {
-		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	"[svelte]": {
+		"editor.defaultFormatter": "svelte.svelte-vscode"
 	},
 	"[javascript]": {
 		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
 	},
 	"[typescript]": {
-		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+		"editor.defaultFormatter": "vscode.typescript-language-features"
 	},
 	"[css]": {
 		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
@@ -27,5 +27,7 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
 	},
-	"typescript.tsdk": "node_modules/typescript/lib"
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"svelte.plugin.svelte.format.config.svelteBracketNewLine": false,
+	"svelte.language-server.runtime-args": []
 }

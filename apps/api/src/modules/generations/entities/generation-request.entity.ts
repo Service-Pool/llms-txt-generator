@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, Index, type Relation } from 'typeorm';
 import { Generation } from './generation.entity';
 import { User } from '../../auth/entitites/user.entity';
 
@@ -13,7 +13,7 @@ class GenerationRequest {
 
 	@ManyToOne(() => Generation, generation => generation.requests, { onDelete: 'CASCADE' })
 	@JoinColumn({ name: 'generation_id' })
-	public generation: Generation;
+	public generation: Relation<Generation>;
 
 	@Column({ type: 'int', unsigned: true, nullable: true, name: 'user_id' })
 	@Index('idx_user')

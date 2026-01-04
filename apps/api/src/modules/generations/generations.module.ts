@@ -11,6 +11,7 @@ import { GenerationsService } from './services/generations.service';
 import { Module } from '@nestjs/common';
 import { OllamaService } from './services/llm/ollama.service';
 import { QueueModule } from '../queue/queue.module';
+import { ApiResponse } from '../../utils/response/api-response';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../auth/entitites/user.entity';
 
@@ -27,8 +28,9 @@ import { User } from '../auth/entitites/user.entity';
 		ContentExtractorService,
 		OllamaService,
 		GeminiService,
-		CurrentUserService
+		CurrentUserService,
+		ApiResponse
 	],
 	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]
 })
-export class GenerationsModule {}
+export class GenerationsModule { }

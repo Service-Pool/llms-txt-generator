@@ -21,6 +21,7 @@ const stubServerImports = {
 	name: 'stub-server-imports',
 	resolveId(id) {
 		switch (true) {
+			case id === '@nestjs/common':
 			case id === 'class-validator':
 			case id === 'robots-parser':
 			case id.includes('common/validators'):
@@ -34,6 +35,9 @@ const stubServerImports = {
 	},
 	load(id) {
 		switch (true) {
+			case id === '@nestjs/common':
+				return `export const Injectable = () => () => {};`;
+
 			case id === 'class-validator': {
 				// Все популярные декораторы class-validator
 				const decorators = [

@@ -5,7 +5,7 @@ import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobIdUtil } from '../../../utils/job-id.util';
+import { JobUtils } from '../../../utils/job.utils';
 import { Queue, Worker, Job, JobsOptions, ConnectionOptions, QueueEvents } from 'bullmq';
 import { Repository } from 'typeorm';
 
@@ -80,7 +80,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 			queueEvents.on('progress', ({ jobId, data }) => {
 				this.logger.log(`Progress event for job ${jobId}`);
 				const progressData = data as { processedUrls: number; totalUrls: number };
-				const generationId = JobIdUtil.parse(jobId);
+				const generationId = JobUtils.parseId(jobId);
 
 				if (generationId) {
 					this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
@@ -95,7 +95,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 			queueEvents.on('completed', ({ jobId }) => {
 				(async () => {
 					this.logger.log(`Completed event for job ${jobId}`);
-					const generationId = JobIdUtil.parse(jobId);
+					const generationId = JobUtils.parseId(jobId);
 
 					if (generationId) {
 						const generation = await this.generationRepository.findOne({ where: { id: generationId } });
@@ -118,7 +118,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 
 			queueEvents.on('failed', ({ jobId, failedReason }) => {
 				this.logger.log(`Failed event for job ${jobId}`);
-				const generationId = JobIdUtil.parse(jobId);
+				const generationId = JobUtils.parseId(jobId);
 
 				if (generationId) {
 					this.eventEmitter.emit('generation.status', new GenerationStatusEvent(

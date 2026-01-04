@@ -5,7 +5,7 @@ import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobIdUtil } from '../../../utils/job-id.util';
+import { JobUtils } from '../../../utils/job.utils';
 import { Provider } from '../../../enums/provider.enum';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
@@ -117,7 +117,7 @@ class GenerationsService {
 	}
 
 	private generateJobId(generationId: number): string {
-		return JobIdUtil.generate(generationId);
+		return JobUtils.generateId(generationId);
 	}
 }
 

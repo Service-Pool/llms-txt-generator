@@ -19,10 +19,6 @@ export class HostnameRobotsAndSitemapConstraint implements ValidatorConstraintIn
 		}
 	}
 
-	public defaultMessage(): string {
-		return 'Hostname must have accessible robots.txt with sitemap reference';
-	}
-
 	/**
 	 * Get sitemap URLs from robots.txt
 	 */
