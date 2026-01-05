@@ -78,10 +78,6 @@
 
 		await generationsService.delete(requestId);
 
-		// Remove from list
-		items = items.filter((item) => item.id !== requestId);
-		total = total - 1;
-
 		// Unsubscribe from WebSocket
 		if (ws && deletedItem?.generationId) {
 			ws.unsubscribe([deletedItem.generationId]);
@@ -92,11 +88,8 @@
 			delete progressMap[deletedItem.generationId];
 		}
 
-		// If page is now empty and not first page, go to previous page
-		if (items.length === 0 && page > 1) {
-			page = page - 1;
-			await loadGenerations();
-		}
+		// Reload data to get correct pagination
+		await loadGenerations();
 	};
 
 	const handleCreate = (newGeneration: GenerationRequestDtoResponse) => {
@@ -205,11 +198,13 @@
 		</div>
 	{:else if error}
 		<div
-			class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+			class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+		>
 			<p class="text-red-800 dark:text-red-200">{error}</p>
 			<button
 				onclick={() => loadGenerations()}
-				class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline">
+				class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline"
+			>
 				Try again
 			</button>
 		</div>
@@ -222,6 +217,7 @@
 			{progressMap}
 			onPageChange={handlePageChange}
 			onLimitChange={handleLimitChange}
-			onDelete={handleDelete} />
+			onDelete={handleDelete}
+		/>
 	{/if}
 </div>

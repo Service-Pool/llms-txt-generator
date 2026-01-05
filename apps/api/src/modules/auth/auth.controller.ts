@@ -7,7 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { ApiResponse } from '../../utils/response/api-response';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
-import { AuthLoginResponse, AuthLogoutResponse, AuthStatusResponse } from './dto/auth-response.dto';
+import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse } from './dto/auth-response.dto';
 
 @Controller('auth')
 class AuthController {
@@ -22,7 +22,7 @@ class AuthController {
 	async login(
 		@Body() loginDto: LoginDto,
 		@Req() request: FastifyRequest
-	): Promise<ApiResponse<MessageSuccess<AuthLoginResponse> | MessageError>> {
+	): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse> | MessageError>> {
 		const user = await this.authService.validateUser(loginDto.username, loginDto.password || null);
 
 		if (!user) {
@@ -35,7 +35,7 @@ class AuthController {
 		// Set session data
 		request.session.userId = user.id;
 
-		return this.apiResponse.success(AuthLoginResponse.fromEntity(
+		return this.apiResponse.success(AuthLoginDtoResponse.fromEntity(
 			user,
 			migratedCount
 		));
@@ -43,7 +43,7 @@ class AuthController {
 
 	@Post('logout')
 	@HttpCode(HttpStatus.OK)
-	async logout(@Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLogoutResponse> | MessageError>> {
+	async logout(@Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLogoutDtoResponse> | MessageError>> {
 		if (!request.session.userId) {
 			return this.apiResponse.error(ResponseCode.ERROR, 'Not authenticated');
 		}
@@ -55,18 +55,18 @@ class AuthController {
 			});
 		});
 
-		return this.apiResponse.success(AuthLogoutResponse.fromEntity('Logged out successfully'));
+		return this.apiResponse.success(AuthLogoutDtoResponse.fromEntity('Logged out successfully'));
 	}
 
 	@Get('me')
-	async status(): Promise<ApiResponse<MessageSuccess<AuthStatusResponse>>> {
+	async status(): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
 		const userId = this.currentUserService.getUserId();
 		const sessionId = this.currentUserService.getSessionId();
 
 		if (userId) {
 			const user = await this.authService.findById(userId);
 			if (user) {
-				return this.apiResponse.success(AuthStatusResponse.fromEntity(
+				return this.apiResponse.success(AuthStatusDtoResponse.fromEntity(
 					true,
 					sessionId,
 					user
@@ -74,7 +74,7 @@ class AuthController {
 			}
 		}
 
-		return this.apiResponse.success(AuthStatusResponse.fromEntity(false));
+		return this.apiResponse.success(AuthStatusDtoResponse.fromEntity(false));
 	}
 }
 

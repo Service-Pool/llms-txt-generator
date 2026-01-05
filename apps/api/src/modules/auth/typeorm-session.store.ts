@@ -12,7 +12,7 @@ export class TypeORMSessionStore {
 	constructor(
 		private readonly sessionRepository: Repository<Session>,
 		private readonly defaultMaxAge: number
-	) {}
+	) { }
 
 	get(sid: string, callback: CallbackSession): void {
 		this.logger.log(`[get] Called for sid: ${sid}`);
