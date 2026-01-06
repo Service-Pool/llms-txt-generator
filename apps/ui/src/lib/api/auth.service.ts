@@ -5,13 +5,13 @@ import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDto
 const configService = new AppConfigService();
 
 // Auth-specific request types
-export interface LoginRequest {
+interface LoginRequestInterface {
 	username: string;
 	password: string | null;
 }
 
-export class AuthService extends HttpClient {
-	public async login(credentials: LoginRequest): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
+class AuthService extends HttpClient {
+	public async login(credentials: LoginRequestInterface): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
 		return this.fetch(configService.endpoints.auth.login, {
 			method: 'POST',
 			body: JSON.stringify(credentials)
@@ -28,3 +28,5 @@ export class AuthService extends HttpClient {
 		return this.fetch(configService.endpoints.auth.status, undefined, AuthStatusDtoResponse);
 	}
 }
+
+export { type LoginRequestInterface, AuthService };

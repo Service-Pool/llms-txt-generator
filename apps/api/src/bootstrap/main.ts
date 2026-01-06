@@ -52,7 +52,7 @@ async function bootstrap() {
 		secret: configService.session.secret,
 		cookieName: configService.session.cookieName,
 		store: sessionStore,
-		saveUninitialized: true,
+		saveUninitialized: false,
 		cookie: {
 			maxAge: configService.session.maxAge,
 			httpOnly: true,

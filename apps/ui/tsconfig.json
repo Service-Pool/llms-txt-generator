@@ -21,5 +21,14 @@
 		"strictFunctionTypes": true,
 		"strictNullChecks": true,
 		"strictPropertyInitialization": true
-	}
+	},
+	"include": [
+		".svelte-kit/**/*",
+		"src/**/*",
+		"test/**/*"
+	],
+	"exclude": [
+		"node_modules",
+		"dist"
+	],
 }

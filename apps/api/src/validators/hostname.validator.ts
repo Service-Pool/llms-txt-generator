@@ -2,8 +2,20 @@ import { registerDecorator, ValidationOptions, ValidatorConstraint, ValidatorCon
 import robotsParser from 'robots-parser';
 
 @ValidatorConstraint({ async: true })
-export class HostnameRobotsAndSitemapConstraint implements ValidatorConstraintInterface {
+class HostnameValidator implements ValidatorConstraintInterface {
 	private static readonly FETCH_TIMEOUT = 2000; // 2 seconds
+
+	public static validateHostnameRobotsAndSitemap(validationOptions?: ValidationOptions) {
+		return function (object: object, propertyName: string) {
+			registerDecorator({
+				target: object.constructor,
+				propertyName,
+				options: validationOptions,
+				constraints: [],
+				validator: HostnameValidator
+			});
+		};
+	}
 
 	public async validate(hostname: string): Promise<boolean> {
 		try {
@@ -63,7 +75,7 @@ export class HostnameRobotsAndSitemapConstraint implements ValidatorConstraintIn
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => {
 			controller.abort();
-		}, HostnameRobotsAndSitemapConstraint.FETCH_TIMEOUT);
+		}, HostnameValidator.FETCH_TIMEOUT);
 
 		try {
 			const response = await fetch(url, {
@@ -89,14 +101,4 @@ export class HostnameRobotsAndSitemapConstraint implements ValidatorConstraintIn
 	}
 }
 
-export function ValidateHostnameRobotsAndSitemap(validationOptions?: ValidationOptions) {
-	return function (object: object, propertyName: string) {
-		registerDecorator({
-			target: object.constructor,
-			propertyName,
-			options: validationOptions,
-			constraints: [],
-			validator: HostnameRobotsAndSitemapConstraint
-		});
-	};
-}
+export { HostnameValidator };

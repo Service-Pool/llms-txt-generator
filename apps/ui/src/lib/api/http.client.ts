@@ -3,7 +3,7 @@ import { AppConfigService } from './config.service';
 
 const configService = new AppConfigService();
 
-export class HttpClientError extends Error {
+class HttpClientError extends Error {
 	constructor(
 		public readonly code: number,
 		public readonly message: string,
@@ -16,7 +16,7 @@ export class HttpClientError extends Error {
 	}
 }
 
-export class HttpClient {
+class HttpClient {
 	protected readonly baseUrl: string;
 	protected readonly timeout: number;
 
@@ -97,3 +97,5 @@ export class HttpClient {
 		}
 	}
 }
+
+export { HttpClientError, HttpClient };

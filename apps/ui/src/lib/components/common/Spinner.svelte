@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount } from "svelte";
 
 	interface Props {
-		size?: 'sm' | 'md' | 'lg';
+		size?: "sm" | "md" | "lg";
 		color?: string;
 		delay?: number;
 	}
 
-	let { size = 'md', color = '#3b82f6', delay = 0 }: Props = $props();
+	let { size = "md", color = "#3b82f6", delay = 0 }: Props = $props();
 
 	let isVisible = $state(false);
 
@@ -22,7 +22,7 @@
 			return () => clearTimeout(timeout);
 		}
 
-		return
+		return;
 	});
 
 	onMount(() => {
@@ -30,9 +30,9 @@
 	});
 
 	const sizeMap = {
-		sm: 'h-5 w-5',
-		md: 'h-8 w-8',
-		lg: 'h-12 w-12'
+		sm: "h-5 w-5",
+		md: "h-8 w-8",
+		lg: "h-12 w-12",
 	};
 
 	const sizeClass = $derived(sizeMap[size]);
@@ -41,8 +41,8 @@
 {#if isVisible}
 	<div
 		class="animate-spin rounded-full border-2 {sizeClass}"
-		style="border-color: {color}; border-top-color: transparent;"
-	></div>
+		style="border-color: {color}; border-top-color: transparent;">
+	</div>
 {/if}
 
 <style>

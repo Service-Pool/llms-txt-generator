@@ -51,11 +51,8 @@ const stubServerImports = {
 				return exports;
 			}
 
-			case id.includes('common/validators'):
-				return `export const ValidateHostnameRobotsAndSitemap = () => () => {};`;
-
 			case id.includes('validators/hostname.validator'):
-				return `export const ValidateHostnameRobotsAndSitemap = () => () => {}; export class HostnameRobotsAndSitemapConstraint {}`;
+				return `export class HostnameValidator { static validateHostnameRobotsAndSitemap = () => () => {}; }`;
 
 			case id.includes('config/config.service'):
 				return `export const HOSTNAME_VALIDATION = () => () => {};`;

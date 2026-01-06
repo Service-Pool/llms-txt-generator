@@ -1,7 +1,7 @@
 import { HOSTNAME_VALIDATION } from '../../../config/config.service';
 import { IsString, IsNotEmpty, IsEnum, Matches } from 'class-validator';
 import { Provider } from '../../../enums/provider.enum';
-import { ValidateHostnameRobotsAndSitemap } from '../../../validators/hostname.validator';
+import { HostnameValidator } from '../../../validators/hostname.validator';
 
 /**
  * DTO для создания генерации
@@ -12,7 +12,7 @@ class CreateGenerationDtoRequest {
 	@Matches(HOSTNAME_VALIDATION.regex, {
 		message: HOSTNAME_VALIDATION.message
 	})
-	@ValidateHostnameRobotsAndSitemap({
+	@HostnameValidator.validateHostnameRobotsAndSitemap({
 		message: 'Hostname must have accessible robots.txt with sitemap reference'
 	})
 	public hostname: string;

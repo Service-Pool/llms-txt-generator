@@ -29,6 +29,13 @@ interface ValidatedEnv {
 	GEMINI_MODEL: string;
 	GEMINI_TEMPERATURE: number;
 	GEMINI_MAX_TOKENS: number;
+	GEMINI_PRICE_PER_1K_TOKENS_INPUT: number;
+	GEMINI_PRICE_PER_1K_TOKENS_OUTPUT: number;
+	OLLAMA_PRICE_PER_1K_TOKENS_INPUT: number;
+	OLLAMA_PRICE_PER_1K_TOKENS_OUTPUT: number;
+	AVG_INPUT_TOKENS_PER_PAGE: number;
+	AVG_OUTPUT_TOKENS_PER_PAGE: number;
+	PRICING_MARGIN_MULTIPLIER: number;
 	SESSION_COOKIE_NAME: string;
 	SESSION_MAX_AGE: number;
 	SESSION_SECRET: string;
@@ -38,7 +45,8 @@ interface ValidatedEnv {
 
 interface ProviderConfig {
 	queueName: string;
-	pricePerGeneration: number;
+	pricePerUrl: number;
+	priceCurrency: string;
 	enabled: boolean;
 	batchSize: number;
 }
@@ -61,27 +69,19 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	GEMINI_MODEL: Joi.string(),
 	GEMINI_TEMPERATURE: Joi.number(),
 	GEMINI_MAX_TOKENS: Joi.number(),
+	GEMINI_PRICE_PER_1K_TOKENS_INPUT: Joi.number().min(0).required(),
+	GEMINI_PRICE_PER_1K_TOKENS_OUTPUT: Joi.number().min(0).required(),
+	OLLAMA_PRICE_PER_1K_TOKENS_INPUT: Joi.number().min(0).required(),
+	OLLAMA_PRICE_PER_1K_TOKENS_OUTPUT: Joi.number().min(0).required(),
+	AVG_INPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
+	AVG_OUTPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
+	PRICING_MARGIN_MULTIPLIER: Joi.number().min(1).required(),
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
 	CORS_ORIGIN: Joi.string().allow('').required(),
 	SOCKET_PATH: Joi.string()
 });
-
-const PROVIDERS: Record<Provider, ProviderConfig> = {
-	[Provider.GEMINI]: {
-		queueName: 'gemini-queue',
-		pricePerGeneration: 0,
-		enabled: true,
-		batchSize: 50
-	},
-	[Provider.OLLAMA]: {
-		queueName: 'ollama-queue',
-		pricePerGeneration: 0,
-		enabled: true,
-		batchSize: 2
-	}
-};
 
 function validateEnv(): ValidatedEnv {
 	const result = validationSchema.validate(process.env, {
@@ -97,6 +97,43 @@ function validateEnv(): ValidatedEnv {
 }
 
 const env = validateEnv();
+
+function calculatePricePerUrl(avgInputTokens: number, avgOutputTokens: number, inputTokenPrice: number, outputTokenPrice: number, marginMultiplier: number): number {
+	const inputCost = (avgInputTokens / 1000) * inputTokenPrice;
+	const outputCost = (avgOutputTokens / 1000) * outputTokenPrice;
+	const totalCost = (inputCost + outputCost) * marginMultiplier;
+
+	return totalCost;
+}
+
+const PROVIDERS: Record<Provider, ProviderConfig> = {
+	[Provider.GEMINI]: {
+		queueName: 'gemini-queue',
+		pricePerUrl: calculatePricePerUrl(
+			env.AVG_INPUT_TOKENS_PER_PAGE,
+			env.AVG_OUTPUT_TOKENS_PER_PAGE,
+			env.GEMINI_PRICE_PER_1K_TOKENS_INPUT,
+			env.GEMINI_PRICE_PER_1K_TOKENS_OUTPUT,
+			env.PRICING_MARGIN_MULTIPLIER
+		),
+		priceCurrency: 'EUR',
+		enabled: true,
+		batchSize: 50
+	},
+	[Provider.OLLAMA]: {
+		queueName: 'ollama-queue',
+		pricePerUrl: calculatePricePerUrl(
+			env.AVG_INPUT_TOKENS_PER_PAGE,
+			env.AVG_OUTPUT_TOKENS_PER_PAGE,
+			env.OLLAMA_PRICE_PER_1K_TOKENS_INPUT,
+			env.OLLAMA_PRICE_PER_1K_TOKENS_OUTPUT,
+			env.PRICING_MARGIN_MULTIPLIER
+		),
+		priceCurrency: 'EUR',
+		enabled: true,
+		batchSize: 2
+	}
+};
 
 // Validation constants
 const HOSTNAME_VALIDATION = {

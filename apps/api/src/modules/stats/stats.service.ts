@@ -2,6 +2,8 @@ import { AnalyzeHostnameDtoResponse } from './dto/stats-response.dto';
 import { Injectable, Logger } from '@nestjs/common';
 import { RobotsService } from '../../modules/robots/robots.service';
 import { SitemapService } from '../../modules/sitemap/sitemap.service';
+import { AppConfigService } from '../../config/config.service';
+import { Provider } from '../../enums/provider.enum';
 
 @Injectable()
 class StatsService {
@@ -9,14 +11,15 @@ class StatsService {
 
 	public constructor(
 		private readonly robotsService: RobotsService,
-		private readonly sitemapService: SitemapService
-	) {}
+		private readonly sitemapService: SitemapService,
+		private readonly configService: AppConfigService
+	) { }
 
 	public async analyzeHostname(hostname: string): Promise<AnalyzeHostnameDtoResponse> {
 		// Get sitemap URLs from robots.txt (or fallback to /sitemap.xml)
 		const sitemapUrls = await this.robotsService.getSitemaps(hostname);
 
-		const MAX_DURATION_MS = 40000; // 40 seconds
+		const MAX_DURATION_MS = 30000; // 40 seconds
 		const startTime = Date.now();
 
 		let urlsCount = 0;
@@ -38,7 +41,18 @@ class StatsService {
 			this.logger.log(`Analysis complete for ${hostname}: ${urlsCount} URLs found`);
 		}
 
-		return AnalyzeHostnameDtoResponse.fromData(hostname, urlsCount, !timedOut);
+		// Calculate pricing based on Gemini provider
+		const pricePerUrl = this.configService.providers[Provider.GEMINI].pricePerUrl;
+		const estimatedPrice = timedOut ? 100 : Math.round(urlsCount * pricePerUrl * 100) / 100;
+		const currency = this.configService.providers[Provider.GEMINI].priceCurrency;
+
+		return AnalyzeHostnameDtoResponse.fromData(
+			hostname,
+			urlsCount,
+			!timedOut,
+			estimatedPrice,
+			currency
+		);
 	}
 }
 

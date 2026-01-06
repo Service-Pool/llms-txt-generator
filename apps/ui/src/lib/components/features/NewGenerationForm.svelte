@@ -7,18 +7,13 @@
 		Provider,
 		CreateGenerationDtoRequest,
 		type GenerationRequestDtoResponse,
+		type AnalyzeHostnameDtoResponse,
 		ResponseCode,
 	} from "@api/shared";
 	import { formatNumber } from "$lib/utils/number-format";
 
 	interface Props {
 		onCreate: (generation: GenerationRequestDtoResponse) => void;
-	}
-
-	interface StatsResult {
-		hostname: string;
-		urlsCount: number;
-		isComplete: boolean;
 	}
 
 	let { onCreate }: Props = $props();
@@ -29,7 +24,7 @@
 	// Step 1: input, Step 2: stats
 	let step = $state<"input" | "stats">("input");
 	let websiteUrl = $state("");
-	let stats = $state<StatsResult | null>(null);
+	let stats = $state<AnalyzeHostnameDtoResponse | null>(null);
 	let submitting = $state(false);
 	let showSpinner = $state(false);
 	let error = $state<string[] | null>(null);
@@ -71,13 +66,7 @@
 
 			// Fetch stats from API
 			const response = await statsService.analyzeHost(hostname);
-			const data = response.getMessage().data;
-
-			stats = {
-				hostname,
-				urlsCount: data.urlsCount,
-				isComplete: data.isComplete,
-			};
+			stats = response.getMessage().data;
 
 			step = "stats";
 		} catch (err) {

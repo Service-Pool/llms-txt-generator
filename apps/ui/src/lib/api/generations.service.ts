@@ -11,7 +11,7 @@ import {
 
 const configService = new AppConfigService();
 
-export class GenerationsService extends HttpClient {
+class GenerationsService extends HttpClient {
 	public async create(request: CreateGenerationDtoRequest): Promise<ApiResponse<MessageSuccess<GenerationRequestDtoResponse>>> {
 		return this.fetch(
 			configService.endpoints.generationRequests.base,
@@ -41,3 +41,4 @@ export class GenerationsService extends HttpClient {
 		});
 	}
 }
+export { GenerationsService };

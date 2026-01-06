@@ -2,10 +2,7 @@ import { env } from '$env/dynamic/public';
 
 class AppConfigService {
 	// API config
-	public readonly api: {
-		baseUrl: string;
-		timeout: number;
-	} = {
+	public readonly api: { baseUrl: string; timeout: number } = {
 		baseUrl: String(env.PUBLIC_API_URL),
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT)
 	};
@@ -48,11 +45,7 @@ class AppConfigService {
 	};
 
 	// HTTP client config
-	public readonly http: {
-		timeout: number;
-		retries: number;
-		retryDelay: number;
-	} = {
+	public readonly http: { timeout: number; retries: number; retryDelay: number } = {
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT),
 		retries: 3,
 		retryDelay: 1000

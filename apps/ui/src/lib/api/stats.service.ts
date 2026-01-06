@@ -4,8 +4,10 @@ import { ApiResponse, AnalyzeHostnameDtoResponse, MessageSuccess } from '@api/sh
 
 const configService = new AppConfigService();
 
-export class StatsService extends HttpClient {
+class StatsService extends HttpClient {
 	public async analyzeHost(hostname: string): Promise<ApiResponse<MessageSuccess<AnalyzeHostnameDtoResponse>>> {
 		return this.fetch(configService.endpoints.stats.host(hostname), undefined, AnalyzeHostnameDtoResponse);
 	}
 }
+
+export { StatsService };
