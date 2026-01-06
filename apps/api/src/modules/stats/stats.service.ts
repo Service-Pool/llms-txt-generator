@@ -1,4 +1,4 @@
-import { AnalyzeHostnameDtoResponse } from './dto/stats-response.dto';
+import { AnalyzeHostnameDtoResponse, AnalyzeHostnamePriceDtoResponse } from './dto/stats-response.dto';
 import { Injectable, Logger } from '@nestjs/common';
 import { RobotsService } from '../../modules/robots/robots.service';
 import { SitemapService } from '../../modules/sitemap/sitemap.service';
@@ -41,17 +41,22 @@ class StatsService {
 			this.logger.log(`Analysis complete for ${hostname}: ${urlsCount} URLs found`);
 		}
 
-		// Calculate pricing based on Gemini provider
-		const pricePerUrl = this.configService.providers[Provider.GEMINI].pricePerUrl;
-		const estimatedPrice = timedOut ? 100 : Math.round(urlsCount * pricePerUrl * 100) / 100;
-		const currency = this.configService.providers[Provider.GEMINI].priceCurrency;
+		// Calculate pricing for all providers
+		const prices = Object.values(Provider).map((provider) => {
+			const providerConfig = this.configService.providers[provider];
+			const pricePerUrl = providerConfig.pricePerUrl;
+			const estimatedPrice = Math.max((timedOut ? 100 : urlsCount * pricePerUrl), providerConfig.minPayment);
+			const currency = providerConfig.priceCurrency;
+			const symbol = providerConfig.currencySymbol;
+
+			return AnalyzeHostnamePriceDtoResponse.fromData(provider, estimatedPrice, currency, symbol);
+		});
 
 		return AnalyzeHostnameDtoResponse.fromData(
 			hostname,
 			urlsCount,
 			!timedOut,
-			estimatedPrice,
-			currency
+			prices
 		);
 	}
 }

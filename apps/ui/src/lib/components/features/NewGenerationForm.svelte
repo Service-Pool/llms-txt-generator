@@ -46,6 +46,11 @@
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(websiteUrl));
 	const canAnalyze = $derived(isUrlValid && !submitting);
 
+	const getPriceForProvider = (providerValue: Provider) => {
+		if (!stats || !stats.prices) return null;
+		return stats.prices.find((p) => p.provider === providerValue);
+	};
+
 	const handleAnalyze = async (e: Event) => {
 		e.preventDefault();
 
@@ -215,6 +220,7 @@
 				</h3>
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 					{#each providers as provider}
+						{@const price = getPriceForProvider(provider.value)}
 						<button
 							type="button"
 							onclick={() => handleProviderSelect(provider.value)}
@@ -228,6 +234,12 @@
 								class="text-xs text-gray-600 dark:text-gray-400 mt-1">
 								{provider.description}
 							</div>
+							{#if price}
+								<div
+									class="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2">
+									{price.symbol}{price.value.toFixed(2)}
+								</div>
+							{/if}
 						</button>
 					{/each}
 				</div>

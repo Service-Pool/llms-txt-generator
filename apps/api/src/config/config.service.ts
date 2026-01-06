@@ -36,6 +36,9 @@ interface ValidatedEnv {
 	AVG_INPUT_TOKENS_PER_PAGE: number;
 	AVG_OUTPUT_TOKENS_PER_PAGE: number;
 	PRICING_MARGIN_MULTIPLIER: number;
+	PRICING_CURRENCY_CODE: string;
+	PRICING_CURRENCY_SYMBOL: string;
+	PRICING_MIN_PAYMENT: number;
 	SESSION_COOKIE_NAME: string;
 	SESSION_MAX_AGE: number;
 	SESSION_SECRET: string;
@@ -47,6 +50,8 @@ interface ProviderConfig {
 	queueName: string;
 	pricePerUrl: number;
 	priceCurrency: string;
+	currencySymbol: string;
+	minPayment: number;
 	enabled: boolean;
 	batchSize: number;
 }
@@ -76,6 +81,9 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	AVG_INPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
 	AVG_OUTPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
 	PRICING_MARGIN_MULTIPLIER: Joi.number().min(1).required(),
+	PRICING_CURRENCY_CODE: Joi.string().required(),
+	PRICING_CURRENCY_SYMBOL: Joi.string().required(),
+	PRICING_MIN_PAYMENT: Joi.number().min(0.5).required(),
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
@@ -116,7 +124,9 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
 			env.GEMINI_PRICE_PER_1K_TOKENS_OUTPUT,
 			env.PRICING_MARGIN_MULTIPLIER
 		),
-		priceCurrency: 'EUR',
+		priceCurrency: env.PRICING_CURRENCY_CODE,
+		currencySymbol: env.PRICING_CURRENCY_SYMBOL,
+		minPayment: env.PRICING_MIN_PAYMENT,
 		enabled: true,
 		batchSize: 50
 	},
@@ -129,7 +139,9 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
 			env.OLLAMA_PRICE_PER_1K_TOKENS_OUTPUT,
 			env.PRICING_MARGIN_MULTIPLIER
 		),
-		priceCurrency: 'EUR',
+		priceCurrency: env.PRICING_CURRENCY_CODE,
+		currencySymbol: env.PRICING_CURRENCY_SYMBOL,
+		minPayment: env.PRICING_MIN_PAYMENT,
 		enabled: true,
 		batchSize: 2
 	}
