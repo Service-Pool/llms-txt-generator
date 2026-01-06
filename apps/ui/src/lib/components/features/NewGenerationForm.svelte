@@ -7,7 +7,7 @@
 		Provider,
 		CreateGenerationDtoRequest,
 		type GenerationRequestDtoResponse,
-		type AnalyzeHostnameDtoResponse,
+		type CalculateHostnameDtoResponse,
 		ResponseCode,
 	} from "@api/shared";
 	import { formatNumber } from "$lib/utils/number-format";
@@ -24,7 +24,7 @@
 	// Step 1: input, Step 2: calc
 	let step = $state<"input" | "calc">("input");
 	let websiteUrl = $state("");
-	let calc = $state<AnalyzeHostnameDtoResponse | null>(null);
+	let calc = $state<CalculateHostnameDtoResponse | null>(null);
 	let submitting = $state(false);
 	let showSpinner = $state(false);
 	let error = $state<string[] | null>(null);
