@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { GenerationsService } from "$lib/api/generations.service";
-	import { StatsService } from "$lib/api/stats.service";
+	import { CalculateService } from "$lib/api/calc.service";
 	import Spinner from "../common/Spinner.svelte";
 	import { HttpClientError } from "../../api/http.client";
 	import {
@@ -19,12 +19,12 @@
 	let { onCreate }: Props = $props();
 
 	const generationsService = new GenerationsService();
-	const statsService = new StatsService();
+	const calculateService = new CalculateService();
 
-	// Step 1: input, Step 2: stats
-	let step = $state<"input" | "stats">("input");
+	// Step 1: input, Step 2: calc
+	let step = $state<"input" | "calc">("input");
 	let websiteUrl = $state("");
-	let stats = $state<AnalyzeHostnameDtoResponse | null>(null);
+	let calc = $state<AnalyzeHostnameDtoResponse | null>(null);
 	let submitting = $state(false);
 	let showSpinner = $state(false);
 	let error = $state<string[] | null>(null);
@@ -47,8 +47,8 @@
 	const canAnalyze = $derived(isUrlValid && !submitting);
 
 	const getPriceForProvider = (providerValue: Provider) => {
-		if (!stats || !stats.prices) return null;
-		return stats.prices.find((p) => p.provider === providerValue);
+		if (!calc || !calc.prices) return null;
+		return calc.prices.find((p) => p.provider === providerValue);
 	};
 
 	const handleAnalyze = async (e: Event) => {
@@ -69,11 +69,11 @@
 			const url = new URL(websiteUrl);
 			const hostname = url.origin;
 
-			// Fetch stats from API
-			const response = await statsService.analyzeHost(hostname);
-			stats = response.getMessage().data;
+			// Fetch calc from API
+			const response = await calculateService.analyzeHost(hostname);
+			calc = response.getMessage().data;
 
-			step = "stats";
+			step = "calc";
 		} catch (err) {
 			if (
 				err instanceof HttpClientError &&
@@ -93,14 +93,14 @@
 	};
 
 	const handleProviderSelect = async (selectedProvider: Provider) => {
-		if (!stats) return;
+		if (!calc) return;
 
 		submitting = true;
 		showSpinner = true;
 		error = null;
 
 		const response = await generationsService.create(
-			new CreateGenerationDtoRequest(stats.hostname, selectedProvider),
+			new CreateGenerationDtoRequest(calc.hostname, selectedProvider),
 		);
 
 		submitting = false;
@@ -111,12 +111,12 @@
 		// Reset form
 		websiteUrl = "";
 		step = "input";
-		stats = null;
+		calc = null;
 	};
 
 	const handleBack = () => {
 		step = "input";
-		stats = null;
+		calc = null;
 		error = null;
 	};
 </script>
@@ -183,10 +183,10 @@
 				{/if}
 			</button>
 		</form>
-	{:else if step === "stats" && stats}
-		<!-- Step 2: Stats Display & Provider Selection -->
+	{:else if step === "calc" && calc}
+		<!-- Step 2: Calc Display & Provider Selection -->
 		<div class="space-y-6">
-			<!-- Stats Display -->
+			<!-- Calc Display -->
 			<div
 				class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
 				<h3
@@ -199,13 +199,13 @@
 						<span>Hostname:</span>
 						<span
 							class="font-mono text-gray-900 dark:text-white whitespace-nowrap"
-							>{stats.hostname}</span>
+							>{calc.hostname}</span>
 					</div>
 					<div class="flex justify-between">
 						<span>URLs found:</span>
 						<span
 							class="font-semibold text-gray-900 dark:text-white"
-							>{formatNumber(stats.urlsCount)}{!stats.isComplete
+							>{formatNumber(calc.urlsCount)}{!calc.isComplete
 								? "+"
 								: ""}</span>
 					</div>

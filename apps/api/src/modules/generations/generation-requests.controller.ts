@@ -1,9 +1,11 @@
 import { MessageSuccess } from '../../utils/response/message-success';
+import { MessageError } from '../../utils/response/message-error';
 import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req } from '@nestjs/common';
-import { CreateGenerationDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestService } from './services/generation-request.service';
-import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
+import { CreateGenerationDtoRequest, CalculateHostnameDtoRequest } from './dto/generation-request.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, CalculateHostnameDtoResponse } from './dto/generation-response.dto';
 import { ApiResponse } from '../../utils/response/api-response';
+import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
 
 @Controller('api/generation-requests')
@@ -12,6 +14,17 @@ class GenerationRequestsController {
 		private readonly generationRequestService: GenerationRequestService,
 		private readonly apiResponse: ApiResponse
 	) { }
+
+	@Get('calculate')
+	public async calculate(@Query() query: CalculateHostnameDtoRequest): Promise<ApiResponse<MessageSuccess<CalculateHostnameDtoResponse> | MessageError>> {
+		try {
+			const result = await this.generationRequestService.calculateHostname(query.hostname);
+			return this.apiResponse.success(result);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Failed to calculate hostname price';
+			return this.apiResponse.error(ResponseCode.ERROR, message);
+		}
+	}
 
 	@Get()
 	public async list(

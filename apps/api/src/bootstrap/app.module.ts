@@ -10,7 +10,6 @@ import { QueueModule } from '../modules/queue/queue.module';
 import { ApiResponse } from '../utils/response/api-response';
 import { RobotsModule } from '../modules/robots/robots.module';
 import { SitemapModule } from '../modules/sitemap/sitemap.module';
-import { StatsModule } from '../modules/stats/stats.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WebSocketModule } from '../modules/websocket/websocket.module';
 
@@ -34,7 +33,6 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		QueueModule,
 		AuthModule,
 		GenerationsModule,
-		StatsModule,
 		WebSocketModule
 	],
 	providers: [ApiResponse],

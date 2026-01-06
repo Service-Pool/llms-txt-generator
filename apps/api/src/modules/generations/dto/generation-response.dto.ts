@@ -17,7 +17,7 @@ class GenerationDtoResponse {
 		public entriesCount: number | null,
 		public createdAt: string,
 		public updatedAt: string
-	) {}
+	) { }
 
 	static fromEntity(entity: Generation): GenerationDtoResponse {
 		return new GenerationDtoResponse(
@@ -66,7 +66,7 @@ class GenerationRequestDtoResponse {
 		public requestedAt: string,
 		public createdAt: string,
 		public updatedAt: string
-	) {}
+	) { }
 
 	static fromEntity(entity: GenerationRequest): GenerationRequestDtoResponse {
 		if (!entity.generation) {
@@ -118,7 +118,7 @@ class GenerationRequestsListDtoResponse {
 		public total: number,
 		public page: number,
 		public limit: number
-	) {}
+	) { }
 
 	static fromEntities(entities: GenerationRequest[], total: number, page: number, limit: number): GenerationRequestsListDtoResponse {
 		return new GenerationRequestsListDtoResponse(
@@ -139,4 +139,56 @@ class GenerationRequestsListDtoResponse {
 	}
 }
 
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse };
+/**
+ * DTO для информации о цене
+ */
+class CalculateHostnamePriceDtoResponse {
+	constructor(
+		public provider: Provider,
+		public value: number,
+		public currency: string,
+		public symbol: string
+	) { }
+
+	static fromData(provider: Provider, value: number, currency: string, symbol: string): CalculateHostnamePriceDtoResponse {
+		return new CalculateHostnamePriceDtoResponse(provider, value, currency, symbol);
+	}
+
+	static fromJSON(json: Record<string, unknown>): CalculateHostnamePriceDtoResponse {
+		return new CalculateHostnamePriceDtoResponse(
+			json.provider as Provider,
+			json.value as number,
+			json.currency as string,
+			json.symbol as string
+		);
+	}
+}
+
+/**
+ * DTO для результата расчета цены hostname
+ */
+class CalculateHostnameDtoResponse {
+	constructor(
+		public hostname: string,
+		public urlsCount: number,
+		public isComplete: boolean,
+		public prices: CalculateHostnamePriceDtoResponse[]
+	) { }
+
+	static fromData(hostname: string, urlsCount: number, isComplete: boolean, prices: CalculateHostnamePriceDtoResponse[]): CalculateHostnameDtoResponse {
+		return new CalculateHostnameDtoResponse(hostname, urlsCount, isComplete, prices);
+	}
+
+	static fromJSON(json: Record<string, unknown>): CalculateHostnameDtoResponse {
+		const prices = (json.prices as Array<Record<string, unknown>>).map(p =>
+			CalculateHostnamePriceDtoResponse.fromJSON(p));
+		return new CalculateHostnameDtoResponse(
+			json.hostname as string,
+			json.urlsCount as number,
+			json.isComplete as boolean,
+			prices
+		);
+	}
+}
+
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnameDtoResponse, CalculateHostnamePriceDtoResponse };

@@ -28,7 +28,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 					? exceptionResponse.message
 					: exceptionResponse;
 
-				body = this.apiResponse.error(ResponseCode.ERROR, String(message));
+				body = this.apiResponse.error(exceptionResponse.statusCode, String(message));
 				break;
 			}
 

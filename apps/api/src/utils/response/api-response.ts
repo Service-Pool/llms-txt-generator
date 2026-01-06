@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common/enums/http-status.enum';
 import { ResponseCode } from '../../enums/response-code.enum';
+import { Injectable } from '@nestjs/common';
 import { AbstractResponse } from './abstract-response';
 import { MessageSuccess } from './message-success';
 import { MessageInvalid } from './message-invalid';
@@ -14,14 +15,14 @@ import { type Deserializable } from './types';
  */
 @Injectable()
 class ApiResponse<T = unknown> extends AbstractResponse {
-	private declare code: ResponseCode;
+	private declare code: ResponseCode | HttpStatus;
 	private declare message: T;
 
 	constructor() {
 		super();
 	}
 
-	public getСode(): ResponseCode {
+	public getСode(): ResponseCode | HttpStatus {
 		return this.code;
 	}
 
@@ -29,7 +30,7 @@ class ApiResponse<T = unknown> extends AbstractResponse {
 		return this.message;
 	}
 
-	public setCode(code: ResponseCode): this {
+	public setCode(code: ResponseCode | HttpStatus): this {
 		this.code = code;
 		return this;
 	}
@@ -40,7 +41,7 @@ class ApiResponse<T = unknown> extends AbstractResponse {
 	}
 
 	public static fromJSON<T>(
-		json: { code: ResponseCode; message: unknown },
+		json: { code: ResponseCode | HttpStatus; message: unknown },
 		DataClass?: Deserializable<T>
 	): ApiResponse<MessageSuccess<T> | MessageInvalid | MessageError> {
 		const { code, message } = json;

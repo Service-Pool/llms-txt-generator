@@ -21,8 +21,8 @@ class AppConfigService {
 			base: '/api/generation-requests',
 			byId: (id: number) => `/api/generation-requests/${id}`
 		},
-		stats: {
-			host: (hostname: string) => `/api/stats/host?hostname=${encodeURIComponent(hostname)}`
+		calculate: {
+			host: (hostname: string) => `/api/generation-requests/calculate?hostname=${encodeURIComponent(hostname)}`
 		}
 	};
 

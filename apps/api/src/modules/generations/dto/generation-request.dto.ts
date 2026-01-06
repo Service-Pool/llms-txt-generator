@@ -27,4 +27,23 @@ class CreateGenerationDtoRequest {
 	}
 }
 
-export { CreateGenerationDtoRequest };
+/**
+ * DTO для анализа hostname
+ */
+class CalculateHostnameDtoRequest {
+	@IsString()
+	@IsNotEmpty()
+	@Matches(HOSTNAME_VALIDATION.regex, {
+		message: HOSTNAME_VALIDATION.message
+	})
+	@HostnameValidator.validateHostnameRobotsAndSitemap({
+		message: 'Hostname must have accessible robots.txt with sitemap reference'
+	})
+	public hostname: string;
+
+	constructor(hostname: string) {
+		this.hostname = hostname;
+	}
+}
+
+export { CreateGenerationDtoRequest, CalculateHostnameDtoRequest };

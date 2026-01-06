@@ -1,4 +1,3 @@
-import { AppConfigService } from '../../../config/config.service';
 import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationRequest } from '../entities/generation-request.entity';
@@ -18,7 +17,6 @@ class GenerationsService {
 
 	public constructor(
 		private readonly queueService: QueueService,
-		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource,
 		private readonly currentUserService: CurrentUserService,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,

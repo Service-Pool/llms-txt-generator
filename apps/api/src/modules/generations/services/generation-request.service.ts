@@ -1,4 +1,5 @@
 import { AppConfigService } from '../../../config/config.service';
+import { CalculateHostnameDtoResponse, CalculateHostnamePriceDtoResponse } from '../dto/generation-response.dto';
 import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
@@ -6,15 +7,19 @@ import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationRequestsListDtoResponse } from '../dto/generation-response.dto';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobUtils } from '../../../utils/job.utils';
+import { PriceCalculator } from '../../../utils/price.utils';
 import { Provider } from '../../../enums/provider.enum';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
+import { RobotsService } from '../../robots/robots.service';
+import { SitemapService } from '../../sitemap/sitemap.service';
 
 @Injectable()
 class GenerationRequestService {
+	private readonly logger = new Logger(GenerationRequestService.name);
 	private queryRunner: QueryRunner | null = null;
 	private readonly userId: number | null;
 	private readonly sessionId: string;
@@ -24,6 +29,8 @@ class GenerationRequestService {
 		private readonly queueService: QueueService,
 		private readonly configService: AppConfigService,
 		private readonly currentUserService: CurrentUserService,
+		private readonly robotsService: RobotsService,
+		private readonly sitemapService: SitemapService,
 		private readonly dataSource: DataSource,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
 	) {
@@ -172,6 +179,56 @@ class GenerationRequestService {
 		if (generation.content && generation.content.length > 500) {
 			generation.content = generation.content.substring(0, 500) + '...';
 		}
+	}
+
+	/**
+	 * Calculate price for hostname generation
+	 */
+	public async calculateHostname(hostname: string): Promise<CalculateHostnameDtoResponse> {
+		// Get sitemap URLs from robots.txt (or fallback to /sitemap.xml)
+		const sitemapUrls = await this.robotsService.getSitemaps(hostname);
+
+		const MAX_DURATION_MS = 30000;
+		const startTime = Date.now();
+
+		let urlsCount = 0;
+		let timedOut = false;
+
+		// Count URLs with timeout
+		for await (const _url of this.sitemapService.getUrlsStream(sitemapUrls)) {
+			urlsCount++;
+
+			// Check if we've exceeded the time limit
+			if (Date.now() - startTime > MAX_DURATION_MS) {
+				timedOut = true;
+				this.logger.warn(`Analysis timed out for ${hostname} after ${MAX_DURATION_MS}ms. Counted ${urlsCount} URLs so far.`);
+				break;
+			}
+		}
+
+		if (!timedOut) {
+			this.logger.log(`Analysis complete for ${hostname}: ${urlsCount} URLs found`);
+		}
+
+		// Calculate pricing for all providers
+		const prices = Object.values(Provider).map((provider) => {
+			const providerConfig = this.configService.providers[provider];
+			const estimatedPrice = PriceCalculator.calculateEstimatedPrice(urlsCount, providerConfig.pricePerUrl, providerConfig.minPayment, !timedOut);
+
+			return CalculateHostnamePriceDtoResponse.fromData(
+				provider,
+				estimatedPrice,
+				providerConfig.priceCurrency,
+				providerConfig.currencySymbol
+			);
+		});
+
+		return CalculateHostnameDtoResponse.fromData(
+			hostname,
+			urlsCount,
+			!timedOut,
+			prices
+		);
 	}
 }
 

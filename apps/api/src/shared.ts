@@ -14,8 +14,6 @@ export * from './utils/response/types';
 export * from './modules/auth/dto/auth-response.dto';
 export * from './modules/generations/dto/generation-request.dto';
 export * from './modules/generations/dto/generation-response.dto';
-export * from './modules/stats/dto/stats-request.dto';
-export * from './modules/stats/dto/stats-response.dto';
 
 // Events
 export * from './modules/websocket/websocket.events';
