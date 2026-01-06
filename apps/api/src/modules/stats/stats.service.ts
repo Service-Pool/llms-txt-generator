@@ -4,6 +4,7 @@ import { RobotsService } from '../../modules/robots/robots.service';
 import { SitemapService } from '../../modules/sitemap/sitemap.service';
 import { AppConfigService } from '../../config/config.service';
 import { Provider } from '../../enums/provider.enum';
+import { PriceCalculator } from '../../utils/price.utils';
 
 @Injectable()
 class StatsService {
@@ -44,12 +45,14 @@ class StatsService {
 		// Calculate pricing for all providers
 		const prices = Object.values(Provider).map((provider) => {
 			const providerConfig = this.configService.providers[provider];
-			const pricePerUrl = providerConfig.pricePerUrl;
-			const estimatedPrice = Math.max((timedOut ? 100 : urlsCount * pricePerUrl), providerConfig.minPayment);
-			const currency = providerConfig.priceCurrency;
-			const symbol = providerConfig.currencySymbol;
+			const estimatedPrice = PriceCalculator.calculateEstimatedPrice(urlsCount, providerConfig.pricePerUrl, providerConfig.minPayment, !timedOut);
 
-			return AnalyzeHostnamePriceDtoResponse.fromData(provider, estimatedPrice, currency, symbol);
+			return AnalyzeHostnamePriceDtoResponse.fromData(
+				provider,
+				estimatedPrice,
+				providerConfig.priceCurrency,
+				providerConfig.currencySymbol
+			);
 		});
 
 		return AnalyzeHostnameDtoResponse.fromData(

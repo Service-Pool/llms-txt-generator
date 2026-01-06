@@ -34,12 +34,12 @@
 		{
 			value: Provider.OLLAMA,
 			name: "Free (Ollama)",
-			description: "slower but free",
+			description: "slower",
 		},
 		{
 			value: Provider.GEMINI,
 			name: "Fast (Gemini)",
-			description: "faster option",
+			description: "faster",
 		},
 	];
 
