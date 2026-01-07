@@ -77,7 +77,7 @@
 		} catch (err) {
 			if (
 				err instanceof HttpClientError &&
-				err.code === ResponseCode.INVALID
+				err.code === ResponseCode.BAD_REQUEST
 			) {
 				error = err.violations;
 			}

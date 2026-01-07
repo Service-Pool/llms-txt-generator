@@ -13,7 +13,8 @@ const config = {
 			out: 'dist'
 		}),
 		alias: {
-			'@api/shared': '../api/src/shared.ts'
+			'@api/shared': '../api/src/shared.ts',
+			'@nestjs/common/enums/http-status.enum': '/api/node_modules/@nestjs/common/enums/http-status.enum.js'
 		}
 	}
 };

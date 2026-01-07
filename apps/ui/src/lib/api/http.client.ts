@@ -61,7 +61,7 @@ class HttpClient {
 				const message = apiResponse.getMessage();
 
 				if (message instanceof MessageInvalid) {
-					throw new HttpClientError(apiResponse.getСode(), 'Invalid request', message.violations);
+					throw new HttpClientError(apiResponse.getСode(), 'Validation failed', message.violations);
 				}
 
 				if (message instanceof MessageError) {

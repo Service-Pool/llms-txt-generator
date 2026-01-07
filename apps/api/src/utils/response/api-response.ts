@@ -1,4 +1,3 @@
-import { HttpStatus } from '@nestjs/common/enums/http-status.enum';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { Injectable } from '@nestjs/common';
 import { AbstractResponse } from './abstract-response';
@@ -15,14 +14,14 @@ import { type Deserializable } from './types';
  */
 @Injectable()
 class ApiResponse<T = unknown> extends AbstractResponse {
-	private declare code: ResponseCode | HttpStatus;
+	private declare code: ResponseCode;
 	private declare message: T;
 
 	constructor() {
 		super();
 	}
 
-	public getСode(): ResponseCode | HttpStatus {
+	public getСode(): ResponseCode {
 		return this.code;
 	}
 
@@ -30,7 +29,7 @@ class ApiResponse<T = unknown> extends AbstractResponse {
 		return this.message;
 	}
 
-	public setCode(code: ResponseCode | HttpStatus): this {
+	public setCode(code: ResponseCode): this {
 		this.code = code;
 		return this;
 	}
@@ -41,20 +40,20 @@ class ApiResponse<T = unknown> extends AbstractResponse {
 	}
 
 	public static fromJSON<T>(
-		json: { code: ResponseCode | HttpStatus; message: unknown },
+		json: { code: ResponseCode; message: unknown },
 		DataClass?: Deserializable<T>
 	): ApiResponse<MessageSuccess<T> | MessageInvalid | MessageError> {
 		const { code, message } = json;
 		const response = new ApiResponse<MessageSuccess<T> | MessageInvalid | MessageError>();
 
 		switch (code) {
-			case ResponseCode.SUCCESS:
+			case ResponseCode.OK:
 				return response.setCode(code).setMessage(MessageSuccess.fromJSON(message, DataClass));
 
-			case ResponseCode.INVALID:
+			case ResponseCode.BAD_REQUEST:
 				return response.setCode(code).setMessage(MessageInvalid.fromJSON(message));
 
-			case ResponseCode.ERROR:
+			case ResponseCode.INTERNAL_SERVER_ERROR:
 				return response.setCode(code).setMessage(MessageError.fromJSON(message));
 
 			default:
