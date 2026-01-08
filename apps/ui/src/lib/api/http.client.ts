@@ -65,7 +65,7 @@ class HttpClient {
 				}
 
 				if (message instanceof MessageError) {
-					throw new HttpClientError(apiResponse.getСode(), 'Unexpected error', [message.error]);
+					throw new HttpClientError(apiResponse.getСode(), message.error, [message.error]);
 				}
 
 				return apiResponse as ApiResponse<MessageSuccess<T>>;

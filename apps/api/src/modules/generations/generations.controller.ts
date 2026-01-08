@@ -22,7 +22,7 @@ class GenerationsController {
 		const generation = await this.generationsService.findById(id);
 
 		if (!generation) {
-			return this.apiResponse.error(ResponseCode.ERROR, 'Generation not found');
+			return this.apiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR, 'Generation not found');
 		}
 
 		return this.apiResponse.success(GenerationDtoResponse.fromEntity(generation));

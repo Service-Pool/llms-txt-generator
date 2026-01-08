@@ -26,7 +26,7 @@ class AuthController {
 		const user = await this.authService.validateUser(loginDto.username, loginDto.password || null);
 
 		if (!user) {
-			return this.apiResponse.error(ResponseCode.ERROR, 'Invalid credentials');
+			return this.apiResponse.error(ResponseCode.UNAUTHORIZED, 'Invalid credentials');
 		}
 
 		// Migrate anonymous GenerationRequests from this session to user
@@ -45,7 +45,7 @@ class AuthController {
 	@HttpCode(HttpStatus.OK)
 	async logout(@Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLogoutDtoResponse> | MessageError>> {
 		if (!request.session.userId) {
-			return this.apiResponse.error(ResponseCode.ERROR, 'Not authenticated');
+			return this.apiResponse.error(ResponseCode.UNAUTHORIZED, 'Not authenticated');
 		}
 
 		await new Promise<void>((resolve, reject) => {

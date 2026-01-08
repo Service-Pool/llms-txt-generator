@@ -1,4 +1,5 @@
 import { config as dotenvConfig } from 'dotenv';
+import { Currency, CURRENCY_SYMBOLS } from '../enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Generation } from '../modules/generations/entities/generation.entity';
 import { GenerationRequest } from '../modules/generations/entities/generation-request.entity';
@@ -36,8 +37,7 @@ interface ValidatedEnv {
 	AVG_INPUT_TOKENS_PER_PAGE: number;
 	AVG_OUTPUT_TOKENS_PER_PAGE: number;
 	PRICING_MARGIN_MULTIPLIER: number;
-	PRICING_CURRENCY_CODE: string;
-	PRICING_CURRENCY_SYMBOL: string;
+	PRICING_CURRENCY_CODE: Currency;
 	PRICING_MIN_PAYMENT: number;
 	SESSION_COOKIE_NAME: string;
 	SESSION_MAX_AGE: number;
@@ -49,7 +49,7 @@ interface ValidatedEnv {
 interface ProviderConfig {
 	queueName: string;
 	pricePerUrl: number;
-	priceCurrency: string;
+	priceCurrency: Currency;
 	currencySymbol: string;
 	minPayment: number;
 	enabled: boolean;
@@ -81,8 +81,7 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	AVG_INPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
 	AVG_OUTPUT_TOKENS_PER_PAGE: Joi.number().integer().min(1).required(),
 	PRICING_MARGIN_MULTIPLIER: Joi.number().min(1).required(),
-	PRICING_CURRENCY_CODE: Joi.string().required(),
-	PRICING_CURRENCY_SYMBOL: Joi.string().required(),
+	PRICING_CURRENCY_CODE: Joi.string().valid(...Object.values(Currency)).required(),
 	PRICING_MIN_PAYMENT: Joi.number().min(0.5).required(),
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
@@ -125,7 +124,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
 			env.PRICING_MARGIN_MULTIPLIER
 		),
 		priceCurrency: env.PRICING_CURRENCY_CODE,
-		currencySymbol: env.PRICING_CURRENCY_SYMBOL,
+		currencySymbol: CURRENCY_SYMBOLS[env.PRICING_CURRENCY_CODE],
 		minPayment: env.PRICING_MIN_PAYMENT,
 		enabled: true,
 		batchSize: 50
@@ -140,7 +139,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
 			env.PRICING_MARGIN_MULTIPLIER
 		),
 		priceCurrency: env.PRICING_CURRENCY_CODE,
-		currencySymbol: env.PRICING_CURRENCY_SYMBOL,
+		currencySymbol: CURRENCY_SYMBOLS[env.PRICING_CURRENCY_CODE],
 		minPayment: env.PRICING_MIN_PAYMENT,
 		enabled: true,
 		batchSize: 2

@@ -22,7 +22,7 @@ class GenerationRequestsController {
 			return this.apiResponse.success(result);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Failed to calculate hostname price';
-			return this.apiResponse.error(ResponseCode.ERROR, message);
+			return this.apiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR, message);
 		}
 	}
 

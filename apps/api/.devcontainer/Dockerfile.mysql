@@ -5,7 +5,7 @@ ENV MYSQL_CHARSET=utf8mb4
 ENV MYSQL_COLLATION=utf8mb4_unicode_ci
 
 # Copy custom MySQL configuration if needed
-# COPY _configs/my.cnf /etc/mysql/conf.d/
+COPY _configs/my.cnf /etc/mysql/conf.d/
 
 # The official MySQL image will automatically run any .sql files
 # in /docker-entrypoint-initdb.d/ on first startup

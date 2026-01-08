@@ -156,8 +156,11 @@
 		subscribeToCurrentItems();
 	};
 
-	onMount(() => {
-		// Initialize WebSocket
+	onMount(async () => {
+		// Load initial data first - this creates session and sends cookie
+		await loadGenerations();
+
+		// Initialize WebSocket after HTTP request
 		ws = WebSocketService.getInstance(configService.websocket.url);
 		ws.connect();
 
@@ -165,9 +168,6 @@
 		ws.on("connect", handleConnect);
 		ws.on("progress", handleProgress as (...args: unknown[]) => void);
 		ws.on("status", handleStatus as (...args: unknown[]) => void);
-
-		// Load initial data
-		loadGenerations();
 	});
 
 	onDestroy(() => {
@@ -198,13 +198,11 @@
 		</div>
 	{:else if error}
 		<div
-			class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-		>
+			class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
 			<p class="text-red-800 dark:text-red-200">{error}</p>
 			<button
 				onclick={() => loadGenerations()}
-				class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline"
-			>
+				class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline">
 				Try again
 			</button>
 		</div>
@@ -217,7 +215,6 @@
 			{progressMap}
 			onPageChange={handlePageChange}
 			onLimitChange={handleLimitChange}
-			onDelete={handleDelete}
-		/>
+			onDelete={handleDelete} />
 	{/if}
 </div>

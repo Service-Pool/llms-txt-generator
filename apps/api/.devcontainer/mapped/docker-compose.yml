@@ -66,7 +66,13 @@ services:
       - ./cmd-ollama.sh:/tmp/app/cmd-ollama.sh
     # Port is not exposed - accessible only via Docker network
     healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://$${OLLAMA_HOST}:$${OLLAMA_PORT}/api/version"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://$${OLLAMA_HOST}:$${OLLAMA_PORT}/api/version",
+        ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -116,7 +122,16 @@ services:
       - ${DB_PORT}:${DB_PORT}
     healthcheck:
       test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${DB_PASSWORD}",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -175,7 +190,15 @@ services:
     ports:
       - ${REDIS_INSIGHT_PORT}:5540
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5540/"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:5540/",
+        ]
       interval: 30s
       timeout: 3s
       retries: 3

@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { GenerationRequest } from './generation-request.entity';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Provider } from '../../../enums/provider.enum';
+import { Currency } from '../../../enums/currency.enum';
 
 @Entity('generations')
 @Unique('unique_generation', ['hostname', 'provider'])
@@ -36,6 +37,20 @@ class Generation {
 
 	@Column({ type: 'int', unsigned: true, nullable: true, name: 'entries_count' })
 	public entriesCount: number | null;
+
+	@Column({ type: 'int', unsigned: true, nullable: true, name: 'urls_count' })
+	public urlsCount: number | null;
+
+	@Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, name: 'total_price' })
+	public totalPrice: number | null;
+
+	@Column({
+		type: 'enum',
+		enum: Currency,
+		enumName: 'currency_enum',
+		default: Currency.EUR
+	})
+	public currency: Currency;
 
 	@OneToMany(() => GenerationRequest, request => request.generation)
 	public requests: Relation<GenerationRequest[]>;
