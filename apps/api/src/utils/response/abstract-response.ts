@@ -14,14 +14,14 @@ abstract class AbstractResponse {
 	 * Send a successful response
 	 */
 	public success<T>(data: T): ApiResponse<MessageSuccess<T>> {
-		return this.withMessage(ResponseCode.OK, new MessageSuccess(data));
+		return this.withMessage(ResponseCode.SUCCESS, new MessageSuccess(data));
 	}
 
 	/**
 	 * Send a validation error (400) response
 	 */
 	public invalid(errors: string[]): ApiResponse<MessageInvalid> {
-		return this.withMessage(ResponseCode.BAD_REQUEST, new MessageInvalid(errors));
+		return this.withMessage(ResponseCode.INVALID, new MessageInvalid(errors));
 	}
 
 	/**

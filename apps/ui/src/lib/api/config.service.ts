@@ -22,7 +22,7 @@ class AppConfigService {
 			byId: (id: number) => `/api/generation-requests/${id}`
 		},
 		calculate: {
-			host: (hostname: string) => `/api/generation-requests/calculate?hostname=${encodeURIComponent(hostname)}`
+			host: (hostname: string) => `/api/calculations?hostname=${encodeURIComponent(hostname)}`
 		}
 	};
 

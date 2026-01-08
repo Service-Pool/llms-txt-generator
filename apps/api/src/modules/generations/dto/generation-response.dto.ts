@@ -164,31 +164,4 @@ class CalculateHostnamePriceDtoResponse {
 	}
 }
 
-/**
- * DTO для результата расчета цены hostname
- */
-class CalculateHostnameDtoResponse {
-	constructor(
-		public hostname: string,
-		public urlsCount: number,
-		public isComplete: boolean,
-		public prices: CalculateHostnamePriceDtoResponse[]
-	) { }
-
-	static fromData(hostname: string, urlsCount: number, isComplete: boolean, prices: CalculateHostnamePriceDtoResponse[]): CalculateHostnameDtoResponse {
-		return new CalculateHostnameDtoResponse(hostname, urlsCount, isComplete, prices);
-	}
-
-	static fromJSON(json: Record<string, unknown>): CalculateHostnameDtoResponse {
-		const prices = (json.prices as Array<Record<string, unknown>>).map(p =>
-			CalculateHostnamePriceDtoResponse.fromJSON(p));
-		return new CalculateHostnameDtoResponse(
-			json.hostname as string,
-			json.urlsCount as number,
-			json.isComplete as boolean,
-			prices
-		);
-	}
-}
-
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnameDtoResponse, CalculateHostnamePriceDtoResponse };
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse };

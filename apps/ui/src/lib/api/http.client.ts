@@ -5,14 +5,12 @@ const configService = new AppConfigService();
 
 class HttpClientError extends Error {
 	constructor(
-		public readonly code: number,
+		public readonly code: ResponseCode,
 		public readonly message: string,
 		public readonly violations: string[] | null = null
 	) {
 		super(message);
-		this.code = code;
 		this.name = 'HttpClientError';
-		this.violations = violations;
 	}
 }
 

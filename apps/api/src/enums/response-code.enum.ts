@@ -1,3 +1,9 @@
 import { HttpStatus } from '@nestjs/common/enums/http-status.enum';
 
-export { HttpStatus as ResponseCode };
+enum ResponseCode {
+	SUCCESS = 200,
+	INVALID = 400,
+	ERROR = 500
+}
+
+export { ResponseCode };

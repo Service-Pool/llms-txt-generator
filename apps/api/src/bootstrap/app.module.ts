@@ -1,6 +1,8 @@
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
 import { AuthModule } from '../modules/auth/auth.module';
+import { CalculationsModule } from '../modules/calculations/calculations.module';
+import { CalculationValidator } from '../validators/calculation.validator';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { GenerationsModule } from '../modules/generations/generations.module';
@@ -32,10 +34,11 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		}),
 		QueueModule,
 		AuthModule,
+		CalculationsModule,
 		GenerationsModule,
 		WebSocketModule
 	],
-	providers: [ApiResponse],
+	providers: [ApiResponse, CalculationValidator],
 	exports: [ApiResponse]
 })
 export class AppModule { }

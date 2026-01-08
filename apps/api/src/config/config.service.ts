@@ -3,6 +3,7 @@ import { Currency, CURRENCY_SYMBOLS } from '../enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Generation } from '../modules/generations/entities/generation.entity';
 import { GenerationRequest } from '../modules/generations/entities/generation-request.entity';
+import { Calculation } from '../modules/calculations/entities/calculation.entity';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Provider } from '../enums/provider.enum';
 import { Session } from '../modules/auth/entitites/session.entity';
@@ -246,7 +247,13 @@ const AppDataSource = new DataSource({
 	username: env.DB_USER,
 	password: env.DB_PASSWORD,
 	database: env.DB_NAME,
-	entities: [User, Generation, GenerationRequest, Session],
+	entities: [
+		Calculation,
+		Generation,
+		GenerationRequest,
+		Session,
+		User
+	],
 	migrations: ['dist/migrations/*.js'],
 	synchronize: false
 });

@@ -26,6 +26,7 @@ const stubServerImports = {
 			case id === 'robots-parser':
 			case id.includes('common/validators'):
 			case id.includes('validators/hostname.validator'):
+			case id.includes('validators/calculation.validator'):
 			case id.includes('config/config.service'):
 				return id;
 
@@ -53,6 +54,9 @@ const stubServerImports = {
 
 			case id.includes('validators/hostname.validator'):
 				return `export class HostnameValidator { static validateHostnameRobotsAndSitemap = () => () => {}; }`;
+
+			case id.includes('validators/calculation.validator'):
+				return `export class CalculationValidator { static validateCalculationExists = () => () => {}; }`;
 
 			case id.includes('config/config.service'):
 				return `export const HOSTNAME_VALIDATION = () => () => {};`;

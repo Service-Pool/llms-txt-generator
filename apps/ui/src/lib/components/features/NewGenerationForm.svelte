@@ -7,7 +7,7 @@
 		Provider,
 		CreateGenerationDtoRequest,
 		type GenerationRequestDtoResponse,
-		type CalculateHostnameDtoResponse,
+		type CalculationDtoResponse,
 		ResponseCode,
 	} from "@api/shared";
 	import { formatNumber } from "$lib/utils/number-format";
@@ -24,7 +24,7 @@
 	// Step 1: input, Step 2: calc
 	let step = $state<"input" | "calc">("input");
 	let websiteUrl = $state("");
-	let calc = $state<CalculateHostnameDtoResponse | null>(null);
+	let calc = $state<CalculationDtoResponse | null>(null);
 	let submitting = $state(false);
 	let showSpinner = $state(false);
 	let error = $state<string[] | null>(null);
@@ -44,17 +44,17 @@
 	];
 
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(websiteUrl));
-	const canAnalyze = $derived(isUrlValid && !submitting);
+	const canCalculate = $derived(isUrlValid && !submitting);
 
 	const getPriceForProvider = (providerValue: Provider) => {
 		if (!calc || !calc.prices) return null;
 		return calc.prices.find((p) => p.provider === providerValue);
 	};
 
-	const handleAnalyze = async (e: Event) => {
+	const handleCalculate = async (e: Event) => {
 		e.preventDefault();
 
-		if (!canAnalyze) return;
+		if (!canCalculate) return;
 
 		try {
 			submitting = true;
@@ -70,14 +70,14 @@
 			const hostname = url.origin;
 
 			// Fetch calc from API
-			const response = await calculateService.analyzeHost(hostname);
+			const response = await calculateService.calculateHost(hostname);
 			calc = response.getMessage().data;
 
 			step = "calc";
 		} catch (err) {
 			if (
 				err instanceof HttpClientError &&
-				err.code === ResponseCode.BAD_REQUEST
+				err.code === ResponseCode.INVALID
 			) {
 				error = err.violations;
 			}
@@ -128,8 +128,8 @@
 	</h2>
 
 	{#if step === "input"}
-		<!-- Step 1: URL Input & Analyze -->
-		<form onsubmit={handleAnalyze} class="space-y-4">
+		<!-- Step 1: URL Input & Calculate -->
+		<form onsubmit={handleCalculate} class="space-y-4">
 			<div>
 				<label
 					for="url"
@@ -168,7 +168,7 @@
 
 			<button
 				type="submit"
-				disabled={!canAnalyze}
+				disabled={!canCalculate}
 				class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium">
 				{#if showSpinner}
 					<span class="flex items-center justify-center gap-2">
@@ -205,9 +205,9 @@
 						<span>URLs found:</span>
 						<span
 							class="font-semibold text-gray-900 dark:text-white"
-							>{formatNumber(calc.urlsCount)}{!calc.isComplete
-								? "+"
-								: ""}</span>
+							>{formatNumber(
+								calc.urlsCount,
+							)}{!calc.urlsCountPrecise ? "+" : ""}</span>
 					</div>
 				</div>
 			</div>
@@ -237,7 +237,9 @@
 							{#if price}
 								<div
 									class="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2">
-									{price.symbol}{price.value.toFixed(2)}
+									{price.currencySymbol}{price.total.toFixed(
+										2,
+									)}
 								</div>
 							{/if}
 						</button>

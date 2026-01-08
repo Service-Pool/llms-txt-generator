@@ -1,4 +1,4 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
 import { ApiResponse } from '../utils/response/api-response';
 import { ValidationException } from '../exceptions/validation.exception';
@@ -15,13 +15,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
 		const response = host.switchToHttp().getResponse<FastifyReply>();
 
-		let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+		let statusCode = ResponseCode.ERROR;
 		let body: unknown;
 
 		switch (true) {
 			case exception instanceof ValidationException:
-				// Validation errors - HTTP 200 with code 400 in body
-				statusCode = HttpStatus.OK;
 				body = this.apiResponse.invalid(exception.getErrors());
 				break;
 
@@ -32,15 +30,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 					? exceptionResponse.message
 					: exceptionResponse;
 
-				body = this.apiResponse.error(statusCode, String(message));
+				body = this.apiResponse.error(ResponseCode.ERROR, String(message));
 				break;
 			}
 
 			default: {
-				const _message = exception instanceof Error
+				const message = exception instanceof Error
 					? exception.message
 					: String(exception);
-				body = this.apiResponse.error(ResponseCode.INTERNAL_SERVER_ERROR);
+				body = this.apiResponse.error(ResponseCode.ERROR, message);
 				break;
 			}
 		}

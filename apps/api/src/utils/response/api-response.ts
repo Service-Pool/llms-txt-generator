@@ -47,13 +47,13 @@ class ApiResponse<T = unknown> extends AbstractResponse {
 		const response = new ApiResponse<MessageSuccess<T> | MessageInvalid | MessageError>();
 
 		switch (code) {
-			case ResponseCode.OK:
+			case ResponseCode.SUCCESS:
 				return response.setCode(code).setMessage(MessageSuccess.fromJSON(message, DataClass));
 
-			case ResponseCode.BAD_REQUEST:
+			case ResponseCode.INVALID:
 				return response.setCode(code).setMessage(MessageInvalid.fromJSON(message));
 
-			case ResponseCode.INTERNAL_SERVER_ERROR:
+			case ResponseCode.ERROR:
 				return response.setCode(code).setMessage(MessageError.fromJSON(message));
 
 			default:
