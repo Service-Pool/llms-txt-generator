@@ -7,13 +7,14 @@ import { fastifyCookie } from '@fastify/cookie';
 import { fastifySession } from '@fastify/session';
 import { fastifyWebsocket } from '@fastify/websocket';
 import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { ApiResponse } from '../utils/response/api-response';
 import { Session } from '../modules/auth/entitites/session.entity';
 import { TypeORMSessionStore } from '../modules/auth/typeorm-session.store';
 import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from '../filters/global-exception.filter';
 import { ValidationException } from '../exceptions/validation.exception';
-import { ValidationError } from 'class-validator';
+import { ValidationError, useContainer } from 'class-validator';
 
 async function bootstrap() {
 	if (!process.env.PORT) {
@@ -29,15 +30,11 @@ async function bootstrap() {
 		{ logger }
 	);
 
+	// Enable DI for class-validator
+	useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
 	// Register WebSocket plugin
 	await app.register(fastifyWebsocket);
-
-	// Enable CORS
-	app.enableCors({
-		origin: configService.cors.origin,
-		credentials: configService.cors.credentials,
-		methods: ['GET', 'PUT', 'POST']
-	});
 
 	// Register cookie plugin
 	await app.register(fastifyCookie);
@@ -83,7 +80,8 @@ async function bootstrap() {
 
 	await app.listen(parseInt(process.env.PORT), '0.0.0.0');
 
-	logger.log(`Application is running on port ${process.env.PORT}`);
+	const appLogger = new Logger('Application');
+	appLogger.log(`Application is running on port ${process.env.PORT}`);
 }
 bootstrap().catch((err) => {
 	const logger = createWinstonLogger();

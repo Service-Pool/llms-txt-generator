@@ -18,17 +18,13 @@ class HostnameValidator implements ValidatorConstraintInterface {
 	}
 
 	public async validate(hostname: string): Promise<boolean> {
-		try {
-			// Проверка robots.txt и получение sitemaps
-			const sitemapUrls = await this.getRobotsAndSitemaps(hostname);
+		// Проверка robots.txt и получение sitemaps
+		const sitemapUrls = await this.getRobotsAndSitemaps(hostname);
 
-			// Проверка доступности первого sitemap
-			await this.checkSitemapAccessible(sitemapUrls[0]);
+		// Проверка доступности первого sitemap
+		await this.checkSitemapAccessible(sitemapUrls[0]);
 
-			return true;
-		} catch {
-			return false;
-		}
+		return true;
 	}
 
 	/**

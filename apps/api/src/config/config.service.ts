@@ -43,8 +43,9 @@ interface ValidatedEnv {
 	SESSION_COOKIE_NAME: string;
 	SESSION_MAX_AGE: number;
 	SESSION_SECRET: string;
-	CORS_ORIGIN: string;
 	SOCKET_PATH: string;
+	STRIPE_SECRET_KEY: string;
+	STRIPE_WEBHOOK_SECRET: string;
 }
 
 interface ProviderConfig {
@@ -87,8 +88,9 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
-	CORS_ORIGIN: Joi.string().allow('').required(),
-	SOCKET_PATH: Joi.string()
+	SOCKET_PATH: Joi.string(),
+	STRIPE_SECRET_KEY: Joi.string().required(),
+	STRIPE_WEBHOOK_SECRET: Joi.string().optional()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -233,10 +235,10 @@ class AppConfigService {
 		maxTokens: env.GEMINI_MAX_TOKENS
 	};
 
-	// CORS config
-	public readonly cors = {
-		origin: env.CORS_ORIGIN.split(',').map(origin => origin.trim()),
-		credentials: true
+	// Stripe config
+	public readonly stripe = {
+		secretKey: env.STRIPE_SECRET_KEY,
+		webhookSecret: env.STRIPE_WEBHOOK_SECRET
 	};
 }
 

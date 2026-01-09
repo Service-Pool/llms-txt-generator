@@ -14,10 +14,14 @@ class PriceCalculator {
 	public static calculateEstimatedPrice(
 		urlsCount: number,
 		pricePerUrl: number,
-		minPayment: number,
-		urlsNumPrecised: boolean
+		minPayment: number
 	): number {
-		const basePrice = urlsNumPrecised ? urlsCount * pricePerUrl : 100;
+		// If price per URL is 0, return 0 (free provider like Ollama)
+		if (pricePerUrl === 0) {
+			return 0;
+		}
+
+		const basePrice = urlsCount * pricePerUrl;
 		const minPrice = pricePerUrl > 0 ? minPayment : 0;
 		const estimatedPrice = Math.max(basePrice, minPrice);
 

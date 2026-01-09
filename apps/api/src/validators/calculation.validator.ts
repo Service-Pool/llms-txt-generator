@@ -19,12 +19,8 @@ class CalculationValidator implements ValidatorConstraintInterface {
 	}
 
 	public async validate(hostname: string): Promise<boolean> {
-		try {
-			const { calculation } = await this.calculationsService.findOrCreateCalculation(hostname);
-			return calculation !== null;
-		} catch {
-			return false;
-		}
+		const calculation = await this.calculationsService.findByHostname(hostname);
+		return calculation !== null;
 	}
 }
 

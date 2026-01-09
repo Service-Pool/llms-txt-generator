@@ -41,7 +41,7 @@ class Generation {
 	@Column({ type: 'int', unsigned: true, nullable: true, name: 'calculation_id' })
 	public calculationId: number | null;
 
-	@ManyToOne(() => Calculation, calculation => calculation.generations, { nullable: true })
+	@ManyToOne(() => Calculation, calculation => calculation.generations, { nullable: true, onDelete: 'CASCADE' })
 	@JoinColumn({ name: 'calculation_id' })
 	public calculation: Relation<Calculation> | null;
 

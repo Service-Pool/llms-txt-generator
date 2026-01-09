@@ -1,5 +1,6 @@
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
+import { CalculationsModule } from '../modules/calculations/calculations.module';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { GenerationsModule } from '../modules/generations/generations.module';
@@ -28,8 +29,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		}),
 		QueueModule,
-		GenerationsModule
+		GenerationsModule,
+		CalculationsModule
 	],
 	providers: [GenerationWorkerCommand]
 })
-export class CliModule {}
+export class CliModule { }

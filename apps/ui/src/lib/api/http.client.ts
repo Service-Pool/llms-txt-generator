@@ -87,11 +87,11 @@ class HttpClient {
 
 			// AbortError
 			if (error instanceof Error && error.name === 'AbortError') {
-				throw new HttpClientError(0, 'Request timeout');
+				throw new HttpClientError(ResponseCode.ERROR, 'Request timeout');
 			}
 
 			// Network errors, JSON parse errors, etc.
-			throw new HttpClientError(0, error instanceof Error ? error.message : 'Network error');
+			throw new HttpClientError(ResponseCode.ERROR, error instanceof Error ? error.message : 'Network error');
 		}
 	}
 }

@@ -11,8 +11,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 	constructor(private readonly apiResponse: ApiResponse) { }
 
 	public catch(exception: unknown, host: ArgumentsHost): void {
-		this.logger.error('Exception caught:', exception instanceof Error ? exception.stack : exception);
-
 		const response = host.switchToHttp().getResponse<FastifyReply>();
 
 		let statusCode = ResponseCode.ERROR;
@@ -20,6 +18,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
 		switch (true) {
 			case exception instanceof ValidationException:
+				this.logger.warn(exception.getErrors().join('; '));
 				body = this.apiResponse.invalid(exception.getErrors());
 				break;
 
@@ -30,6 +29,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 					? exceptionResponse.message
 					: exceptionResponse;
 
+				this.logger.error(`HTTP exception (${statusCode}):`, message);
 				body = this.apiResponse.error(ResponseCode.ERROR, String(message));
 				break;
 			}
@@ -38,6 +38,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 				const message = exception instanceof Error
 					? exception.message
 					: String(exception);
+				this.logger.error('Unhandled exception:', exception instanceof Error ? exception.stack : exception);
 				body = this.apiResponse.error(ResponseCode.ERROR, message);
 				break;
 			}

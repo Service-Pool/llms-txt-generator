@@ -25,6 +25,13 @@ class CalculationsService {
 		return this.calculationRepository.findOneBy({ id });
 	}
 
+	public async findByHostname(hostname: string): Promise<Calculation | null> {
+		return this.calculationRepository.findOne({
+			where: { hostname },
+			order: { createdAt: 'DESC' }
+		});
+	}
+
 	public async findOrCreateCalculation(hostname: string): Promise<{ calculation: Calculation; isNew: boolean }> {
 		// Start transaction
 		const queryRunner = this.dataSource.createQueryRunner();
@@ -46,27 +53,14 @@ class CalculationsService {
 			// Get sitemap URLs from robots.txt (or fallback to /sitemap.xml)
 			const sitemapUrls = await this.robotsService.getSitemaps(hostname);
 
-			const MAX_DURATION_MS = 30000;
-			const startTime = Date.now();
-
 			let urlsCount = 0;
-			let timedOut = false;
 
-			// Count URLs with timeout
+			// Count URLs
 			for await (const _url of this.sitemapService.getUrlsStream(sitemapUrls)) {
 				urlsCount++;
-
-				// Check if we've exceeded the time limit
-				if (Date.now() - startTime > MAX_DURATION_MS) {
-					timedOut = true;
-					this.logger.warn(`Analysis timed out for ${hostname} after ${MAX_DURATION_MS}ms. Counted ${urlsCount} URLs so far.`);
-					break;
-				}
 			}
 
-			if (!timedOut) {
-				this.logger.log(`Analysis complete for ${hostname}: ${urlsCount} URLs found`);
-			}
+			this.logger.log(`Analysis complete for ${hostname}: ${urlsCount} URLs found`);
 
 			// Calculate pricing for all providers
 			const prices: ProviderPrices[] = [];
@@ -76,8 +70,7 @@ class CalculationsService {
 				const total = PriceCalculator.calculateEstimatedPrice(
 					urlsCount,
 					providerConfig.pricePerUrl,
-					providerConfig.minPayment,
-					!timedOut
+					providerConfig.minPayment
 				);
 
 				const priceModel = new PriceModel(total, providerConfig.pricePerUrl);
@@ -88,7 +81,7 @@ class CalculationsService {
 			const entity = queryRunner.manager.create(Calculation, {
 				hostname,
 				urlsCount,
-				urlsCountPrecise: !timedOut,
+				urlsCountPrecise: true,
 				prices: prices,
 				currency: this.configService.providers[Provider.GEMINI].priceCurrency
 			});

@@ -145,18 +145,6 @@
 				{/if}
 			</div>
 
-			<!-- Progress Bar for Active Generations -->
-			{#if status === GenerationStatus.ACTIVE && progress}
-				<div class="mt-2">
-					<ProgressBar
-						current={progress.processedUrls}
-						total={progress.totalUrls}
-						size="sm"
-						showPercentage={true}
-						showNumbers={true} />
-				</div>
-			{/if}
-
 			<!-- Error Message -->
 			{#if status === GenerationStatus.FAILED && item.errorMessage}
 				<div class="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -184,6 +172,18 @@
 			</button>
 		</div>
 	</div>
+
+	<!-- Progress Bar for Active Generations -->
+	{#if status !== GenerationStatus.ACTIVE && progress}
+		<div class="mt-3">
+			<ProgressBar
+				current={progress.processedUrls}
+				total={progress.totalUrls}
+				size="sm"
+				showPercentage={true}
+				showNumbers={true} />
+		</div>
+	{/if}
 
 	<!-- Content Section -->
 	{#if showContent || isLoading}
