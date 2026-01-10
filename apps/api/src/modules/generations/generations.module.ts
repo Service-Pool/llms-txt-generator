@@ -1,3 +1,4 @@
+import { CalculationsModule } from '../calculations/calculations.module';
 import { ContentExtractorService } from './services/content-extractor.service';
 import { CurrentUserService } from '../auth/services/current-user.service';
 import { GeminiService } from './services/llm/gemini.service';
@@ -20,6 +21,7 @@ import { User } from '../auth/entitites/user.entity';
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([Generation, GenerationRequest, User]),
+		CalculationsModule,
 		QueueModule,
 		RobotsModule,
 		SitemapModule

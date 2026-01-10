@@ -27,6 +27,12 @@ class GenerationRequest {
 	@Index('idx_session')
 	public sessionId: string | null;
 
+	@Column({ type: 'varchar', length: 500, nullable: true, name: 'payment_link' })
+	public paymentLink: string | null;
+
+	@Column({ type: 'boolean', default: false, name: 'is_paid' })
+	public isPaid: boolean;
+
 	@CreateDateColumn({ name: 'requested_at' })
 	public requestedAt: Date;
 

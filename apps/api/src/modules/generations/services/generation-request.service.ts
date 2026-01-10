@@ -57,7 +57,7 @@ class GenerationRequestService {
 
 		const [items, total] = await this.generationRequestRepository.findAndCount({
 			where: this.userId ? { userId: this.userId } : { sessionId: this.sessionId },
-			relations: ['generation'],
+			relations: ['generation', 'generation.calculation'],
 			order: { requestedAt: 'DESC' },
 			skip: offset,
 			take: limit
@@ -73,9 +73,9 @@ class GenerationRequestService {
 		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit);
 	}
 
-	public async findOrCreateGenerationRequest(hostname: string, provider: Provider): Promise<{ generation: Generation; generationRequest: GenerationRequest }> {
+	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<{ generation: Generation; generationRequest: GenerationRequest }> {
 		// 1. Найти существующую generation
-		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(hostname, provider);
+		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(calculationId, provider);
 
 		// 2. Если generation завершена - просто вернуть её с generationRequest
 		if (generation.status === GenerationStatus.COMPLETED) {
@@ -158,7 +158,6 @@ class GenerationRequestService {
 		const message = new GenerationJobMessage(
 			generation.id,
 			generationRequest.id,
-			generation.hostname,
 			generation.provider
 		);
 

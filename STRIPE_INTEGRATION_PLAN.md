@@ -84,7 +84,7 @@ public calculation: Relation<Calculation> | null;
 // 1. Получить Calculation
 const calculation = await calculationsService.findByHostname(hostname);
 const providerPrice = calculation.prices.find(p => p.provider === provider);
-const frontendUrl = this.configService.frontendUrl;
+const frontendHost = this.configService.frontendHost;
 
 // 2. Создать/найти Generation и связать с Calculation
 const { generation, generationRequest } = await generationRequestService.findOrCreateGenerationRequest(hostname, provider);
@@ -109,7 +109,6 @@ if (providerPrice.price.total > 0) {
       const message = new GenerationJobMessage(
         generation.id,
         generationRequest.id,
-        generation.hostname,
         generation.provider
       );
       const jobId = JobUtils.generateId(generation.id);
@@ -139,9 +138,9 @@ if (providerPrice.price.total > 0) {
       },
       quantity: 1
     }],
-    metadata: { generationRequestId, hostname, provider },
-    success_url: `${frontendUrl}/generations?success=true`,
-    cancel_url: `${frontendUrl}/generations?canceled=true`
+    metadata: { generationRequestId, provider },
+    success_url: `${frontendHost}/generations?success=true`,
+    cancel_url: `${frontendHost}/generations?canceled=true`
   });
 
   generationRequest.paymentLink = session.url;
@@ -153,7 +152,6 @@ if (providerPrice.price.total > 0) {
   const message = new GenerationJobMessage(
     generation.id,
     generationRequest.id,
-    generation.hostname,
     generation.provider
   );
   const jobId = JobUtils.generateId(generation.id);
@@ -215,7 +213,6 @@ async handleWebhook(
         const message = new GenerationJobMessage(
           generation.id,
           generationRequest.id,
-          generation.hostname,
           generation.provider
         );
 
@@ -250,11 +247,11 @@ Request → Response: {requiresPayment: true, paymentLink}
 
 ## Чек-лист
 
-- [ ] Добавить FRONTEND_URL в .env
-- [ ] Добавить frontendUrl в ConfigService
-- [ ] Миграция БД: добавить paymentLink, isPaid в generation_requests
-- [ ] Миграция БД: добавить CASCADE в FK generation.calculationId
-- [ ] Обновить Entity (generation-request.entity.ts, generation.entity.ts)
+- [x] Добавить FRONTEND_HOST в .env
+- [x] Добавить frontendHost в ConfigService
+- [x] Миграция БД: добавить paymentLink, isPaid в generation_requests
+- [x] Миграция БД: добавить CASCADE в FK generation.calculationId
+- [x] Обновить Entity (generation-request.entity.ts, generation.entity.ts)
 - [ ] Логика связывания Generation с Calculation
 - [ ] Логика создания Checkout Session в контроллере
 - [ ] Логика проверки статуса Session
@@ -270,7 +267,7 @@ Request → Response: {requiresPayment: true, paymentLink}
 .env:
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-FRONTEND_URL=http://localhost:4200
+FRONTEND_HOST=http://localhost:4200
 
 Webhook endpoint: https://your-domain.com/api/stripe/webhook
 Events: checkout.session.completed

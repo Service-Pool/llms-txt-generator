@@ -174,7 +174,7 @@
 	</div>
 
 	<!-- Progress Bar for Active Generations -->
-	{#if status !== GenerationStatus.ACTIVE && progress}
+	{#if status === GenerationStatus.ACTIVE && progress}
 		<div class="mt-3">
 			<ProgressBar
 				current={progress.processedUrls}

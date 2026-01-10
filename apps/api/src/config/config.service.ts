@@ -46,6 +46,7 @@ interface ValidatedEnv {
 	SOCKET_PATH: string;
 	STRIPE_SECRET_KEY: string;
 	STRIPE_WEBHOOK_SECRET: string;
+	FRONTEND_HOST: string;
 }
 
 interface ProviderConfig {
@@ -90,7 +91,8 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SESSION_SECRET: Joi.string().required(),
 	SOCKET_PATH: Joi.string(),
 	STRIPE_SECRET_KEY: Joi.string().required(),
-	STRIPE_WEBHOOK_SECRET: Joi.string().optional()
+	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+	FRONTEND_HOST: Joi.string().uri().required()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -238,7 +240,8 @@ class AppConfigService {
 	// Stripe config
 	public readonly stripe = {
 		secretKey: env.STRIPE_SECRET_KEY,
-		webhookSecret: env.STRIPE_WEBHOOK_SECRET
+		webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+		frontendHost: env.FRONTEND_HOST
 	};
 }
 

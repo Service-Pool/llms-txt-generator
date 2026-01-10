@@ -27,11 +27,17 @@ class GenerationsService {
 	}
 
 	public async findById(id: number): Promise<Generation | null> {
-		return this.generationRepository.findOneBy({ id });
+		return this.generationRepository.findOne({
+			where: { id },
+			relations: ['calculation']
+		});
 	}
 
 	public async findByIdAndUser(id: number): Promise<Generation | null> {
-		const generation = await this.generationRepository.findOneBy({ id });
+		const generation = await this.generationRepository.findOne({
+			where: { id },
+			relations: ['calculation']
+		});
 
 		if (!generation) {
 			return null;
@@ -58,10 +64,11 @@ class GenerationsService {
 	 * Найти существующую generation или создать новую
 	 * Если generation в статусе FAILED - сбросить на WAITING
 	 */
-	public async findOrCreateGeneration(hostname: string, provider: Provider): Promise<{ generation: Generation; isNew: boolean }> {
+	public async findOrCreateGeneration(calculationId: number, provider: Provider): Promise<{ generation: Generation; isNew: boolean }> {
 		// 1. Найти существующую generation (ВКЛЮЧАЯ FAILED)
 		const existingGeneration = await this.manager.findOne(Generation, {
-			where: { hostname, provider }
+			where: { calculationId, provider },
+			relations: ['calculation']
 		});
 
 		// 2. Если generation завершена - вернуть её
@@ -89,13 +96,20 @@ class GenerationsService {
 		// 4. Если generation не существует - создать новую
 		if (!existingGeneration) {
 			const entity = this.manager.create(Generation, {
-				hostname,
+				calculationId,
 				provider,
 				status: GenerationStatus.WAITING
 			});
 
 			const generation = await this.manager.save(entity);
-			return { generation, isNew: true };
+
+			// Загрузить calculation relation
+			const newGeneration = await this.manager.findOne(Generation, {
+				where: { id: generation.id },
+				relations: ['calculation']
+			});
+
+			return { generation: newGeneration!, isNew: true };
 		}
 
 		// 5. Иначе - вернуть существующую как не новую

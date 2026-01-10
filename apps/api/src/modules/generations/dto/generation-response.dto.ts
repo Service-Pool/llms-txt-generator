@@ -20,9 +20,13 @@ class GenerationDtoResponse {
 	) { }
 
 	static fromEntity(entity: Generation): GenerationDtoResponse {
+		if (!entity.calculation) {
+			throw new Error('Generation must have a related Calculation loaded');
+		}
+
 		return new GenerationDtoResponse(
 			entity.id,
-			entity.hostname,
+			entity.calculation.hostname,
 			entity.provider,
 			entity.status,
 			entity.content,
@@ -70,7 +74,11 @@ class GenerationRequestDtoResponse {
 
 	static fromEntity(entity: GenerationRequest): GenerationRequestDtoResponse {
 		if (!entity.generation) {
-			throw new Error('GenerationRequest must have a related Generation');
+			throw new Error('GenerationRequest must have a related Generation loaded');
+		}
+
+		if (!entity.generation.calculation) {
+			throw new Error('Generation must have a related Calculation loaded');
 		}
 
 		return new GenerationRequestDtoResponse(
@@ -78,7 +86,7 @@ class GenerationRequestDtoResponse {
 			entity.generationId,
 			entity.userId,
 			entity.sessionId || '',
-			entity.generation.hostname,
+			entity.generation.calculation.hostname,
 			entity.generation.provider,
 			entity.generation.status,
 			entity.generation.content,

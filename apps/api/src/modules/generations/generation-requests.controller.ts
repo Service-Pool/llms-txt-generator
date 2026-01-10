@@ -5,11 +5,13 @@ import { CreateGenerationDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
 import { ApiResponse } from '../../utils/response/api-response';
 import { type FastifyRequest } from 'fastify';
+import { CalculationsService } from '../calculations/calculations.service';
 
 @Controller('api/generation-requests')
 class GenerationRequestsController {
 	constructor(
 		private readonly generationRequestService: GenerationRequestService,
+		private readonly calculationsService: CalculationsService,
 		private readonly apiResponse: ApiResponse
 	) { }
 
@@ -36,8 +38,10 @@ class GenerationRequestsController {
 			});
 		});
 
+		// Calculation гарантированно существует благодаря CalculationValidator в DTO
+		const calculation = await this.calculationsService.findByHostname(createGenerationDto.hostname);
 		const result = await this.generationRequestService.findOrCreateGenerationRequest(
-			createGenerationDto.hostname,
+			calculation!.id,
 			createGenerationDto.provider
 		);
 

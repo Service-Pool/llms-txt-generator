@@ -61,7 +61,23 @@ export class GenerationJobHandler {
 	}
 
 	public async handle(job: Job<GenerationJobMessage>): Promise<void> {
-		const { generationId, hostname, provider } = job.data;
+		const { generationId, provider } = job.data;
+
+		// Загрузить Generation с Calculation для получения hostname
+		const generation = await this.generationRepository.findOne({
+			where: { id: generationId },
+			relations: ['calculation']
+		});
+
+		if (!generation) {
+			throw new Error(`Generation ${generationId} not found`);
+		}
+
+		if (!generation.calculation) {
+			throw new Error(`Generation ${generationId} has no calculation`);
+		}
+
+		const hostname = generation.calculation.hostname;
 
 		await this.generationRepository.update(generationId, { status: GenerationStatus.ACTIVE });
 
