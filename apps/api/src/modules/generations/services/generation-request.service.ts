@@ -3,7 +3,7 @@ import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { GenerationRequest } from '../entities/generation-request.entity';
-import { GenerationRequestsListDtoResponse } from '../dto/generation-response.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from '../dto/generation-response.dto';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
@@ -73,7 +73,7 @@ class GenerationRequestService {
 		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit);
 	}
 
-	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<{ generation: Generation; generationRequest: GenerationRequest }> {
+	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<GenerationRequestDtoResponse> {
 		// 1. Найти существующую generation
 		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(calculationId, provider);
 
@@ -82,7 +82,8 @@ class GenerationRequestService {
 			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null);
 			this.truncateContent(generation);
 
-			return { generation, generationRequest: existingRequest };
+			existingRequest.generation = generation;
+			return GenerationRequestDtoResponse.fromEntity(existingRequest);
 		}
 
 		// 3-5. Транзакция: создать GenerationRequest + поставить в очередь
@@ -105,7 +106,8 @@ class GenerationRequestService {
 			await queryRunner.commitTransaction();
 
 			this.truncateContent(generation);
-			return { generation, generationRequest };
+			generationRequest.generation = generation;
+			return GenerationRequestDtoResponse.fromEntity(generationRequest);
 		} catch (error) {
 			await queryRunner.rollbackTransaction();
 			throw error;

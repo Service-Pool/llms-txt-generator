@@ -40,15 +40,11 @@ class GenerationRequestsController {
 
 		// Calculation гарантированно существует благодаря CalculationValidator в DTO
 		const calculation = await this.calculationsService.findByHostname(createGenerationDto.hostname);
-		const result = await this.generationRequestService.findOrCreateGenerationRequest(
+		const response = await this.generationRequestService.findOrCreateGenerationRequest(
 			calculation!.id,
 			createGenerationDto.provider
 		);
 
-		// Attach the generation object to the generationRequest for DTO conversion
-		result.generationRequest.generation = result.generation;
-
-		const response = GenerationRequestDtoResponse.fromEntity(result.generationRequest);
 		return this.apiResponse.success(response);
 	}
 

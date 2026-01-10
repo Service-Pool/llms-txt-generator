@@ -1,7 +1,8 @@
 export enum GenerationStatus {
-	CALCULATED = 'calculated',
-	WAITING = 'waiting',
 	ACTIVE = 'active',
+	CALCULATED = 'calculated',
 	COMPLETED = 'completed',
-	FAILED = 'failed'
+	FAILED = 'failed',
+	PENDING_PAYMENT = 'pending-payment',
+	WAITING = 'waiting'
 }
