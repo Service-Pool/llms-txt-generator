@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		GenerationStatus,
+		GenerationRequestStatus,
 		type GenerationRequestDtoResponse,
 	} from "@api/shared";
 	import ProgressBar from "../common/ProgressBar.svelte";
@@ -22,12 +23,12 @@
 
 	const generationsService = new GenerationsService();
 
-	const status = $derived.by(() => {
-		return item.status || GenerationStatus.WAITING;
+	const generationStatus = $derived.by(() => {
+		return item.generationStatus;
 	});
 
 	const statusConfig = $derived.by(() => {
-		switch (status) {
+		switch (generationStatus) {
 			case GenerationStatus.WAITING:
 				return {
 					text: "Waiting",
@@ -52,6 +53,26 @@
 				return {
 					text: "Unknown",
 					class: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+				};
+		}
+	});
+
+	const requestStatusConfig = $derived.by(() => {
+		switch (item.requestStatus) {
+			case GenerationRequestStatus.PENDING_PAYMENT.value:
+				return {
+					text: GenerationRequestStatus.PENDING_PAYMENT.label,
+					class: "",
+				};
+			case GenerationRequestStatus.ACCEPTED.value:
+				return {
+					text: GenerationRequestStatus.PENDING_PAYMENT.label,
+					class: "",
+				};
+			default:
+				return {
+					text: "Unknown",
+					class: "",
 				};
 		}
 	});
@@ -122,10 +143,10 @@
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<div class="flex-1">
 			<!-- Hostname with Status -->
-			<div class="flex items-baseline gap-2 mb-2">
+			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
 				<h3
 					class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-					{item.hostname || "Unknown"}
+					{item.hostname}
 				</h3>
 				<span
 					class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
@@ -133,20 +154,8 @@
 				</span>
 			</div>
 
-			<!-- Provider & Metadata in one line -->
-			<div
-				class="flex flex-wrap items-center gap-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-				<span>{item.provider || "unknown"}</span>
-				<span>•</span>
-				<span>{formattedDate}</span>
-				{#if item.entriesCount}
-					<span>•</span>
-					<span>{formatNumber(item.entriesCount)} entries</span>
-				{/if}
-			</div>
-
 			<!-- Error Message -->
-			{#if status === GenerationStatus.FAILED && item.errorMessage}
+			{#if generationStatus === GenerationStatus.FAILED && item.errorMessage}
 				<div class="text-xs text-red-600 dark:text-red-400 mt-1">
 					Error: {item.errorMessage}
 				</div>
@@ -155,7 +164,17 @@
 
 		<!-- Action Buttons -->
 		<div class="shrink-0 flex items-center gap-1">
-			{#if status === GenerationStatus.COMPLETED}
+			{#if item.requestStatus === GenerationRequestStatus.PENDING_PAYMENT.value && item.paymentLink}
+				<a
+					href={item.paymentLink}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+					Pay Now
+				</a>
+			{/if}
+
+			{#if generationStatus === GenerationStatus.COMPLETED}
 				<button
 					onclick={handleShowContent}
 					disabled={false}
@@ -173,8 +192,26 @@
 		</div>
 	</div>
 
+	<!-- Provider & Metadata in one line -->
+	<div
+		class="w-full flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs text-gray-500 dark:text-gray-400">
+		<span>{item.provider}</span>
+		<span>•</span>
+		<span>{formattedDate}</span>
+		{#if item.entriesCount}
+			<span>•</span>
+			<span>{formatNumber(item.entriesCount)} entries</span>
+		{/if}
+		{#if requestStatusConfig}
+			<span>•</span>
+			<span class={requestStatusConfig.class}>
+				{requestStatusConfig.text}
+			</span>
+		{/if}
+	</div>
+
 	<!-- Progress Bar for Active Generations -->
-	{#if status === GenerationStatus.ACTIVE && progress}
+	{#if generationStatus === GenerationStatus.ACTIVE && progress}
 		<div class="mt-3">
 			<ProgressBar
 				current={progress.processedUrls}

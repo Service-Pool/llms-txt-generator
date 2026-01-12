@@ -9,7 +9,7 @@ class GenerationProgressEvent {
 		public readonly status: string,
 		public readonly processedUrls: number,
 		public readonly totalUrls: number
-	) {}
+	) { }
 }
 
 class GenerationStatusEvent {
@@ -19,7 +19,7 @@ class GenerationStatusEvent {
 		public readonly content?: string,
 		public readonly errorMessage?: string,
 		public readonly entriesCount?: number
-	) {}
+	) { }
 }
 
 class WebSocketMessage {
@@ -28,7 +28,7 @@ class WebSocketMessage {
 		public readonly payload?: {
 			generationIds?: number[];
 		}
-	) {}
+	) { }
 }
 
 export { GenerationProgressEvent, GenerationStatusEvent, WebSocketMessage };

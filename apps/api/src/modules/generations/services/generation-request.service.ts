@@ -1,4 +1,5 @@
 import { AppConfigService } from '../../../config/config.service';
+import { Calculation } from '../../calculations/entities/calculation.entity';
 import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
@@ -6,14 +7,18 @@ import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from '../dto/generation-response.dto';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
+import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobUtils } from '../../../utils/job.utils';
 import { Provider } from '../../../enums/provider.enum';
+import { ProviderPrices } from '../../calculations/models/provider-prices.model';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { RobotsService } from '../../robots/robots.service';
 import { SitemapService } from '../../sitemap/sitemap.service';
+import { StripeService } from '../../stripe/stripe.service';
+import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
 
 @Injectable()
 class GenerationRequestService {
@@ -29,6 +34,7 @@ class GenerationRequestService {
 		private readonly currentUserService: CurrentUserService,
 		private readonly robotsService: RobotsService,
 		private readonly sitemapService: SitemapService,
+		private readonly stripeService: StripeService,
 		private readonly dataSource: DataSource,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
 	) {
@@ -77,7 +83,15 @@ class GenerationRequestService {
 		// 1. Найти существующую generation
 		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(calculationId, provider);
 
-		// 2. Если generation завершена - просто вернуть её с generationRequest
+		// 2. Получить цену для провайдера
+		const calculation = generation.calculation;
+		const providerPrice = calculation.prices.find(p => p.provider === provider);
+
+		if (!providerPrice) {
+			throw new Error(`Price not found for provider ${provider}`);
+		}
+
+		// 3. Если generation завершена - просто вернуть её с generationRequest
 		if (generation.status === GenerationStatus.COMPLETED) {
 			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null);
 			this.truncateContent(generation);
@@ -86,36 +100,8 @@ class GenerationRequestService {
 			return GenerationRequestDtoResponse.fromEntity(existingRequest);
 		}
 
-		// 3-5. Транзакция: создать GenerationRequest + поставить в очередь
-		const queryRunner = this.dataSource.createQueryRunner();
-		await queryRunner.connect();
-		await queryRunner.startTransaction();
-
-		this.queryRunner = queryRunner;
-		this.generationsService.setQueryRunner(queryRunner);
-
-		try {
-			// 4. Найти или создать generation request
-			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner);
-
-			// 5. Поставить в очередь если generation новая или generationRequest новый
-			if (isNewGeneration || isNewRequest) {
-				await this.queueJob(generation, generationRequest, provider);
-			}
-
-			await queryRunner.commitTransaction();
-
-			this.truncateContent(generation);
-			generationRequest.generation = generation;
-			return GenerationRequestDtoResponse.fromEntity(generationRequest);
-		} catch (error) {
-			await queryRunner.rollbackTransaction();
-			throw error;
-		} finally {
-			await queryRunner.release();
-			this.queryRunner = null;
-			this.generationsService.setQueryRunner(null);
-		}
+		// 4. Обработать generation request
+		return await this.handleGenerationRequest(generation, calculation, providerPrice, isNewGeneration);
 	}
 
 	private async ensureGenerationRequest(
@@ -157,6 +143,11 @@ class GenerationRequestService {
 	}
 
 	private async queueJob(generation: Generation, generationRequest: GenerationRequest, provider: Provider): Promise<string> {
+		// Проверка что оплата прошла (если требовалась)
+		if (generationRequest.status < PAID_THRESHOLD) {
+			throw new Error('Cannot queue job: payment required but not completed');
+		}
+
 		const message = new GenerationJobMessage(
 			generation.id,
 			generationRequest.id,
@@ -177,6 +168,99 @@ class GenerationRequestService {
 	private truncateContent(generation: Generation): void {
 		if (generation.content && generation.content.length > 500) {
 			generation.content = generation.content.substring(0, 500) + '...';
+		}
+	}
+
+	/**
+	 * Обработка generation request с учетом необходимости оплаты
+	 */
+	private async handleGenerationRequest(generation: Generation, calculation: Calculation, providerPrice: ProviderPrices, isNewGeneration: boolean): Promise<GenerationRequestDtoResponse> {
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+
+		this.queryRunner = queryRunner;
+		this.generationsService.setQueryRunner(queryRunner);
+
+		try {
+			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner);
+
+			// Если требуется оплата и еще не оплачено
+			if (providerPrice.price.total > 0 && generationRequest.status < PAID_THRESHOLD) {
+				// Проверить существующую paymentLink
+				if (generationRequest.paymentLink) {
+					const sessionId = generationRequest.paymentLink.split('/').pop()!.split('#')[0];
+					const session = await this.stripeService.retrieveSession(sessionId);
+
+					switch (session.status) {
+						case StripeSessionStatus.COMPLETE:
+							// Оплачено - обновить status и продолжить обработку ниже
+							generationRequest.status = GenerationRequestStatus.ACCEPTED.value;
+							await queryRunner.manager.save(generationRequest);
+							break;
+
+						case StripeSessionStatus.OPEN:
+							// Ссылка еще активна - вернуть существующую
+							await queryRunner.manager.save(generation);
+
+							await queryRunner.commitTransaction();
+							this.truncateContent(generation);
+							generationRequest.generation = generation;
+							return GenerationRequestDtoResponse.fromEntity(generationRequest);
+
+						case StripeSessionStatus.EXPIRED:
+							// Истекла - создать новую Session ниже
+							break;
+					}
+				}
+
+				// Если еще не оплачено - создать новую Checkout Session
+				if (generationRequest.status < PAID_THRESHOLD) {
+					const session = await this.stripeService.createCheckoutSession({
+						generationRequestId: generationRequest.id,
+						amount: providerPrice.price.total,
+						currency: calculation.currency,
+						hostname: calculation.hostname,
+						provider: generation.provider
+					});
+
+					generationRequest.paymentLink = session.url;
+
+					await queryRunner.manager.save(generationRequest);
+					await queryRunner.manager.save(generation);
+
+					await queryRunner.commitTransaction();
+					this.truncateContent(generation);
+					generationRequest.generation = generation;
+					return GenerationRequestDtoResponse.fromEntity(generationRequest);
+				}
+			}
+
+			// Бесплатный или уже оплачено - поставить в очередь
+			// Для бесплатных запросов автоматически устанавливаем ACCEPTED
+			if (providerPrice.price.total === 0 && generationRequest.status < PAID_THRESHOLD) {
+				generationRequest.status = GenerationRequestStatus.ACCEPTED.value;
+				await queryRunner.manager.save(generationRequest);
+			}
+
+			if (isNewGeneration || isNewRequest) {
+				await this.queueJob(generation, generationRequest, generation.provider);
+			}
+
+			generation.status = GenerationStatus.WAITING;
+			await queryRunner.manager.save(generation);
+
+			await queryRunner.commitTransaction();
+			this.truncateContent(generation);
+			generationRequest.generation = generation;
+			return GenerationRequestDtoResponse.fromEntity(generationRequest);
+		} catch (error) {
+			await queryRunner.rollbackTransaction();
+			throw error;
+		} finally {
+			await queryRunner.release();
+			this.queryRunner = null;
+			this.generationsService.setQueryRunner(null);
 		}
 	}
 }

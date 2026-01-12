@@ -26,8 +26,11 @@ async function bootstrap() {
 
 	const app = await NestFactory.create<NestFastifyApplication>(
 		AppModule,
-		new FastifyAdapter(),
-		{ logger }
+		new FastifyAdapter({ bodyLimit: 10485760 }),
+		{
+			logger,
+			rawBody: true
+		}
 	);
 
 	// Enable DI for class-validator

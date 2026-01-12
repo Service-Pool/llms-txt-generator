@@ -14,6 +14,7 @@ import { OllamaService } from './services/llm/ollama.service';
 import { QueueModule } from '../queue/queue.module';
 import { RobotsModule } from '../robots/robots.module';
 import { SitemapModule } from '../sitemap/sitemap.module';
+import { StripeModule } from '../stripe/stripe.module';
 import { ApiResponse } from '../../utils/response/api-response';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../auth/entitites/user.entity';
@@ -24,7 +25,8 @@ import { User } from '../auth/entitites/user.entity';
 		CalculationsModule,
 		QueueModule,
 		RobotsModule,
-		SitemapModule
+		SitemapModule,
+		StripeModule
 	],
 	controllers: [GenerationsController, GenerationRequestsController],
 	providers: [

@@ -399,11 +399,12 @@ async handleWebhook(
 - [x] Рефакторинг: GenerationRequestService.findOrCreateGenerationRequest возвращает готовый DTO
 - [x] Упростить Controller: убрать маппинг в DTO, сервис возвращает готовый ответ
 - [x] Создать enum StripeSessionStatus для типизированных статусов вместо магических строк
-- [ ] Создать StripeService с методами createCheckoutSession, retrieveSession, constructWebhookEvent
-- [ ] Создать StripeModule
-- [ ] Обновить GenerationRequestService: добавить handlePaidProvider и handleFreeProvider
-- [ ] Создать StripeController с webhook обработчиком
-- [ ] Обновить фронтенд: обработка статуса PENDING_PAYMENT + кнопка Pay
+- [x] Создать StripeService с методами createCheckoutSession, retrieveSession, constructWebhookEvent
+- [x] Создать StripeModule
+- [x] Обновить GenerationRequestService: добавить handleGenerationRequest (объединен handlePaidProvider и handleFreeProvider)
+- [x] Создать StripeController с webhook обработчиком
+- [x] Подключить StripeModule в AppModule и GenerationsModule
+- [x] Обновить фронтенд: обработка статуса PENDING_PAYMENT + кнопка Pay
 - [ ] Тест через stripe CLI
 
 ## Stripe настройки

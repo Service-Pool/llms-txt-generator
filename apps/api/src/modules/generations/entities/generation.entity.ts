@@ -27,8 +27,7 @@ class Generation {
 	@Column({
 		type: 'enum',
 		enum: GenerationStatus,
-		enumName: 'generation_status_enum',
-		default: GenerationStatus.WAITING
+		enumName: 'generation_status_enum'
 	})
 	public status: GenerationStatus;
 

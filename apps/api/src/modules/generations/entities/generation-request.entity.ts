@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, Index, type Relation } from 'typeorm';
 import { Generation } from './generation.entity';
 import { User } from '../../auth/entitites/user.entity';
+import { GenerationRequestStatus, type GenerationRequestStatusValue } from '../../../enums/generation-request-status.enum';
 
 @Entity('generation_requests')
 class GenerationRequest {
@@ -30,8 +31,8 @@ class GenerationRequest {
 	@Column({ type: 'varchar', length: 500, nullable: true, name: 'payment_link' })
 	public paymentLink: string | null;
 
-	@Column({ type: 'boolean', default: false, name: 'is_paid' })
-	public isPaid: boolean;
+	@Column({ type: 'smallint', default: GenerationRequestStatus.PENDING_PAYMENT.value })
+	public status: GenerationRequestStatusValue;
 
 	@CreateDateColumn({ name: 'requested_at' })
 	public requestedAt: Date;
