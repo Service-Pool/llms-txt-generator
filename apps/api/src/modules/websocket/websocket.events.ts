@@ -22,6 +22,13 @@ class GenerationStatusEvent {
 	) { }
 }
 
+class GenerationRequestStatusEvent {
+	constructor(
+		public readonly generationId: number,
+		public readonly requestStatus: number
+	) { }
+}
+
 class WebSocketMessage {
 	constructor(
 		public readonly type: string,
@@ -31,4 +38,4 @@ class WebSocketMessage {
 	) { }
 }
 
-export { GenerationProgressEvent, GenerationStatusEvent, WebSocketMessage };
+export { GenerationProgressEvent, GenerationStatusEvent, GenerationRequestStatusEvent, WebSocketMessage };

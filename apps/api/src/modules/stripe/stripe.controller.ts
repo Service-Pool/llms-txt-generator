@@ -11,7 +11,7 @@ import { JobUtils } from '../../utils/job.utils';
 import { QueueService } from '../queue/queue.service';
 import { AppConfigService } from '../../config/config.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GenerationStatusEvent } from '../websocket/websocket.events';
+import { GenerationRequestStatusEvent } from '../websocket/websocket.events';
 import type Stripe from 'stripe';
 
 @Controller('api/stripe')
@@ -69,10 +69,10 @@ class StripeController {
 					await this.generationRequestRepository.save(generationRequest);
 					await this.generationRepository.save(generation);
 
-					// Отправить WebSocket событие о смене статуса
-					this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
+					// Отправить WebSocket событие о смене статуса запроса
+					this.eventEmitter.emit('generation.request.status', new GenerationRequestStatusEvent(
 						generation.id,
-						generation.status
+						generationRequest.status
 					));
 
 					// Поставить в очередь

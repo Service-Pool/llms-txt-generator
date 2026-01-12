@@ -66,7 +66,7 @@
 				};
 			case GenerationRequestStatus.ACCEPTED.value:
 				return {
-					text: GenerationRequestStatus.PENDING_PAYMENT.label,
+					text: GenerationRequestStatus.ACCEPTED.label,
 					class: "",
 				};
 			default:

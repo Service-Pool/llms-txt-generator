@@ -1,5 +1,5 @@
 import { AppConfigService } from '../../config/config.service';
-import { GenerationProgressEvent, GenerationStatusEvent, WebSocketMessage } from './websocket.events';
+import { GenerationProgressEvent, GenerationStatusEvent, GenerationRequestStatusEvent, WebSocketMessage } from './websocket.events';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
@@ -206,6 +206,15 @@ class WebSocketGateway implements OnModuleInit {
 		this.logger.log(`Received generation.status event for ${event.generationId}`);
 		this.broadcast(`generation-${event.generationId}`, {
 			type: 'generation:status',
+			payload: event
+		});
+	}
+
+	@OnEvent('generation.request.status')
+	handleGenerationRequestStatus(event: GenerationRequestStatusEvent): void {
+		this.logger.log(`Received generation.request.status event for ${event.generationId}`);
+		this.broadcast(`generation-${event.generationId}`, {
+			type: 'generation:request:status',
 			payload: event
 		});
 	}

@@ -11,6 +11,7 @@
 	import type {
 		GenerationProgressEvent,
 		GenerationStatusEvent,
+		GenerationRequestStatusEvent,
 	} from "$lib/types/websocket.types";
 	import GenerationsList from "$lib/components/features/GenerationsList.svelte";
 	import NewGenerationForm from "$lib/components/features/NewGenerationForm.svelte";
@@ -152,6 +153,19 @@
 		}
 	};
 
+	const handleRequestStatus = (event: GenerationRequestStatusEvent) => {
+		// Update requestStatus - replace instead of mutating
+		items = items.map((item) => {
+			if (item.generationId === event.generationId) {
+				return {
+					...item,
+					requestStatus: event.requestStatus,
+				};
+			}
+			return item;
+		});
+	};
+
 	const handleConnect = () => {
 		subscribeToCurrentItems();
 	};
@@ -168,6 +182,10 @@
 		ws.on("connect", handleConnect);
 		ws.on("progress", handleProgress as (...args: unknown[]) => void);
 		ws.on("status", handleStatus as (...args: unknown[]) => void);
+		ws.on(
+			"request-status",
+			handleRequestStatus as (...args: unknown[]) => void,
+		);
 	});
 
 	onDestroy(() => {
@@ -176,6 +194,10 @@
 			ws.off("connect", handleConnect);
 			ws.off("progress", handleProgress as (...args: unknown[]) => void);
 			ws.off("status", handleStatus as (...args: unknown[]) => void);
+			ws.off(
+				"request-status",
+				handleRequestStatus as (...args: unknown[]) => void,
+			);
 
 			// Disconnect
 			ws.disconnect();
