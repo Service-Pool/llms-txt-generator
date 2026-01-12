@@ -198,9 +198,9 @@
 		<span>{item.provider}</span>
 		<span>•</span>
 		<span>{formattedDate}</span>
-		{#if item.entriesCount}
+		{#if item.urlsCount}
 			<span>•</span>
-			<span>{formatNumber(item.entriesCount)} entries</span>
+			<span>{formatNumber(item.urlsCount)} urls</span>
 		{/if}
 		{#if requestStatusConfig}
 			<span>•</span>

@@ -137,7 +137,6 @@
 					status: event.status as GenerationStatus,
 					content: event.content || null,
 					errorMessage: event.errorMessage || null,
-					entriesCount: event.entriesCount || null,
 				};
 			}
 			return item;
