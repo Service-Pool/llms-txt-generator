@@ -5,7 +5,7 @@ import { User } from '../entitites/user.entity';
  */
 class AuthLoginDtoResponse {
 	constructor(
-		public readonly user: { id: number; email: string | null },
+		public readonly user: { id: number; email: string },
 		public readonly migratedRequests: number
 	) { }
 
@@ -18,7 +18,7 @@ class AuthLoginDtoResponse {
 
 	static fromJSON(json: Record<string, unknown>): AuthLoginDtoResponse {
 		return new AuthLoginDtoResponse(
-			json.user as { id: number; email: string | null },
+			json.user as { id: number; email: string },
 			json.migratedRequests as number
 		);
 	}
@@ -46,10 +46,10 @@ class AuthStatusDtoResponse {
 	constructor(
 		public readonly authenticated: boolean,
 		public readonly sessionId?: string,
-		public readonly user?: { id: number; username: string; email: string | null }
+		public readonly user?: { id: number; email: string }
 	) { }
 
-	static fromEntity(authenticated: boolean, sessionId?: string, user?: { id: number; username: string; email: string | null }): AuthStatusDtoResponse {
+	static fromEntity(authenticated: boolean, sessionId?: string, user?: { id: number; email: string }): AuthStatusDtoResponse {
 		return new AuthStatusDtoResponse(authenticated, sessionId, user);
 	}
 
@@ -57,7 +57,7 @@ class AuthStatusDtoResponse {
 		return new AuthStatusDtoResponse(
 			json.authenticated as boolean,
 			json.sessionId as string | undefined,
-			json.user as { id: number; username: string; email: string | null } | undefined
+			json.user as { id: number; email: string } | undefined
 		);
 	}
 }

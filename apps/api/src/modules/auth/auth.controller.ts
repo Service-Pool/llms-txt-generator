@@ -3,13 +3,13 @@ import { MessageSuccess } from '../../utils/response/message-success';
 import { MessageError } from '../../utils/response/message-error';
 import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { CurrentUserService } from './services/current-user.service';
-import { LoginDto } from './dto/login.dto';
+import { LoginDtoRequest } from './dto/auth-request.dto';
 import { ApiResponse } from '../../utils/response/api-response';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
 import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse } from './dto/auth-response.dto';
 
-@Controller('auth')
+@Controller('api/auth')
 class AuthController {
 	constructor(
 		private readonly authService: AuthService,
@@ -20,10 +20,10 @@ class AuthController {
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
 	async login(
-		@Body() loginDto: LoginDto,
+		@Body() loginDto: LoginDtoRequest,
 		@Req() request: FastifyRequest
 	): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse> | MessageError>> {
-		const user = await this.authService.validateUser(loginDto.username, loginDto.password || null);
+		const user = await this.authService.validateUser(loginDto.email, loginDto.password);
 
 		if (!user) {
 			return this.apiResponse.error(ResponseCode.ERROR, 'Invalid credentials');

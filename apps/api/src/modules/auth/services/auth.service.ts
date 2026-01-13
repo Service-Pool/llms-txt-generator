@@ -9,28 +9,27 @@ class AuthService {
 	constructor(
 		@InjectRepository(User) private readonly userRepository: Repository<User>,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
-	) {}
+	) { }
 
-	async findByUsername(username: string): Promise<User | null> {
-		return this.userRepository.findOne({ where: { username } });
+	async findByEmail(email: string): Promise<User | null> {
+		return this.userRepository.findOne({ where: { email } });
 	}
 
 	async findById(id: number): Promise<User | null> {
 		return this.userRepository.findOne({ where: { id } });
 	}
 
-	async createUser(username: string, password: string | null, email: string | null): Promise<User> {
+	async createUser(username: string, password: string, email: string): Promise<User> {
 		const hashedPassword = await User.hashPassword(password);
 		const user = this.userRepository.create({
-			username,
-			password: hashedPassword,
-			email
+			email,
+			password: hashedPassword
 		});
 		return this.userRepository.save(user);
 	}
 
-	async validateUser(username: string, password: string | null): Promise<User | null> {
-		const user = await this.findByUsername(username);
+	async validateUser(email: string, password: string): Promise<User | null> {
+		const user = await this.findByEmail(email);
 		if (!user) {
 			return null;
 		}

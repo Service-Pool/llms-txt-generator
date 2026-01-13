@@ -52,7 +52,7 @@ async function bootstrap() {
 		secret: configService.session.secret,
 		cookieName: configService.session.cookieName,
 		store: sessionStore,
-		saveUninitialized: false,
+		saveUninitialized: true, // Не создаем сессию автоматически
 		rolling: true,
 		cookie: {
 			maxAge: configService.session.maxAge,

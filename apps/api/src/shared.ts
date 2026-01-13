@@ -12,6 +12,7 @@ export * from './utils/response/message-invalid';
 export * from './utils/response/types';
 
 // DTOs
+export * from './modules/auth/dto/auth-request.dto';
 export * from './modules/auth/dto/auth-response.dto';
 export * from './modules/calculations/dto/calculation-request.dto';
 export * from './modules/calculations/dto/calculation-response.dto';

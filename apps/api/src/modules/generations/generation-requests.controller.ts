@@ -1,10 +1,9 @@
 import { MessageSuccess } from '../../utils/response/message-success';
-import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { GenerationRequestService } from './services/generation-request.service';
 import { CreateGenerationDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
 import { ApiResponse } from '../../utils/response/api-response';
-import { type FastifyRequest } from 'fastify';
 import { CalculationsService } from '../calculations/calculations.service';
 
 @Controller('api/generation-requests')
@@ -26,18 +25,7 @@ class GenerationRequestsController {
 
 	@Post()
 	@HttpCode(HttpStatus.ACCEPTED)
-	public async create(
-		@Body() createGenerationDto: CreateGenerationDtoRequest,
-		@Req() httpRequest: FastifyRequest
-	): Promise<ApiResponse<MessageSuccess<GenerationRequestDtoResponse>>> {
-		// Save session to DB before creating generation (for FK constraint)
-		await new Promise<void>((resolve, reject) => {
-			httpRequest.session.save((err) => {
-				if (err) reject(err instanceof Error ? err : new Error(String(err)));
-				else resolve();
-			});
-		});
-
+	public async create(@Body() createGenerationDto: CreateGenerationDtoRequest): Promise<ApiResponse<MessageSuccess<GenerationRequestDtoResponse>>> {
 		// Calculation гарантированно существует благодаря CalculationValidator в DTO
 		const calculation = await this.calculationsService.findByHostname(createGenerationDto.hostname);
 		const response = await this.generationRequestService.findOrCreateGenerationRequest(

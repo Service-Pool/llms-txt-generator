@@ -10,9 +10,9 @@ class AppConfigService {
 	// Endpoints config
 	public readonly endpoints = {
 		auth: {
-			login: '/auth/login',
-			logout: '/auth/logout',
-			status: '/auth/me'
+			login: '/api/auth/login',
+			logout: '/api/auth/logout',
+			status: '/api/auth/me'
 		},
 		generations: {
 			byId: (id: number) => `/api/generations/${id}`

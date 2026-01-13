@@ -1,17 +1,11 @@
 import { HttpClient } from './http.client';
 import { AppConfigService } from './config.service';
-import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, MessageSuccess } from '@api/shared';
+import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, LoginDtoRequest, MessageSuccess } from '@api/shared';
 
 const configService = new AppConfigService();
 
-// Auth-specific request types
-interface LoginRequestInterface {
-	username: string;
-	password: string | null;
-}
-
 class AuthService extends HttpClient {
-	public async login(credentials: LoginRequestInterface): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
+	public async login(credentials: LoginDtoRequest): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
 		return this.fetch(configService.endpoints.auth.login, {
 			method: 'POST',
 			body: JSON.stringify(credentials)
@@ -29,4 +23,4 @@ class AuthService extends HttpClient {
 	}
 }
 
-export { type LoginRequestInterface, AuthService };
+export { AuthService };
