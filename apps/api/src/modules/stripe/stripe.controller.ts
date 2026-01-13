@@ -11,7 +11,8 @@ import { JobUtils } from '../../utils/job.utils';
 import { QueueService } from '../queue/queue.service';
 import { AppConfigService } from '../../config/config.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GenerationRequestStatusEvent } from '../websocket/websocket.events';
+import { GenerationRequestUpdateEvent } from '../websocket/websocket.events';
+import { GenerationRequestDtoResponse } from '../generations/dto/generation-response.dto';
 import type Stripe from 'stripe';
 
 @Controller('api/stripe')
@@ -51,7 +52,7 @@ class StripeController {
 				// Загрузить GenerationRequest с Generation
 				const generationRequest = await this.generationRequestRepository.findOne({
 					where: { id: generationRequestId },
-					relations: ['generation']
+					relations: ['generation', 'generation.calculation']
 				});
 
 				if (!generationRequest) {
@@ -69,11 +70,9 @@ class StripeController {
 					await this.generationRequestRepository.save(generationRequest);
 					await this.generationRepository.save(generation);
 
-					// Отправить WebSocket событие о смене статуса запроса
-					this.eventEmitter.emit('generation.request.status', new GenerationRequestStatusEvent(
-						generation.id,
-						generationRequest.status
-					));
+					// Отправить WebSocket событие об обновлении запроса
+					const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+					this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(dto));
 
 					// Поставить в очередь
 					const message = new GenerationJobMessage(

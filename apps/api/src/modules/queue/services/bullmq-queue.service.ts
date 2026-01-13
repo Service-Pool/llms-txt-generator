@@ -1,8 +1,11 @@
 import { AppConfigService } from '../../../config/config.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Generation } from '../../generations/entities/generation.entity';
-import { GenerationProgressEvent, GenerationStatusEvent } from '../../websocket/websocket.events';
+import { GenerationRequest } from '../../generations/entities/generation-request.entity';
+import { GenerationRequestUpdateEvent } from '../../websocket/websocket.events';
+import { GenerationRequestDtoResponse } from '../../generations/dto/generation-response.dto';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
+import { GenerationJobMessage } from '../messages/generation-job.message';
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobUtils } from '../../../utils/job.utils';
@@ -20,6 +23,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	constructor(
 		private readonly configService: AppConfigService,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
+		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>,
 		private readonly eventEmitter: EventEmitter2
 	) {
 		this.jobOptions = {
@@ -78,56 +82,21 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 			});
 
 			queueEvents.on('progress', ({ jobId, data }) => {
-				this.logger.log(`Progress event for job ${jobId}`);
-				const progressData = data as { processedUrls: number; totalUrls: number };
-				const generationId = JobUtils.parseId(jobId);
-
-				if (generationId) {
-					this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
-						generationId,
-						GenerationStatus.ACTIVE,
-						progressData.processedUrls,
-						progressData.totalUrls
-					));
-				}
+				this.handleProgressEvent(jobId, data).catch((err: Error) => {
+					this.logger.error(`Error handling progress event: ${err.message}`);
+				});
 			});
 
 			queueEvents.on('completed', ({ jobId }) => {
-				(async () => {
-					this.logger.log(`Completed event for job ${jobId}`);
-					const generationId = JobUtils.parseId(jobId);
-
-					if (generationId) {
-						const generation = await this.generationRepository.findOne({ where: { id: generationId } });
-
-						if (generation) {
-							this.logger.log(`Emitting generation.status event for ${generationId}`);
-							this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
-								generationId,
-								GenerationStatus.COMPLETED,
-								generation.content || undefined,
-								undefined,
-								generation.entriesCount || undefined
-							));
-						}
-					}
-				})().catch((err: Error) => {
-					this.logger.error(`Error handling job completion: ${err.message}`);
+				this.handleCompletedEvent(jobId).catch((err: Error) => {
+					this.logger.error(`Error handling completed event: ${err.message}`);
 				});
 			});
 
 			queueEvents.on('failed', ({ jobId, failedReason }) => {
-				this.logger.log(`Failed event for job ${jobId}`);
-				const generationId = JobUtils.parseId(jobId);
-
-				if (generationId) {
-					this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
-						generationId,
-						GenerationStatus.FAILED,
-						undefined,
-						failedReason
-					));
-				}
+				this.handleFailedEvent(jobId, failedReason).catch((err: Error) => {
+					this.logger.error(`Error handling failed event: ${err.message}`);
+				});
 			});
 
 			this.queueEvents.set(providerConfig.queueName, queueEvents);
@@ -182,8 +151,8 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	/**
 	 * Создать Worker для обработки jobs
 	 */
-	public createWorker<T = unknown>(queueName: string, processor: (job: Job<T>) => Promise<void>): Worker<T> {
-		const worker = new Worker<T>(
+	public createWorker(queueName: string, processor: (job: Job<GenerationJobMessage>) => Promise<void>): Worker<GenerationJobMessage> {
+		const worker = new Worker<GenerationJobMessage>(
 			queueName,
 			async (job) => {
 				await processor(job);
@@ -196,22 +165,22 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 		);
 
 		// Worker-local events (logging only, WebSocket events handled by QueueEvents in main app)
-		worker.on('active', (job) => {
+		worker.on('active', (job: Job<GenerationJobMessage>) => {
 			this.logger.log(`========================================================`);
 			this.logger.log(`Job ${job.id} started processing`);
 			this.updateGenerationStatus(job, GenerationStatus.ACTIVE);
 		});
 
-		worker.on('completed', (job) => {
+		worker.on('completed', (job: Job<GenerationJobMessage>) => {
 			this.logger.log(`Job ${job.id} completed`);
 			this.logger.log(`========================================================`);
 			this.updateGenerationStatus(job, GenerationStatus.COMPLETED);
 		});
 
-		worker.on('failed', (job, err) => {
+		worker.on('failed', (job: Job<GenerationJobMessage>, err: Error) => {
 			this.logger.error(`Job ${job?.id} failed:`, err);
 			this.logger.log(`========================================================`);
-			this.updateGenerationStatus(job, GenerationStatus.FAILED, err.message || String(err));
+			this.updateGenerationStatus(job, GenerationStatus.FAILED, err.message);
 		});
 
 		worker.on('error', (error) => {
@@ -227,7 +196,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	/**
 	 * Обновить статус generation в БД
 	 */
-	private updateGenerationStatus(job: Job<unknown> | undefined, status: GenerationStatus, errorMessage?: string): void {
+	private updateGenerationStatus(job: Job<GenerationJobMessage>, status: GenerationStatus, errorMessage?: string): void {
 		const generationId = this.extractGenerationId(job);
 
 		if (!generationId) {
@@ -236,7 +205,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 
 		const updateData: Partial<Generation> = { status };
 		if (errorMessage !== undefined) {
-			updateData.errorMessage = errorMessage;
+			updateData.errors = errorMessage;
 		}
 
 		this.generationRepository.update(generationId, updateData)
@@ -251,8 +220,62 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	/**
 	 * Извлечь generationId из job data
 	 */
-	private extractGenerationId(job: Job<unknown> | undefined): number | null {
-		const data = job?.data as { generationId?: number } | undefined;
-		return data?.generationId || null;
+	private extractGenerationId(job: Job<GenerationJobMessage>): number {
+		return job.data.generationId;
+	}
+
+	private async handleProgressEvent(jobId: string, data: unknown): Promise<void> {
+		this.logger.log(`Progress event for job ${jobId}`);
+		const progressData = data as { processedUrls: number; totalUrls: number };
+		const generationId = JobUtils.parseId(jobId);
+
+		if (generationId) {
+			const generationRequest = await this.generationRequestRepository.findOne({
+				where: { generation: { id: generationId } },
+				relations: ['generation', 'generation.calculation']
+			});
+
+			if (generationRequest) {
+				const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+				this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(
+					dto,
+					progressData.processedUrls
+				));
+			}
+		}
+	}
+
+	private async handleCompletedEvent(jobId: string): Promise<void> {
+		this.logger.log(`Completed event for job ${jobId}`);
+		const generationId = JobUtils.parseId(jobId);
+
+		if (generationId) {
+			const generationRequest = await this.generationRequestRepository.findOne({
+				where: { generation: { id: generationId } },
+				relations: ['generation', 'generation.calculation']
+			});
+
+			if (generationRequest) {
+				const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+				this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(dto));
+			}
+		}
+	}
+
+	private async handleFailedEvent(jobId: string, failedReason: string): Promise<void> {
+		this.logger.log(`Failed event for job ${jobId}: ${failedReason}`);
+		const generationId = JobUtils.parseId(jobId);
+
+		if (generationId) {
+			const generationRequest = await this.generationRequestRepository.findOne({
+				where: { generation: { id: generationId } },
+				relations: ['generation', 'generation.calculation']
+			});
+
+			if (generationRequest) {
+				const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+				this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(dto));
+			}
+		}
 	}
 }

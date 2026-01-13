@@ -34,8 +34,8 @@ class GenerationRequest {
 	@Column({ type: 'smallint', default: GenerationRequestStatus.PENDING_PAYMENT.value })
 	public status: GenerationRequestStatusValue;
 
-	@CreateDateColumn({ name: 'requested_at' })
-	public requestedAt: Date;
+	@CreateDateColumn({ name: 'created_at' })
+	public createdAt: Date;
 
 	public isAnonymous(): boolean {
 		return this.userId === null && this.sessionId !== null;

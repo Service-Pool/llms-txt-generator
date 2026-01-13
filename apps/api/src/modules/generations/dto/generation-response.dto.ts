@@ -11,10 +11,11 @@ class GenerationDtoResponse {
 		public id: number,
 		public hostname: string,
 		public provider: Provider,
-		public generationStatus: GenerationStatus,
-		public content: string | null,
-		public errorMessage: string | null,
-		public entriesCount: number | null,
+		public status: GenerationStatus,
+		public output: string | null,
+		public errors: string | null,
+		public llmsEntriesCount: number | null,
+		public urlsCount: number,
 		public createdAt: string,
 		public updatedAt: string
 	) { }
@@ -29,9 +30,10 @@ class GenerationDtoResponse {
 			entity.calculation.hostname,
 			entity.provider,
 			entity.status,
-			entity.content,
-			entity.errorMessage,
-			entity.entriesCount,
+			entity.output,
+			entity.errors,
+			entity.llmsEntriesCount,
+			entity.calculation.urlsCount,
 			entity.createdAt.toISOString(),
 			entity.updatedAt.toISOString()
 		);
@@ -42,10 +44,11 @@ class GenerationDtoResponse {
 			json.id as number,
 			json.hostname as string,
 			json.provider as Provider,
-			json.generationStatus as GenerationStatus,
-			json.content as string | null,
-			json.errorMessage as string | null,
-			json.entriesCount as number | null,
+			json.status as GenerationStatus,
+			json.output as string | null,
+			json.errors as string | null,
+			json.llmsEntriesCount as number | null,
+			json.urlsCount as number,
 			json.createdAt as string,
 			json.updatedAt as string
 		);
@@ -53,26 +56,17 @@ class GenerationDtoResponse {
 }
 
 /**
- * DTO для GenerationRequest (с развёрнутыми полями Generation)
+ * DTO для GenerationRequest
  */
 class GenerationRequestDtoResponse {
 	constructor(
 		public id: number,
-		public generationId: number,
 		public userId: number | null,
 		public sessionId: string | null,
-		public hostname: string,
-		public provider: Provider,
-		public generationStatus: GenerationStatus,
-		public requestStatus: number,
-		public content: string | null,
-		public errorMessage: string | null,
-		public entriesCount: number | null,
-		public urlsCount: number,
-		public requestedAt: string,
+		public status: number,
 		public paymentLink: string | null,
 		public createdAt: string,
-		public updatedAt: string
+		public generation: GenerationDtoResponse
 	) { }
 
 	static fromEntity(entity: GenerationRequest): GenerationRequestDtoResponse {
@@ -80,48 +74,26 @@ class GenerationRequestDtoResponse {
 			throw new Error('GenerationRequest must have a related Generation loaded');
 		}
 
-		if (!entity.generation.calculation) {
-			throw new Error('Generation must have a related Calculation loaded');
-		}
-
 		return new GenerationRequestDtoResponse(
 			entity.id,
-			entity.generationId,
 			entity.userId,
 			entity.sessionId,
-			entity.generation.calculation.hostname,
-			entity.generation.provider,
-			entity.generation.status,
 			entity.status,
-			entity.generation.content,
-			entity.generation.errorMessage,
-			entity.generation.entriesCount,
-			entity.generation.calculation.urlsCount,
-			entity.requestedAt.toISOString(),
 			entity.paymentLink,
-			entity.generation.createdAt.toISOString(),
-			entity.generation.updatedAt.toISOString()
+			entity.createdAt.toISOString(),
+			GenerationDtoResponse.fromEntity(entity.generation)
 		);
 	}
 
 	static fromJSON(json: Record<string, unknown>): GenerationRequestDtoResponse {
 		return new GenerationRequestDtoResponse(
 			json.id as number,
-			json.generationId as number,
 			json.userId as number | null,
 			json.sessionId as string | null,
-			json.hostname as string,
-			json.provider as Provider,
-			json.generationStatus as GenerationStatus,
-			json.requestStatus as number,
-			json.content as string | null,
-			json.errorMessage as string | null,
-			json.entriesCount as number | null,
-			json.urlsCount as number,
-			json.requestedAt as string,
+			json.status as number,
 			json.paymentLink as string | null,
 			json.createdAt as string,
-			json.updatedAt as string
+			GenerationDtoResponse.fromJSON(json.generation as Record<string, unknown>)
 		);
 	}
 }

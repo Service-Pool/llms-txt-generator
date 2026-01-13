@@ -60,7 +60,7 @@
 			{#each items as item (item.id)}
 				<GenerationListItem
 					{item}
-					progress={progressMap[item.generationId]}
+					progress={progressMap[item.generation.id]}
 					{onDelete} />
 			{/each}
 		</div>

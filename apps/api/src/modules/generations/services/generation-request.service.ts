@@ -64,7 +64,7 @@ class GenerationRequestService {
 		const [items, total] = await this.generationRequestRepository.findAndCount({
 			where: this.userId ? { userId: this.userId } : { sessionId: this.sessionId },
 			relations: ['generation', 'generation.calculation'],
-			order: { requestedAt: 'DESC' },
+			order: { createdAt: 'DESC' },
 			skip: offset,
 			take: limit
 		});
@@ -72,7 +72,7 @@ class GenerationRequestService {
 		// Truncate content to avoid loading huge data
 		items.forEach((item) => {
 			if (item.generation) {
-				this.truncateContent(item.generation);
+				this.truncateOutput(item.generation);
 			}
 		});
 
@@ -94,7 +94,7 @@ class GenerationRequestService {
 		// 3. Если generation завершена - просто вернуть её с generationRequest
 		if (generation.status === GenerationStatus.COMPLETED) {
 			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null);
-			this.truncateContent(generation);
+			this.truncateOutput(generation);
 
 			existingRequest.generation = generation;
 			return GenerationRequestDtoResponse.fromEntity(existingRequest);
@@ -163,11 +163,11 @@ class GenerationRequestService {
 	}
 
 	/**
-	 * Truncate content to 500 chars for API responses
+	 * Truncate output to 500 chars for API responses
 	 */
-	private truncateContent(generation: Generation): void {
-		if (generation.content && generation.content.length > 500) {
-			generation.content = generation.content.substring(0, 500) + '...';
+	private truncateOutput(generation: Generation): void {
+		if (generation.output && generation.output.length > 500) {
+			generation.output = generation.output.substring(0, 500) + '...';
 		}
 	}
 
@@ -204,7 +204,7 @@ class GenerationRequestService {
 							await queryRunner.manager.save(generation);
 
 							await queryRunner.commitTransaction();
-							this.truncateContent(generation);
+							this.truncateOutput(generation);
 							generationRequest.generation = generation;
 							return GenerationRequestDtoResponse.fromEntity(generationRequest);
 
@@ -230,7 +230,7 @@ class GenerationRequestService {
 					await queryRunner.manager.save(generation);
 
 					await queryRunner.commitTransaction();
-					this.truncateContent(generation);
+					this.truncateOutput(generation);
 					generationRequest.generation = generation;
 					return GenerationRequestDtoResponse.fromEntity(generationRequest);
 				}
@@ -251,7 +251,7 @@ class GenerationRequestService {
 			await queryRunner.manager.save(generation);
 
 			await queryRunner.commitTransaction();
-			this.truncateContent(generation);
+			this.truncateOutput(generation);
 			generationRequest.generation = generation;
 			return GenerationRequestDtoResponse.fromEntity(generationRequest);
 		} catch (error) {

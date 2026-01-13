@@ -1,5 +1,5 @@
 import { MessageSuccess } from '../../utils/response/message-success';
-import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Req, NotFoundException } from '@nestjs/common';
 import { GenerationRequestService } from './services/generation-request.service';
 import { CreateGenerationDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
@@ -53,7 +53,7 @@ class GenerationRequestsController {
 		const id = parseInt(requestId);
 
 		if (isNaN(id)) {
-			throw new Error('Invalid request ID');
+			throw new NotFoundException('Invalid request ID');
 		}
 
 		await this.generationRequestService.deleteRequest(id);

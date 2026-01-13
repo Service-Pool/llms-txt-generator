@@ -1,17 +1,11 @@
 import type {
-	ProgressListener,
-	StatusListener,
-	RequestStatusListener,
+	RequestUpdateListener,
 	ConnectListener,
 	DisconnectListener,
 	ErrorListener,
 	WebSocketMessage,
-	ProgressMessage,
-	StatusMessage,
-	RequestStatusMessage,
-	GenerationProgressEvent,
-	GenerationStatusEvent,
-	GenerationRequestStatusEvent
+	RequestUpdateMessage,
+	GenerationRequestUpdateEvent
 } from '../types/websocket.types';
 
 /**
@@ -28,9 +22,7 @@ export class WebSocketService {
 	private subscribedGenerationIds = new Set<number>();
 
 	// Event listeners
-	private progressListeners = new Set<ProgressListener>();
-	private statusListeners = new Set<StatusListener>();
-	private requestStatusListeners = new Set<RequestStatusListener>();
+	private requestUpdateListeners = new Set<RequestUpdateListener>();
 	private connectListeners = new Set<ConnectListener>();
 	private disconnectListeners = new Set<DisconnectListener>();
 	private errorListeners = new Set<ErrorListener>();
@@ -140,18 +132,12 @@ export class WebSocketService {
 	 * Add event listener
 	 */
 	public on(
-		event: 'progress' | 'status' | 'request-status' | 'connect' | 'disconnect' | 'error',
+		event: 'update' | 'connect' | 'disconnect' | 'error',
 		listener: (...args: unknown[]) => void
 	): void {
 		switch (event) {
-			case 'progress':
-				this.progressListeners.add(listener as ProgressListener);
-				break;
-			case 'status':
-				this.statusListeners.add(listener as StatusListener);
-				break;
-			case 'request-status':
-				this.requestStatusListeners.add(listener as RequestStatusListener);
+			case 'update':
+				this.requestUpdateListeners.add(listener as RequestUpdateListener);
 				break;
 			case 'connect':
 				this.connectListeners.add(listener as ConnectListener);
@@ -169,18 +155,12 @@ export class WebSocketService {
 	 * Remove event listener
 	 */
 	public off(
-		event: 'progress' | 'status' | 'request-status' | 'connect' | 'disconnect' | 'error',
+		event: 'update' | 'connect' | 'disconnect' | 'error',
 		listener: (...args: unknown[]) => void
 	): void {
 		switch (event) {
-			case 'progress':
-				this.progressListeners.delete(listener as ProgressListener);
-				break;
-			case 'status':
-				this.statusListeners.delete(listener as StatusListener);
-				break;
-			case 'request-status':
-				this.requestStatusListeners.delete(listener as RequestStatusListener);
+			case 'update':
+				this.requestUpdateListeners.delete(listener as RequestUpdateListener);
 				break;
 			case 'connect':
 				this.connectListeners.delete(listener as ConnectListener);
@@ -218,22 +198,12 @@ export class WebSocketService {
 
 	private handleMessage(data: string): void {
 		try {
-			const message = JSON.parse(data) as ProgressMessage | StatusMessage | RequestStatusMessage;
+			const message = JSON.parse(data) as RequestUpdateMessage;
 
 			switch (message.type) {
-				case 'generation:progress':
+				case 'generation:request:update':
 					if (message.payload) {
-						this.notifyProgressListeners(message.payload);
-					}
-					break;
-				case 'generation:status':
-					if (message.payload) {
-						this.notifyStatusListeners(message.payload);
-					}
-					break;
-				case 'generation:request:status':
-					if (message.payload) {
-						this.notifyRequestStatusListeners(message.payload);
+						this.notifyRequestUpdateListeners(message.payload);
 					}
 					break;
 			}
@@ -254,41 +224,15 @@ export class WebSocketService {
 		}
 	}
 
-	private notifyProgressListeners(event: ProgressMessage['payload']): void {
-		this.progressListeners.forEach((listener) => {
+	private notifyRequestUpdateListeners(event: RequestUpdateMessage['payload']): void {
+		this.requestUpdateListeners.forEach((listener) => {
 			try {
 				if (event) {
-					const fn = listener as unknown as (event: GenerationProgressEvent) => void;
-					fn(event as unknown as GenerationProgressEvent);
+					const fn = listener as unknown as (event: GenerationRequestUpdateEvent) => void;
+					fn(event as unknown as GenerationRequestUpdateEvent);
 				}
 			} catch (error) {
-				console.error('Error in progress listener:', error);
-			}
-		});
-	}
-
-	private notifyStatusListeners(event: StatusMessage['payload']): void {
-		this.statusListeners.forEach((listener) => {
-			try {
-				if (event) {
-					const fn = listener as unknown as (event: GenerationStatusEvent) => void;
-					fn(event as unknown as GenerationStatusEvent);
-				}
-			} catch (error) {
-				console.error('Error in status listener:', error);
-			}
-		});
-	}
-
-	private notifyRequestStatusListeners(event: RequestStatusMessage['payload']): void {
-		this.requestStatusListeners.forEach((listener) => {
-			try {
-				if (event) {
-					const fn = listener as unknown as (event: GenerationRequestStatusEvent) => void;
-					fn(event as unknown as GenerationRequestStatusEvent);
-				}
-			} catch (error) {
-				console.error('Error in request status listener:', error);
+				console.error('Error in request update listener:', error);
 			}
 		});
 	}

@@ -1,5 +1,5 @@
 import { AppConfigService } from '../../config/config.service';
-import { GenerationProgressEvent, GenerationStatusEvent, GenerationRequestStatusEvent, WebSocketMessage } from './websocket.events';
+import { GenerationRequestUpdateEvent, WebSocketMessage } from './websocket.events';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
@@ -192,29 +192,11 @@ class WebSocketGateway implements OnModuleInit {
 	}
 
 	// Event Handlers
-	@OnEvent('generation.progress')
-	handleGenerationProgress(event: GenerationProgressEvent): void {
-		this.logger.log(`Received generation.progress event for ${event.generationId}`);
-		this.broadcast(`generation-${event.generationId}`, {
-			type: 'generation:progress',
-			payload: event
-		});
-	}
-
-	@OnEvent('generation.status')
-	handleGenerationStatus(event: GenerationStatusEvent): void {
-		this.logger.log(`Received generation.status event for ${event.generationId}`);
-		this.broadcast(`generation-${event.generationId}`, {
-			type: 'generation:status',
-			payload: event
-		});
-	}
-
-	@OnEvent('generation.request.status')
-	handleGenerationRequestStatus(event: GenerationRequestStatusEvent): void {
-		this.logger.log(`Received generation.request.status event for ${event.generationId}`);
-		this.broadcast(`generation-${event.generationId}`, {
-			type: 'generation:request:status',
+	@OnEvent('generation.request.update')
+	handleGenerationRequestUpdate(event: GenerationRequestUpdateEvent): void {
+		this.logger.log(`Received generation.request.update event for generation ${event.generationRequest.generation.id}`);
+		this.broadcast(`generation-${event.generationRequest.generation.id}`, {
+			type: 'generation:request:update',
 			payload: event
 		});
 	}

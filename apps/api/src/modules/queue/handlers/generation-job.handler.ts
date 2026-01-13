@@ -183,8 +183,8 @@ export class GenerationJobHandler {
 
 		await this.generationRepository.update(this.ctx.generationId, {
 			status: GenerationStatus.COMPLETED,
-			content: llmsTxt,
-			entriesCount: summaries.length
+			output: llmsTxt,
+			llmsEntriesCount: summaries.length
 		});
 
 		this.logger.log(`Completed job ${jobId} for generation ${this.ctx.generationId}`);
@@ -202,16 +202,16 @@ export class GenerationJobHandler {
 
 		if (isLastAttempt) {
 			this.logger.error(`Final attempt failed, marking generation ${this.ctx.generationId} as FAILED`);
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errors = error instanceof Error ? error.message : String(error);
 
 			await this.generationRepository.update(this.ctx.generationId, {
 				status: GenerationStatus.FAILED,
-				errorMessage
+				errors
 			});
 		} else {
 			this.logger.warn(`Will retry (${maxAttempts - currentAttempt} attempts remaining)`);
 			await this.generationRepository.update(this.ctx.generationId, {
-				errorMessage: error instanceof Error ? error.message : String(error)
+				errors: error instanceof Error ? error.message : String(error)
 			});
 		}
 	}

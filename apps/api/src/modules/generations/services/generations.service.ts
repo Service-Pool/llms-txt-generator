@@ -80,15 +80,15 @@ class GenerationsService {
 		if (existingGeneration?.status === GenerationStatus.FAILED) {
 			await this.manager.update(Generation, existingGeneration.id, {
 				status: GenerationStatus.WAITING,
-				errorMessage: null,
-				content: null,
-				entriesCount: null
+				errors: null,
+				output: null,
+				llmsEntriesCount: null
 			});
 
 			existingGeneration.status = GenerationStatus.WAITING;
-			existingGeneration.errorMessage = null;
-			existingGeneration.content = null;
-			existingGeneration.entriesCount = null;
+			existingGeneration.errors = null;
+			existingGeneration.output = null;
+			existingGeneration.llmsEntriesCount = null;
 
 			return { generation: existingGeneration, isNew: true };
 		}

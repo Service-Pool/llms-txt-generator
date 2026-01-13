@@ -3,29 +3,12 @@
  * Shared between backend and frontend
  */
 
-class GenerationProgressEvent {
-	constructor(
-		public readonly generationId: number,
-		public readonly status: string,
-		public readonly processedUrls: number,
-		public readonly totalUrls: number
-	) { }
-}
+import { GenerationRequestDtoResponse } from '../generations/dto/generation-response.dto';
 
-class GenerationStatusEvent {
+class GenerationRequestUpdateEvent {
 	constructor(
-		public readonly generationId: number,
-		public readonly status: string,
-		public readonly content?: string,
-		public readonly errorMessage?: string,
-		public readonly entriesCount?: number
-	) { }
-}
-
-class GenerationRequestStatusEvent {
-	constructor(
-		public readonly generationId: number,
-		public readonly requestStatus: number
+		public readonly generationRequest: GenerationRequestDtoResponse,
+		public readonly processedUrls?: number
 	) { }
 }
 
@@ -38,4 +21,4 @@ class WebSocketMessage {
 	) { }
 }
 
-export { GenerationProgressEvent, GenerationStatusEvent, GenerationRequestStatusEvent, WebSocketMessage };
+export { GenerationRequestUpdateEvent, WebSocketMessage };

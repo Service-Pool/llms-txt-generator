@@ -32,13 +32,13 @@ class Generation {
 	public status: GenerationStatus;
 
 	@Column({ type: 'longtext', nullable: true })
-	public content: string | null;
+	public output: string | null;
 
-	@Column({ type: 'text', nullable: true, name: 'error_message' })
-	public errorMessage: string | null;
+	@Column({ type: 'text', nullable: true })
+	public errors: string | null;
 
-	@Column({ type: 'int', unsigned: true, nullable: true, name: 'entries_count' })
-	public entriesCount: number | null;
+	@Column({ type: 'int', unsigned: true, nullable: true, name: 'llms_entries_count' })
+	public llmsEntriesCount: number | null;
 
 	@OneToMany(() => GenerationRequest, request => request.generation)
 	public requests: Relation<GenerationRequest[]>;

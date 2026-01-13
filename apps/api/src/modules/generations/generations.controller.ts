@@ -1,11 +1,13 @@
 import { MessageSuccess } from '../../utils/response/message-success';
 import { MessageError } from '../../utils/response/message-error';
-import { Controller, Get, Post, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Param, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GenerationDtoResponse } from './dto/generation-response.dto';
-import { GenerationProgressEvent, GenerationStatusEvent } from '../websocket/websocket.events';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { GenerationDtoResponse, GenerationRequestDtoResponse } from './dto/generation-response.dto';
+import { GenerationRequest } from './entities/generation-request.entity';
+import { GenerationRequestUpdateEvent } from '../websocket/websocket.events';
 import { GenerationsService } from './services/generations.service';
-import { GenerationStatus } from '../../enums/generation-status.enum';
 import { ApiResponse } from '../../utils/response/api-response';
 import { ResponseCode } from '../../enums/response-code.enum';
 
@@ -13,6 +15,7 @@ import { ResponseCode } from '../../enums/response-code.enum';
 class GenerationsController {
 	constructor(
 		private readonly generationsService: GenerationsService,
+		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>,
 		private readonly eventEmitter: EventEmitter2,
 		private readonly apiResponse: ApiResponse
 	) { }
@@ -30,26 +33,30 @@ class GenerationsController {
 
 	@Post(':id/test-event')
 	@HttpCode(HttpStatus.OK)
-	public testEvent(@Param('id') id: string): ApiResponse<MessageSuccess<{ message: string }>> {
+	public async testEvent(@Param('id') id: string): Promise<ApiResponse<MessageSuccess<{ message: string }>>> {
 		const generationId = parseInt(id);
 
+		// Load the generation request to emit realistic event
+		const generationRequest = await this.generationRequestRepository.findOne({
+			where: { generation: { id: generationId } },
+			relations: ['generation', 'generation.calculation']
+		});
+
+		if (!generationRequest) {
+			throw new NotFoundException('Generation request not found');
+		}
+
 		// Emit test progress event
-		this.eventEmitter.emit('generation.progress', new GenerationProgressEvent(
-			generationId,
-			GenerationStatus.ACTIVE,
-			5,
-			10
+		const progressDto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+		this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(
+			progressDto,
+			5 // processedUrls
 		));
 
-		// Emit test status event
+		// Emit test completion event
 		setTimeout(() => {
-			this.eventEmitter.emit('generation.status', new GenerationStatusEvent(
-				generationId,
-				GenerationStatus.COMPLETED,
-				'# Test\n\nTest content',
-				undefined,
-				10
-			));
+			const completedDto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+			this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(completedDto));
 		}, 2000);
 
 		return this.apiResponse.success({ message: 'Test events emitted' });

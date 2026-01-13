@@ -12,7 +12,7 @@ import { Worker, Job } from 'bullmq';
 })
 export class GenerationWorkerCommand extends CommandRunner {
 	private readonly logger = new Logger(GenerationWorkerCommand.name);
-	private readonly workers: Worker[] = [];
+	private readonly workers: Worker<GenerationJobMessage>[] = [];
 	private isShuttingDown = false;
 
 	public constructor(private readonly queueService: QueueService, private readonly configService: AppConfigService, private readonly generationJobHandler: GenerationJobHandler) {
@@ -29,7 +29,7 @@ export class GenerationWorkerCommand extends CommandRunner {
 
 		// Создать worker для каждой очереди
 		for (const queueName of queues) {
-			const worker = this.queueService.createWorker<GenerationJobMessage>(queueName, this.processJob);
+			const worker = this.queueService.createWorker(queueName, this.processJob);
 
 			this.workers.push(worker);
 			this.logger.log(`Worker started for ${queueName} queue`);

@@ -23,12 +23,12 @@
 
 	const generationsService = new GenerationsService();
 
-	const generationStatus = $derived.by(() => {
-		return item.generationStatus;
+	const status = $derived.by(() => {
+		return item.generation.status;
 	});
 
 	const statusConfig = $derived.by(() => {
-		switch (generationStatus) {
+		switch (status) {
 			case GenerationStatus.WAITING:
 				return {
 					text: "Waiting",
@@ -58,7 +58,7 @@
 	});
 
 	const requestStatusConfig = $derived.by(() => {
-		switch (item.requestStatus) {
+		switch (item.status) {
 			case GenerationRequestStatus.PENDING_PAYMENT.value:
 				return {
 					text: GenerationRequestStatus.PENDING_PAYMENT.label,
@@ -85,7 +85,7 @@
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (confirm(`Delete generation for ${item.hostname}?`)) {
+		if (confirm(`Delete generation for ${item.generation.hostname}?`)) {
 			onDelete(item.id);
 		}
 	};
@@ -99,9 +99,9 @@
 		isLoading = true;
 		try {
 			const response = await generationsService.findById(
-				item.generationId,
+				item.generation.id,
 			);
-			fullContent = response.getMessage().data.content;
+			fullContent = response.getMessage().data.output;
 			showContent = true;
 		} catch (error) {
 			alert("Failed to load content");
@@ -124,7 +124,7 @@
 	const handleDownload = () => {
 		if (!fullContent) return;
 		// Extract domain from hostname (e.g., "https://mototechna.cz" -> "mototechna.cz")
-		const domain = new URL(item.hostname).hostname;
+		const domain = new URL(item.generation.hostname).hostname;
 		const element = document.createElement("a");
 		element.setAttribute(
 			"href",
@@ -146,7 +146,7 @@
 			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
 				<h3
 					class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-					{item.hostname}
+					{item.generation.hostname}
 				</h3>
 				<span
 					class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
@@ -155,16 +155,16 @@
 			</div>
 
 			<!-- Error Message -->
-			{#if generationStatus === GenerationStatus.FAILED && item.errorMessage}
+			{#if status === GenerationStatus.FAILED && item.generation.errors}
 				<div class="text-xs text-red-600 dark:text-red-400 mt-1">
-					Error: {item.errorMessage}
+					Error: {item.generation.errors}
 				</div>
 			{/if}
 		</div>
 
 		<!-- Action Buttons -->
 		<div class="shrink-0 flex items-center gap-1">
-			{#if item.requestStatus === GenerationRequestStatus.PENDING_PAYMENT.value && item.paymentLink}
+			{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && item.paymentLink}
 				<a
 					href={item.paymentLink}
 					target="_blank"
@@ -174,7 +174,7 @@
 				</a>
 			{/if}
 
-			{#if generationStatus === GenerationStatus.COMPLETED}
+			{#if status === GenerationStatus.COMPLETED}
 				<button
 					onclick={handleShowContent}
 					disabled={false}
@@ -195,12 +195,12 @@
 	<!-- Provider & Metadata in one line -->
 	<div
 		class="w-full flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs text-gray-500 dark:text-gray-400">
-		<span>{item.provider}</span>
+		<span>{item.generation.provider}</span>
 		<span>•</span>
 		<span>{formattedDate}</span>
-		{#if item.urlsCount}
+		{#if item.generation.urlsCount}
 			<span>•</span>
-			<span>{formatNumber(item.urlsCount)} urls</span>
+			<span>{formatNumber(item.generation.urlsCount)} urls</span>
 		{/if}
 		{#if requestStatusConfig}
 			<span>•</span>
@@ -211,7 +211,7 @@
 	</div>
 
 	<!-- Progress Bar for Active Generations -->
-	{#if generationStatus === GenerationStatus.ACTIVE && progress}
+	{#if status === GenerationStatus.ACTIVE && progress}
 		<div class="mt-3">
 			<ProgressBar
 				current={progress.processedUrls}

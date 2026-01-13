@@ -1,7 +1,8 @@
 /**
  * Re-export shared WebSocket event classes from backend
  */
-export { GenerationProgressEvent, GenerationStatusEvent, GenerationRequestStatusEvent } from '@api/shared';
+export { GenerationRequestUpdateEvent } from '@api/shared';
+export type { GenerationRequestDtoResponse } from '@api/shared';
 
 /**
  * WebSocket Message Formats
@@ -22,41 +23,18 @@ export interface UnsubscribeMessage extends WebSocketMessage {
 	payload: { generationIds: number[] };
 }
 
-export interface ProgressMessage extends WebSocketMessage {
-	type: 'generation:progress';
+export interface RequestUpdateMessage extends WebSocketMessage {
+	type: 'generation:request:update';
 	payload: {
-		generationId: number;
-		status: string;
-		processedUrls: number;
-		totalUrls: number;
-	};
-}
-
-export interface StatusMessage extends WebSocketMessage {
-	type: 'generation:status';
-	payload: {
-		generationId: number;
-		status: string;
-		content?: string;
-		errorMessage?: string;
-		entriesCount?: number;
-	};
-}
-
-export interface RequestStatusMessage extends WebSocketMessage {
-	type: 'generation:request:status';
-	payload: {
-		generationId: number;
-		requestStatus: number;
+		generationRequest: unknown;
+		processedUrls?: number;
 	};
 }
 
 /**
  * WebSocket Event Listeners
  */
-export type ProgressListener = (event: ProgressMessage['payload']) => void;
-export type StatusListener = (event: StatusMessage['payload']) => void;
-export type RequestStatusListener = (event: RequestStatusMessage['payload']) => void;
+export type RequestUpdateListener = (event: RequestUpdateMessage['payload']) => void;
 export type ConnectListener = () => void;
 export type DisconnectListener = () => void;
 export type ErrorListener = (error: Error) => void;

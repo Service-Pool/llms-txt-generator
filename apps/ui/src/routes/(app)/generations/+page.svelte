@@ -1,18 +1,11 @@
 <script lang="ts">
+	import { type GenerationRequestUpdateEvent } from "$lib/types/websocket.types";
+	import { type GenerationRequestDtoResponse } from "@api/shared";
 	import { onMount, onDestroy } from "svelte";
 	import { HttpClientError } from "../../../lib/api/http.client";
-	import {
-		GenerationStatus,
-		type GenerationRequestDtoResponse,
-	} from "@api/shared";
 	import { GenerationsService } from "$lib/api/generations.service";
 	import { AppConfigService } from "$lib/api/config.service";
 	import { WebSocketService } from "$lib/services/websocket.service";
-	import type {
-		GenerationProgressEvent,
-		GenerationStatusEvent,
-		GenerationRequestStatusEvent,
-	} from "$lib/types/websocket.types";
 	import GenerationsList from "$lib/components/features/GenerationsList.svelte";
 	import NewGenerationForm from "$lib/components/features/NewGenerationForm.svelte";
 	import Spinner from "$lib/components/common/Spinner.svelte";
@@ -58,7 +51,7 @@
 
 	const subscribeToCurrentItems = () => {
 		if (ws && items.length > 0) {
-			const generationIds = items.map((item) => item.generationId);
+			const generationIds = items.map((item) => item.generation.id);
 			ws.subscribe(generationIds);
 		}
 	};
@@ -80,13 +73,13 @@
 		await generationsService.delete(requestId);
 
 		// Unsubscribe from WebSocket
-		if (ws && deletedItem?.generationId) {
-			ws.unsubscribe([deletedItem.generationId]);
+		if (ws && deletedItem?.generation.id) {
+			ws.unsubscribe([deletedItem.generation.id]);
 		}
 
 		// Remove progress
-		if (deletedItem?.generationId) {
-			delete progressMap[deletedItem.generationId];
+		if (deletedItem?.generation.id) {
+			delete progressMap[deletedItem.generation.id];
 		}
 
 		// Reload data to get correct pagination
@@ -95,8 +88,8 @@
 
 	const handleCreate = (newGeneration: GenerationRequestDtoResponse) => {
 		// Subscribe to this generation via WebSocket
-		if (ws && newGeneration.generationId) {
-			ws.subscribe([newGeneration.generationId]);
+		if (ws && newGeneration.generation.id) {
+			ws.subscribe([newGeneration.generation.id]);
 		}
 
 		// Add new generation to the top of the list
@@ -106,63 +99,29 @@
 		total = total + 1;
 	};
 
-	const handleProgress = (event: GenerationProgressEvent) => {
-		// Update progressMap with new reference for reactivity
-		progressMap = {
-			...progressMap,
-			[event.generationId]: {
-				processedUrls: event.processedUrls,
-				totalUrls: event.totalUrls,
-			},
-		};
-
-		// Update status - replace entire array for reactivity
+	const handleUpdate = (event: GenerationRequestUpdateEvent) => {
+		// Update the entire item with the new data from the event
 		items = items.map((item) => {
-			if (item.generationId === event.generationId) {
-				return {
-					...item,
-					status: event.status as GenerationStatus,
-				};
-			}
-			return item;
-		});
-	};
-
-	const handleStatus = (event: GenerationStatusEvent) => {
-		// Update item - replace instead of mutating
-		items = items.map((item) => {
-			if (item.generationId === event.generationId) {
-				return {
-					...item,
-					status: event.status as GenerationStatus,
-					content: event.content || null,
-					errorMessage: event.errorMessage || null,
-				};
+			if (item.generation.id === event.generationRequest.generation.id) {
+				return event.generationRequest;
 			}
 			return item;
 		});
 
-		// Remove progress when completed or failed
-		if (
-			event.status === GenerationStatus.COMPLETED ||
-			event.status === GenerationStatus.FAILED
-		) {
-			delete progressMap[event.generationId];
+		// Update progress map if processedUrls is provided
+		if (event.processedUrls !== undefined) {
+			progressMap = {
+				...progressMap,
+				[event.generationRequest.generation.id]: {
+					processedUrls: event.processedUrls,
+					totalUrls: event.generationRequest.generation.urlsCount,
+				},
+			};
+		} else {
+			// Remove progress when job is completed/failed (no processedUrls)
+			delete progressMap[event.generationRequest.generation.id];
 			progressMap = { ...progressMap }; // Trigger reactivity
 		}
-	};
-
-	const handleRequestStatus = (event: GenerationRequestStatusEvent) => {
-		// Update requestStatus - replace instead of mutating
-		items = items.map((item) => {
-			if (item.generationId === event.generationId) {
-				return {
-					...item,
-					requestStatus: event.requestStatus,
-				};
-			}
-			return item;
-		});
 	};
 
 	const handleConnect = () => {
@@ -179,24 +138,14 @@
 
 		// Listen to events
 		ws.on("connect", handleConnect);
-		ws.on("progress", handleProgress as (...args: unknown[]) => void);
-		ws.on("status", handleStatus as (...args: unknown[]) => void);
-		ws.on(
-			"request-status",
-			handleRequestStatus as (...args: unknown[]) => void,
-		);
+		ws.on("update", handleUpdate as (...args: unknown[]) => void);
 	});
 
 	onDestroy(() => {
 		if (ws) {
 			// Cleanup listeners
 			ws.off("connect", handleConnect);
-			ws.off("progress", handleProgress as (...args: unknown[]) => void);
-			ws.off("status", handleStatus as (...args: unknown[]) => void);
-			ws.off(
-				"request-status",
-				handleRequestStatus as (...args: unknown[]) => void,
-			);
+			ws.off("update", handleUpdate as (...args: unknown[]) => void);
 
 			// Disconnect
 			ws.disconnect();
