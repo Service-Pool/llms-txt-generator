@@ -1,30 +1,24 @@
 <script lang="ts">
 	import { AuthService } from "$lib/api/auth.service";
-	import { type LoginDtoRequest } from "@api/shared";
-	import { authStore } from "$lib/stores/auth.store";
-	import { goto } from "$app/navigation";
 
 	let email = "";
-	let password = "";
 	let error = "";
+	let success = false;
 	let loading = false;
 
 	const authService = new AuthService();
 
-	async function handleLogin(event: Event) {
+	async function handleSubmit(event: Event) {
 		event.preventDefault();
 		error = "";
+		success = false;
 		loading = true;
 
 		try {
-			const credentials: LoginDtoRequest = { email, password };
-			const res = await authService.login(credentials);
-			const data = res.getMessage().data; // Десериализованный AuthLoginDtoResponse
-
-			authStore.setUser(data.user);
-			goto("/");
+			await authService.requestMagicLink(email);
+			success = true;
 		} catch (err) {
-			throw err;
+			error = "Failed to send magic link. Please try again.";
 		} finally {
 			loading = false;
 		}
@@ -33,11 +27,20 @@
 
 <form
 	class="max-w-sm mx-auto mt-16 p-8 bg-white dark:bg-gray-800 rounded shadow"
-	on:submit|preventDefault={handleLogin}>
-	<h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
-	{#if error}
-		<div class="mb-4 text-red-600">{error}</div>
+	on:submit|preventDefault={handleSubmit}>
+	<h1 class="text-2xl font-bold mb-6 text-center">Sign In</h1>
+
+	{#if success}
+		<div class="mb-4 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+			<p class="font-semibold">Check your email!</p>
+			<p class="text-sm mt-1">We've sent you a magic link to sign in.</p>
+		</div>
+	{:else if error}
+		<div class="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+			{error}
+		</div>
 	{/if}
+
 	<div class="mb-4">
 		<label class="block mb-1" for="email">Email</label>
 		<input
@@ -46,22 +49,24 @@
 			type="email"
 			bind:value={email}
 			autocomplete="email"
-			required />
+			required
+			disabled={success} />
 	</div>
-	<div class="mb-6">
-		<label class="block mb-1" for="password">Пароль</label>
-		<input
-			id="password"
-			class="w-full px-3 py-2 border rounded"
-			type="password"
-			bind:value={password}
-			autocomplete="current-password"
-			required />
-	</div>
+
 	<button
 		class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
 		type="submit"
-		disabled={loading}>
-		{loading ? "Logging..." : "Login"}
+		disabled={loading || success}>
+		{#if loading}
+			Sending...
+		{:else if success}
+			Email Sent
+		{:else}
+			Send Magic Link
+		{/if}
 	</button>
+
+	<p class="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+		We'll send you an email with a sign-in link. No password needed!
+	</p>
 </form>

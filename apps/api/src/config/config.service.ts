@@ -47,6 +47,11 @@ interface ValidatedEnv {
 	STRIPE_SECRET_KEY: string;
 	STRIPE_WEBHOOK_SECRET: string;
 	FRONTEND_HOST: string;
+	SMTP_HOST: string;
+	SMTP_PORT: number;
+	SMTP_USER: string;
+	SMTP_PASSWORD: string;
+	MAGIC_LINK_EXPIRY_MINUTES: number;
 }
 
 interface ProviderConfig {
@@ -92,7 +97,12 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SOCKET_PATH: Joi.string(),
 	STRIPE_SECRET_KEY: Joi.string().required(),
 	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
-	FRONTEND_HOST: Joi.string().uri().required()
+	FRONTEND_HOST: Joi.string().uri().required(),
+	SMTP_HOST: Joi.string().required(),
+	SMTP_PORT: Joi.number().port().required(),
+	SMTP_USER: Joi.string().email().required(),
+	SMTP_PASSWORD: Joi.string().required(),
+	MAGIC_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -242,6 +252,20 @@ class AppConfigService {
 		secretKey: env.STRIPE_SECRET_KEY,
 		webhookSecret: env.STRIPE_WEBHOOK_SECRET,
 		frontendHost: env.FRONTEND_HOST
+	};
+
+	// SMTP config
+	public readonly smtp = {
+		host: env.SMTP_HOST,
+		port: env.SMTP_PORT,
+		user: env.SMTP_USER,
+		password: env.SMTP_PASSWORD
+	};
+
+	// Magic Link config
+	public readonly magicLink = {
+		frontendHost: env.FRONTEND_HOST,
+		expiryMinutes: env.MAGIC_LINK_EXPIRY_MINUTES
 	};
 }
 

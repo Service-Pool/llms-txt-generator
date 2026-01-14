@@ -62,4 +62,19 @@ class AuthStatusDtoResponse {
 	}
 }
 
-export { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse };
+/**
+ * DTO: Успешный ответ на request-magic-link
+ */
+class RequestMagicLinkResponseDto {
+	constructor(public readonly message: string) { }
+
+	static fromEntity(message: string): RequestMagicLinkResponseDto {
+		return new RequestMagicLinkResponseDto(message);
+	}
+
+	static fromJSON(json: Record<string, unknown>): RequestMagicLinkResponseDto {
+		return new RequestMagicLinkResponseDto(json.message as string);
+	}
+}
+
+export { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestMagicLinkResponseDto };

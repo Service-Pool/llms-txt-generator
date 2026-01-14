@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
 
 class LoginDtoRequest {
 	@IsString()
@@ -9,4 +9,10 @@ class LoginDtoRequest {
 	password: string;
 }
 
-export { LoginDtoRequest };
+class RequestMagicLinkRequestDto {
+	@IsEmail()
+	@IsNotEmpty()
+	email: string;
+}
+
+export { LoginDtoRequest, RequestMagicLinkRequestDto };
