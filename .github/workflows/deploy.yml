@@ -16,14 +16,14 @@ on:
   #   branches: [main]
 
 jobs:
-  deploy:
+  production:
     uses: Service-Pool/scripts/.github/workflows/reusable-deploy.yml@main
     with:
       repo_url: git@github.com:${{ github.repository }}.git
       destination: /var/www/llms-txt
       branch: ${{ github.ref_name }}
       post_deploy: |
-        APP="${{ github.event.inputs.app }}"
+        APP='${{ github.event.inputs.app }}'
 
         if [ "$APP" = "ui" ] || [ "$APP" = "both" ]; then
           echo "Deploying UI..."
