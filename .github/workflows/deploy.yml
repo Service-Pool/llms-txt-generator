@@ -23,22 +23,27 @@ jobs:
       destination: /var/www/llms-txt
       branch: ${{ github.ref_name }}
       post_deploy: |
+        deploy_ui() {
+          echo Deploying UI...
+          cd /var/www/llms-txt/apps/ui/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh
+        }
+        deploy_api() {
+          echo Deploying API...
+          cd /var/www/llms-txt/apps/api/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh
+        }
         case ${{ github.event.inputs.app }} in
-          ui|both)
-            echo Deploying UI...
-            cd /var/www/llms-txt/apps/ui/.devcontainer/mapped
-            docker compose down
-            docker compose up --build -d --wait
-            bash cmd-run.sh
+          both)
+            deploy_ui &
+            deploy_api &
+            wait
             ;;
-        esac
-        case ${{ github.event.inputs.app }} in
-          api|both)
-            echo Deploying API...
-            cd /var/www/llms-txt/apps/api/.devcontainer/mapped
-            docker compose down
-            docker compose up --build -d --wait
-            bash cmd-run.sh
-            ;;
+          ui) deploy_ui ;;
+          api) deploy_api ;;
         esac
     secrets: inherit
