@@ -20,8 +20,9 @@ export class MailService {
 		});
 	}
 
-	async sendMagicLink(email: string, token: string): Promise<void> {
-		const magicLink = `${this.configService.magicLink.frontendHost}/auth/verify?token=${token}`;
+	async sendLoginLink(email: string, query: string): Promise<void> {
+		// query — уже зашифрованная строка
+		const loginLink = `${this.configService.loginLink.frontendHost}/auth/verify?crd=${encodeURIComponent(query)}`;
 
 		const html = `
 <!DOCTYPE html>
@@ -47,11 +48,11 @@ export class MailService {
 	<div class="container">
 		<h2>Sign in to LLM Text Generator</h2>
 		<p>Click the button below to sign in to your account:</p>
-		<a href="${magicLink}" class="button">Sign In</a>
+		<a href="${loginLink}" class="button">Sign In</a>
 		<p>Or copy and paste this link into your browser:</p>
-		<p style="word-break: break-all; color: #2563eb;">${magicLink}</p>
+		<p style="word-break: break-all; color: #2563eb;">${loginLink}</p>
 		<div class="footer">
-			<p>This link will expire in ${this.configService.magicLink.expiryMinutes} minutes.</p>
+			<p>This link will expire in ${this.configService.loginLink.expiryMinutes} minutes.</p>
 			<p>If you didn't request this email, you can safely ignore it.</p>
 		</div>
 	</div>
@@ -67,10 +68,10 @@ export class MailService {
 				html
 			});
 
-			this.logger.log(`Magic link sent to ${email}`);
+			this.logger.log(`Login link sent to ${email}`);
 		} catch (error) {
-			this.logger.error(`Failed to send magic link to ${email}:`, error);
-			throw new Error('Failed to send magic link email');
+			this.logger.error(`Failed to send login link to ${email}:`, error);
+			throw new Error('Failed to send login link email');
 		}
 	}
 }

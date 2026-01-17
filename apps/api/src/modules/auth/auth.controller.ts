@@ -3,11 +3,11 @@ import { MessageSuccess } from '../../utils/response/message-success';
 import { MessageError } from '../../utils/response/message-error';
 import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req, Query } from '@nestjs/common';
 import { CurrentUserService } from './services/current-user.service';
-import { RequestMagicLinkRequestDto } from './dto/auth-request.dto';
+import { RequestLoginLinkRequestDto } from './dto/auth-request.dto';
 import { ApiResponse } from '../../utils/response/api-response';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
-import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestMagicLinkResponseDto } from './dto/auth-response.dto';
+import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkResponseDto } from './dto/auth-response.dto';
 
 @Controller('api/auth')
 class AuthController {
@@ -53,20 +53,24 @@ class AuthController {
 		return this.apiResponse.success(AuthStatusDtoResponse.fromEntity(false));
 	}
 
-	@Post('request-magic-link')
+	@Post('request-login-link')
 	@HttpCode(HttpStatus.OK)
-	async requestMagicLink(@Body() dto: RequestMagicLinkRequestDto): Promise<ApiResponse<MessageSuccess<RequestMagicLinkResponseDto> | MessageError>> {
-		await this.authService.requestMagicLink(dto.email);
-		return this.apiResponse.success(RequestMagicLinkResponseDto.fromEntity('Magic link sent to your email'));
+	async requestLoginLink(@Body() dto: RequestLoginLinkRequestDto): Promise<ApiResponse<MessageSuccess<RequestLoginLinkResponseDto> | MessageError>> {
+		await this.authService.requestLoginLink(dto.email, dto.redirectUrl);
+		return this.apiResponse.success(RequestLoginLinkResponseDto.fromEntity('Login link sent to your email'));
 	}
 
-	@Get('verify-magic-link')
-	async verifyMagicLink(@Query('token') token: string, @Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse> | MessageError>> {
-		if (!token) {
-			return this.apiResponse.error(ResponseCode.ERROR, 'Token is required');
+	@Get('verify-login-link')
+	async verifyLoginLink(@Query('crd') crd: string, @Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse> | MessageError>> {
+		if (!crd) {
+			return this.apiResponse.error(ResponseCode.ERROR, 'Credentials is required');
 		}
 
-		const user = await this.authService.verifyMagicLink(token);
+		const crdString = this.authService.decryptAES(crd);
+		const params = JSON.parse(crdString) as { token: string; redirectUrl: string };
+		const token = params.token;
+		const redirectUrl = params.redirectUrl || null;
+		const user = await this.authService.verifyLoginLink(token);
 
 		if (!user) {
 			return this.apiResponse.error(ResponseCode.ERROR, 'Invalid or expired token');
@@ -80,6 +84,7 @@ class AuthController {
 
 		return this.apiResponse.success(AuthLoginDtoResponse.fromEntity(
 			user,
+			redirectUrl,
 			migratedCount
 		));
 	}

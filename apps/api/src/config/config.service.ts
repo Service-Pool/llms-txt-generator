@@ -14,6 +14,8 @@ import * as Joi from 'joi';
 dotenvConfig();
 
 interface ValidatedEnv {
+	AES_KEY: string;
+	AES_IV: string;
 	DB_HOST: string;
 	DB_NAME: string;
 	DB_PASSWORD: string;
@@ -51,7 +53,7 @@ interface ValidatedEnv {
 	SMTP_PORT: number;
 	SMTP_USER: string;
 	SMTP_PASSWORD: string;
-	MAGIC_LINK_EXPIRY_MINUTES: number;
+	LOGIN_LINK_EXPIRY_MINUTES: number;
 }
 
 interface ProviderConfig {
@@ -65,6 +67,8 @@ interface ProviderConfig {
 }
 
 const validationSchema = Joi.object<ValidatedEnv>({
+	AES_KEY: Joi.string().base64().length(44).required(),
+	AES_IV: Joi.string().base64().length(24).required(),
 	DB_HOST: Joi.string().required(),
 	DB_NAME: Joi.string().required(),
 	DB_PASSWORD: Joi.string().required(),
@@ -102,7 +106,7 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SMTP_PORT: Joi.number().port().required(),
 	SMTP_USER: Joi.string().email().required(),
 	SMTP_PASSWORD: Joi.string().required(),
-	MAGIC_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required()
+	LOGIN_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -262,10 +266,16 @@ class AppConfigService {
 		password: env.SMTP_PASSWORD
 	};
 
-	// Magic Link config
-	public readonly magicLink = {
+	// Security config
+	public readonly security = {
+		aesKey: env.AES_KEY,
+		aesIv: env.AES_IV
+	};
+
+	// Login Link config
+	public readonly loginLink = {
 		frontendHost: env.FRONTEND_HOST,
-		expiryMinutes: env.MAGIC_LINK_EXPIRY_MINUTES
+		expiryMinutes: env.LOGIN_LINK_EXPIRY_MINUTES
 	};
 }
 

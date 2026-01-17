@@ -103,9 +103,8 @@
 			);
 			fullContent = response.getMessage().data.output;
 			showContent = true;
-		} catch (error) {
-			alert("Failed to load content");
-			console.error(error);
+		} catch (err) {
+			throw err;
 		} finally {
 			isLoading = false;
 		}
@@ -113,12 +112,9 @@
 
 	const handleCopy = async () => {
 		if (!fullContent) return;
-		try {
-			await navigator.clipboard.writeText(fullContent);
-			alert("Content copied to clipboard");
-		} catch {
-			alert("Failed to copy content");
-		}
+
+		await navigator.clipboard.writeText(fullContent);
+		alert("Content copied to clipboard");
 	};
 
 	const handleDownload = () => {

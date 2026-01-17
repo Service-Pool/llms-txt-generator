@@ -6,6 +6,7 @@ import { MailService } from './services/mail.service';
 import { Module } from '@nestjs/common';
 import { ApiResponse } from '../../utils/response/api-response';
 import { Session } from './entitites/session.entity';
+import { SessionCleanupService } from './services/session-cleanup.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entitites/user.entity';
 
@@ -20,6 +21,7 @@ import { User } from './entitites/user.entity';
 		AuthService,
 		CurrentUserService,
 		MailService,
+		SessionCleanupService,
 		ApiResponse
 	],
 	exports: [AuthService]

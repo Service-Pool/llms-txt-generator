@@ -75,6 +75,15 @@ export default defineConfig({
 	resolve: {
 		extensions: ['.js', '.ts', '.json']
 	},
+	build: {
+		sourcemap: true
+	},
+	esbuild: {
+		sourcemap: true
+	},
+	css: {
+		devSourcemap: true
+	},
 	server: {
 		host: '0.0.0.0',
 		port: port,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from "$app/navigation";
 	import { GenerationsService } from "$lib/api/generations.service";
 	import { CalculateService } from "$lib/api/calc.service";
 	import Spinner from "../common/Spinner.svelte";
@@ -11,6 +12,7 @@
 		ResponseCode,
 	} from "@api/shared";
 	import { formatNumber } from "$lib/utils/number-format";
+	import { authStore } from "$lib/stores/auth.store";
 
 	interface Props {
 		onCreate: (generation: GenerationRequestDtoResponse) => void;
@@ -33,12 +35,12 @@
 	const providers = [
 		{
 			value: Provider.OLLAMA,
-			name: "Free (Ollama)",
+			name: `Free (${Provider.OLLAMA})`,
 			description: "slower",
 		},
 		{
 			value: Provider.GEMINI,
-			name: "Fast (Gemini)",
+			name: `Fast (${Provider.GEMINI})`,
 			description: "faster",
 		},
 	];
@@ -49,6 +51,15 @@
 	const getPriceForProvider = (providerValue: Provider) => {
 		if (!calc || !calc.prices) return null;
 		return calc.prices.find((p) => p.provider === providerValue);
+	};
+
+	const isPaidProvider = (providerValue: Provider): boolean => {
+		const price = getPriceForProvider(providerValue);
+		return price !== null && price.total > 0;
+	};
+
+	const requiresLogin = (providerValue: Provider): boolean => {
+		return isPaidProvider(providerValue) && !$authStore.user;
 	};
 
 	const handleCalculate = async (e: Event) => {
@@ -94,6 +105,13 @@
 
 	const handleProviderSelect = async (selectedProvider: Provider) => {
 		if (!calc) return;
+
+		// Check if login is required for paid provider
+		if (requiresLogin(selectedProvider)) {
+			const currentUrl = window.location.pathname;
+			goto(`/login?redirectUrl=${encodeURIComponent(currentUrl)}`);
+			return;
+		}
 
 		submitting = true;
 		showSpinner = true;
@@ -240,6 +258,12 @@
 									{price.currencySymbol}{price.total.toFixed(
 										2,
 									)}
+								</div>
+							{/if}
+							{#if requiresLogin(provider.value)}
+								<div
+									class="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1">
+									Login required
 								</div>
 							{/if}
 						</button>

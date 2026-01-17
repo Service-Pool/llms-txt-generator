@@ -1,20 +1,20 @@
 import { HttpClient } from './http.client';
 import { AppConfigService } from './config.service';
-import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestMagicLinkRequestDto, RequestMagicLinkResponseDto, MessageSuccess } from '@api/shared';
+import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkRequestDto, RequestLoginLinkResponseDto, MessageSuccess } from '@api/shared';
 
 const configService = new AppConfigService();
 
 class AuthService extends HttpClient {
-	public async requestMagicLink(email: string): Promise<ApiResponse<MessageSuccess<RequestMagicLinkResponseDto>>> {
-		const dto: RequestMagicLinkRequestDto = { email };
-		return this.fetch(configService.endpoints.auth.requestMagicLink, {
+	public async requestLoginLink(email: string, redirectUrl?: string): Promise<ApiResponse<MessageSuccess<RequestLoginLinkResponseDto>>> {
+		const dto: RequestLoginLinkRequestDto = { email, redirectUrl };
+		return this.fetch(configService.endpoints.auth.requestLoginLink, {
 			method: 'POST',
 			body: JSON.stringify(dto)
-		}, RequestMagicLinkResponseDto);
+		}, RequestLoginLinkResponseDto);
 	}
 
-	public async verifyMagicLink(token: string): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
-		return this.fetch(`${configService.endpoints.auth.verifyMagicLink}?token=${encodeURIComponent(token)}`, {
+	public async verifyLoginLink(crd: string): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
+		return this.fetch(`${configService.endpoints.auth.verifyLoginLink}?crd=${encodeURIComponent(crd)}`, {
 			method: 'GET'
 		}, AuthLoginDtoResponse);
 	}

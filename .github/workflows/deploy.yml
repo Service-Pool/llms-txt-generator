@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Application to deploy"
+        required: true
+        type: choice
+        options:
+          - both
+          - ui
+          - api
+        default: "both"
+  # push:
+  #   branches: [main]
+
+jobs:
+  deploy:
+    uses: Service-Pool/scripts/.github/workflows/reusable-deploy.yml@main
+    with:
+      repo_url: git@github.com:${{ github.repository }}.git
+      destination: /var/www/llms-txt
+      branch: ${{ github.ref_name }}
+      post_deploy: |
+        APP="${{ github.event.inputs.app }}"
+
+        if [ "$APP" = "ui" ] || [ "$APP" = "both" ]; then
+          echo "Deploying UI..."
+          cd /var/www/llms-txt/apps/ui/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh
+        fi
+
+        if [ "$APP" = "api" ] || [ "$APP" = "both" ]; then
+          echo "Deploying API..."
+          cd /var/www/llms-txt/apps/api/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh
+        fi
+    secrets: inherit

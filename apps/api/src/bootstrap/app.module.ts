@@ -11,6 +11,7 @@ import { Module } from '@nestjs/common';
 import { QueueModule } from '../modules/queue/queue.module';
 import { ApiResponse } from '../utils/response/api-response';
 import { RobotsModule } from '../modules/robots/robots.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { SitemapModule } from '../modules/sitemap/sitemap.module';
 import { StripeModule } from '../modules/stripe/stripe.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -25,6 +26,7 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		EventEmitterModule.forRoot({
 			global: true
 		}),
+		ScheduleModule.forRoot(),
 		AppConfigModule,
 		HttpModule,
 		RobotsModule,

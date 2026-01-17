@@ -6,12 +6,14 @@ import { User } from '../entitites/user.entity';
 class AuthLoginDtoResponse {
 	constructor(
 		public readonly user: { id: number; email: string },
+		public readonly redirectUrl: string | null,
 		public readonly migratedRequests: number
 	) { }
 
-	static fromEntity(userEntity: User, migratedRequests: number): AuthLoginDtoResponse {
+	static fromEntity(userEntity: User, redirectUrl: string | null, migratedRequests: number): AuthLoginDtoResponse {
 		return new AuthLoginDtoResponse(
 			{ id: userEntity.id, email: userEntity.email },
+			redirectUrl,
 			migratedRequests
 		);
 	}
@@ -19,6 +21,7 @@ class AuthLoginDtoResponse {
 	static fromJSON(json: Record<string, unknown>): AuthLoginDtoResponse {
 		return new AuthLoginDtoResponse(
 			json.user as { id: number; email: string },
+			json.redirectUrl as string | null,
 			json.migratedRequests as number
 		);
 	}
@@ -63,18 +66,18 @@ class AuthStatusDtoResponse {
 }
 
 /**
- * DTO: Успешный ответ на request-magic-link
+ * DTO: Успешный ответ на request-login-link
  */
-class RequestMagicLinkResponseDto {
+class RequestLoginLinkResponseDto {
 	constructor(public readonly message: string) { }
 
-	static fromEntity(message: string): RequestMagicLinkResponseDto {
-		return new RequestMagicLinkResponseDto(message);
+	static fromEntity(message: string): RequestLoginLinkResponseDto {
+		return new RequestLoginLinkResponseDto(message);
 	}
 
-	static fromJSON(json: Record<string, unknown>): RequestMagicLinkResponseDto {
-		return new RequestMagicLinkResponseDto(json.message as string);
+	static fromJSON(json: Record<string, unknown>): RequestLoginLinkResponseDto {
+		return new RequestLoginLinkResponseDto(json.message as string);
 	}
 }
 
-export { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestMagicLinkResponseDto };
+export { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkResponseDto };

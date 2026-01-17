@@ -10,8 +10,8 @@ class AppConfigService {
 	// Endpoints config
 	public readonly endpoints = {
 		auth: {
-			requestMagicLink: '/api/auth/request-magic-link',
-			verifyMagicLink: '/api/auth/verify-magic-link',
+			requestLoginLink: '/api/auth/request-login-link',
+			verifyLoginLink: '/api/auth/verify-login-link',
 			logout: '/api/auth/logout',
 			status: '/api/auth/me'
 		},

@@ -8,11 +8,11 @@ class User {
 	@Column({ type: 'varchar', length: 255, unique: true })
 	email: string;
 
-	@Column({ type: 'varchar', length: 255, nullable: true, name: 'magic_token' })
-	magicToken: string | null;
+	@Column({ type: 'varchar', length: 255, nullable: true, name: 'login_token' })
+	loginToken: string | null;
 
-	@Column({ type: 'timestamp', nullable: true, name: 'magic_token_expires_at' })
-	magicTokenExpiresAt: Date | null;
+	@Column({ type: 'timestamp', nullable: true, name: 'login_token_expires_at' })
+	loginTokenExpiresAt: Date | null;
 
 	@CreateDateColumn({ name: 'created_at' })
 	createdAt: Date;
