@@ -25,7 +25,7 @@ jobs:
       post_deploy: |
         APP='${{ github.event.inputs.app }}'
 
-        if [ "$APP" = "ui" ] || [ "$APP" = "both" ]; then
+        if [ "\$APP" = "ui" ] || [ "\$APP" = "both" ]; then
           echo "Deploying UI..."
           cd /var/www/llms-txt/apps/ui/.devcontainer/mapped
           docker compose down
@@ -33,7 +33,7 @@ jobs:
           bash cmd-run.sh
         fi
 
-        if [ "$APP" = "api" ] || [ "$APP" = "both" ]; then
+        if [ "\$APP" = "api" ] || [ "\$APP" = "both" ]; then
           echo "Deploying API..."
           cd /var/www/llms-txt/apps/api/.devcontainer/mapped
           docker compose down
