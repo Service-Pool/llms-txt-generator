@@ -55,7 +55,7 @@
 
 	const isPaidProvider = (providerValue: Provider): boolean => {
 		const price = getPriceForProvider(providerValue);
-		return price !== null && price.total > 0;
+		return price != null && price.total > 0;
 	};
 
 	const requiresLogin = (providerValue: Provider): boolean => {

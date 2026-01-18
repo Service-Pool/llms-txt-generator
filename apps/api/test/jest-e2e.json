@@ -8,5 +8,10 @@
 	},
 	"transformIgnorePatterns": [
 		"node_modules/(?!(jsdom|parse5|entities|dom-serializer|domhandler|htmlparser2|sitemapper|p-limit|yocto-queue)/)"
-	]
+	],
+	"setupFiles": ["<rootDir>/load-test-env.ts", "<rootDir>/test-setup.ts"],
+	"moduleNameMapper": {
+		"^@/(.*)$": "<rootDir>/../src/$1"
+	},
+	"testTimeout": 30000
 }
