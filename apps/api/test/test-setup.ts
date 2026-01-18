@@ -18,6 +18,16 @@ process.env.NODE_ENV = 'test';
 const TEST_DB_NAME = process.env.DB_NAME;
 
 /**
+ * Initialize test database - creates DB and syncs schema
+ */
+async function initTestDatabase(): Promise<DataSource> {
+	await createTestDatabaseIfNotExists();
+	const dataSource = createTestDataSource();
+	await dataSource.initialize();
+	return dataSource;
+}
+
+/**
  * Creates the test database if it doesn't exist
  */
 async function createTestDatabaseIfNotExists(): Promise<void> {
@@ -47,16 +57,6 @@ function createTestDataSource(): DataSource {
 		synchronize: true, // Auto-create tables for tests
 		dropSchema: false // Keep schema between test runs
 	});
-}
-
-/**
- * Initialize test database - creates DB and syncs schema
- */
-async function initTestDatabase(): Promise<DataSource> {
-	await createTestDatabaseIfNotExists();
-	const dataSource = createTestDataSource();
-	await dataSource.initialize();
-	return dataSource;
 }
 
 /**

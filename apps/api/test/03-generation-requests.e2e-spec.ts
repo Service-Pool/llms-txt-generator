@@ -1,16 +1,16 @@
-import { NestFastifyApplication } from '@nestjs/platform-fastify';
-import request from 'supertest';
-import { DataSource } from 'typeorm';
+import { ApiResponse } from '../src/utils/response/api-response';
 import { createApp } from '../src/bootstrap/main';
-import { initTestDatabase } from './test-setup';
+import { DataSource } from 'typeorm';
 import { GenerationRequest } from '../src/modules/generations/entities/generation-request.entity';
 import { GenerationRequestDtoResponse } from '../src/modules/generations/dto/generation-response.dto';
-import { ApiResponse } from '../src/utils/response/api-response';
-import { MessageSuccess } from '../src/utils/response/message-success';
-import { ResponseCode } from '../src/enums/response-code.enum';
-import { Provider } from '../src/enums/provider.enum';
-import fixtures from './fixtures/generation-requests.fixtures.json';
 import { HttpStatus } from '@nestjs/common';
+import { initTestDatabase } from './test-setup';
+import { MessageSuccess } from '../src/utils/response/message-success';
+import { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { Provider } from '../src/enums/provider.enum';
+import { ResponseCode } from '../src/enums/response-code.enum';
+import fixtures from './fixtures/generation-requests.fixtures.json';
+import request from 'supertest';
 
 // Mock global fetch for external HTTP calls (robots.txt, sitemap)
 const mockFetch = jest.fn();
