@@ -46,30 +46,38 @@ class LoggerFactory {
 
 	public create() {
 		const mode = process.env.APP_MODE;
+		const transports: winston.transport[] = [];
+
+		// В тестовом режиме не выводим логи в консоль (только в файлы)
+		if (mode !== 'test') {
+			transports.push(new winston.transports.Console({
+				format: this.consoleFormat,
+				level: LogLevel.DEBUG
+			}));
+		}
+
+		// Файловые логи всегда активны
+		transports.push(
+			new DailyRotateFile({
+				filename: 'var/logs/%DATE%-app.log',
+				datePattern: 'YYYY-MM-DD',
+				maxSize: '20m',
+				maxFiles: '4d',
+				format: this.fileFormat,
+				level: LogLevel.DEBUG
+			}),
+			new DailyRotateFile({
+				filename: 'var/logs/%DATE%-error.log',
+				datePattern: 'YYYY-MM-DD',
+				maxSize: '20m',
+				maxFiles: '4d',
+				format: this.fileFormat,
+				level: LogLevel.ERROR
+			})
+		);
 
 		return WinstonModule.createLogger({
-			transports: [
-				new winston.transports.Console({
-					format: this.consoleFormat,
-					level: mode === 'test' ? LogLevel.ERROR : LogLevel.DEBUG
-				}),
-				new DailyRotateFile({
-					filename: 'var/logs/%DATE%-app.log',
-					datePattern: 'YYYY-MM-DD',
-					maxSize: '20m',
-					maxFiles: '4d',
-					format: this.fileFormat,
-					level: LogLevel.DEBUG
-				}),
-				new DailyRotateFile({
-					filename: 'var/logs/%DATE%-error.log',
-					datePattern: 'YYYY-MM-DD',
-					maxSize: '20m',
-					maxFiles: '4d',
-					format: this.fileFormat,
-					level: LogLevel.ERROR
-				})
-			],
+			transports,
 			level: mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
 		});
 	}

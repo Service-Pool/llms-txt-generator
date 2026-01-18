@@ -1,5 +1,5 @@
 import { ApiResponse } from '../src/utils/response/api-response';
-import { AuthStatusDtoResponse } from '../src/modules/auth/dto/auth-response.dto';
+import { AuthStatusDtoResponse, AuthLoginDtoResponse } from '../src/modules/auth/dto/auth-response.dto';
 import { createApp } from '../src/bootstrap/main';
 import { DataSource } from 'typeorm';
 import { HttpStatus } from '@nestjs/common';
@@ -69,7 +69,7 @@ describe('AuthController (e2e)', () => {
 				})
 				.expect(HttpStatus.OK);
 
-			const requestApiResponse = ApiResponse.fromJSON(requestResponse.body as { code: ResponseCode; message: unknown });
+			const requestApiResponse = ApiResponse.fromJSON(requestResponse.body as { code: ResponseCode; message: unknown }, AuthLoginDtoResponse);
 			expect(requestApiResponse.getСode()).toBe(ResponseCode.SUCCESS);
 
 			// Step 2: Verify email was sent
