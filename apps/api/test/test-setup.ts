@@ -8,8 +8,12 @@ import { Session } from '../src/modules/auth/entitites/session.entity';
 import { User } from '../src/modules/auth/entitites/user.entity';
 import mysql from 'mysql2/promise';
 
-// Load test environment variables (override: true to override vars from main .env)
+// Load test environment variables BEFORE any other imports
+// This file should be first in jest setupFiles
 dotenvConfig({ path: resolve(__dirname, '.env.test'), override: true });
+
+// Set NODE_ENV to test for logger configuration
+process.env.NODE_ENV = 'test';
 
 const TEST_DB_NAME = process.env.DB_NAME;
 

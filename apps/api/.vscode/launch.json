@@ -37,6 +37,23 @@
 			],
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen"
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Tests (devcontainer)",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"test:e2e"
+			],
+			"cwd": "${workspaceFolder}",
+			"skipFiles": [
+				"<node_internals>/**",
+				"**/node_modules/**"
+			],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen"
 		}
 	]
 }

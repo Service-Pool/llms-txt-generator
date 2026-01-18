@@ -1,5 +1,9 @@
 {
-	"moduleFileExtensions": ["js", "json", "ts"],
+	"moduleFileExtensions": [
+		"js",
+		"json",
+		"ts"
+	],
 	"rootDir": ".",
 	"testEnvironment": "node",
 	"testRegex": ".e2e-spec.ts$",
@@ -9,9 +13,13 @@
 	"transformIgnorePatterns": [
 		"node_modules/(?!(jsdom|parse5|entities|dom-serializer|domhandler|htmlparser2|sitemapper|p-limit|yocto-queue)/)"
 	],
-	"setupFiles": ["<rootDir>/load-test-env.ts", "<rootDir>/test-setup.ts"],
+	"setupFiles": [
+		"<rootDir>/test-setup.ts"
+	],
 	"moduleNameMapper": {
 		"^@/(.*)$": "<rootDir>/../src/$1"
 	},
-	"testTimeout": 30000
+	"testTimeout": 30000,
+	"forceExit": true,
+	"testSequencer": "<rootDir>/test-sequencer.js"
 }

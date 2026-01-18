@@ -1,0 +1,55 @@
+{
+	"generationRequests": [
+		{
+			"name": "ollama_free_anonymous",
+			"description": "Free provider (Ollama) with anonymous session - immediately accepted",
+			"input": {
+				"hostname": "https://example.com",
+				"provider": "ollama"
+			},
+			"auth": "anonymous",
+			"expected": {
+				"status": 20,
+				"paymentLink": null,
+				"generation": {
+					"provider": "ollama",
+					"status": "waiting"
+				}
+			}
+		},
+		{
+			"name": "gemini_paid_authenticated",
+			"description": "Paid provider (Gemini) with authenticated user - requires payment",
+			"input": {
+				"hostname": "https://example.com",
+				"provider": "gemini"
+			},
+			"auth": "authenticated",
+			"expected": {
+				"status": 10,
+				"paymentLinkPattern": "^https://checkout\\.stripe\\.com/",
+				"generation": {
+					"provider": "gemini",
+					"status": "waiting"
+				}
+			}
+		},
+		{
+			"name": "gemini_paid_anonymous",
+			"description": "Paid provider (Gemini) with anonymous session - requires payment",
+			"input": {
+				"hostname": "https://example.com",
+				"provider": "gemini"
+			},
+			"auth": "anonymous",
+			"expected": {
+				"status": 10,
+				"paymentLinkPattern": "^https://checkout\\.stripe\\.com/",
+				"generation": {
+					"provider": "gemini",
+					"status": "waiting"
+				}
+			}
+		}
+	]
+}

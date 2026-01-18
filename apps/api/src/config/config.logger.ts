@@ -2,6 +2,7 @@ import { inspect } from 'util';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
+import { LogLevel } from '../enums/log-level.enum';
 
 class LoggerFactory {
 	private readonly fileFormat: winston.Logform.Format;
@@ -44,11 +45,13 @@ class LoggerFactory {
 	};
 
 	public create() {
+		const mode = process.env.APP_MODE;
+
 		return WinstonModule.createLogger({
 			transports: [
 				new winston.transports.Console({
 					format: this.consoleFormat,
-					level: 'debug' // Явно указываем что консоль должна выводить все логи
+					level: mode === 'test' ? LogLevel.ERROR : LogLevel.DEBUG
 				}),
 				new DailyRotateFile({
 					filename: 'var/logs/%DATE%-app.log',
@@ -56,7 +59,7 @@ class LoggerFactory {
 					maxSize: '20m',
 					maxFiles: '4d',
 					format: this.fileFormat,
-					level: 'debug'
+					level: LogLevel.DEBUG
 				}),
 				new DailyRotateFile({
 					filename: 'var/logs/%DATE%-error.log',
@@ -64,10 +67,10 @@ class LoggerFactory {
 					maxSize: '20m',
 					maxFiles: '4d',
 					format: this.fileFormat,
-					level: 'error'
+					level: LogLevel.ERROR
 				})
 			],
-			level: process.env.APP_MODE === 'production' ? 'info' : 'debug'
+			level: mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
 		});
 	}
 }

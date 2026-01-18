@@ -13,11 +13,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 	public catch(exception: unknown, host: ArgumentsHost): void {
 		const response = host.switchToHttp().getResponse<FastifyReply>();
 
-		let statusCode = ResponseCode.ERROR;
+		let statusCode = ResponseCode.ERROR; // Default HTTP status
 		let body: unknown;
 
 		switch (true) {
 			case exception instanceof ValidationException:
+				statusCode = ResponseCode.INVALID;
 				this.logger.warn(exception.getErrors().join('; '));
 				body = this.apiResponse.invalid(exception.getErrors());
 				break;

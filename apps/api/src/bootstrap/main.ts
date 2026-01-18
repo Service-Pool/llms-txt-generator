@@ -16,11 +16,10 @@ import { GlobalExceptionFilter } from '../filters/global-exception.filter';
 import { ValidationException } from '../exceptions/validation.exception';
 import { ValidationError, useContainer } from 'class-validator';
 
-async function bootstrap() {
-	if (!process.env.PORT) {
-		throw new Error('PORT environment variable is not defined');
-	}
-
+/**
+ * Create and configure the NestJS application
+ */
+export async function createApp(): Promise<NestFastifyApplication> {
 	const configService = new AppConfigService();
 	const logger = createWinstonLogger();
 
@@ -52,7 +51,7 @@ async function bootstrap() {
 		secret: configService.session.secret,
 		cookieName: configService.session.cookieName,
 		store: sessionStore,
-		saveUninitialized: true, // Не создаем сессию автоматически
+		saveUninitialized: true,
 		rolling: true,
 		cookie: {
 			maxAge: configService.session.maxAge,
@@ -81,14 +80,28 @@ async function bootstrap() {
 		res.send({ status: 'ok' });
 	});
 
+	return app;
+}
+
+async function bootstrap() {
+	if (!process.env.PORT) {
+		throw new Error('PORT environment variable is not defined');
+	}
+
+	const app = await createApp();
+
 	await app.listen(parseInt(process.env.PORT), '0.0.0.0');
 
 	const appLogger = new Logger('Application');
 	appLogger.log(`Application is running on port ${process.env.PORT}`);
 }
-bootstrap().catch((err) => {
-	const logger = createWinstonLogger();
-	const error = err instanceof Error ? err : new Error(String(err));
-	logger.error('Failed to start application', error.stack || error.message);
-	process.exit(1);
-});
+
+// Only run bootstrap if this file is executed directly
+if (require.main === module) {
+	bootstrap().catch((err) => {
+		const logger = createWinstonLogger();
+		const error = err instanceof Error ? err : new Error(String(err));
+		logger.error('Failed to start application', error.stack || error.message);
+		process.exit(1);
+	});
+}
