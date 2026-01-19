@@ -1,12 +1,11 @@
-import { config as dotenvConfig } from 'dotenv';
-import { resolve } from 'path';
-import { DataSource } from 'typeorm';
 import { Calculation } from '../src/modules/calculations/entities/calculation.entity';
+import { config as dotenvConfig } from 'dotenv';
+import { DataSource } from 'typeorm';
 import { Generation } from '../src/modules/generations/entities/generation.entity';
 import { GenerationRequest } from '../src/modules/generations/entities/generation-request.entity';
+import { resolve } from 'path';
 import { Session } from '../src/modules/auth/entitites/session.entity';
 import { User } from '../src/modules/auth/entitites/user.entity';
-import mysql from 'mysql2/promise';
 
 // Load test environment variables BEFORE any other imports
 // This file should be first in jest setupFiles
@@ -18,35 +17,10 @@ process.env.NODE_ENV = 'test';
 const TEST_DB_NAME = process.env.DB_NAME;
 
 /**
- * Initialize test database - creates DB and syncs schema
+ * Initialize test database connection (DB already created in globalSetup)
  */
 async function initTestDatabase(): Promise<DataSource> {
-	await createTestDatabaseIfNotExists();
-	const dataSource = createTestDataSource();
-	await dataSource.initialize();
-	return dataSource;
-}
-
-/**
- * Creates the test database if it doesn't exist
- */
-async function createTestDatabaseIfNotExists(): Promise<void> {
-	const connection = await mysql.createConnection({
-		host: process.env.DB_HOST,
-		port: parseInt(process.env.DB_PORT || '3306'),
-		user: process.env.DB_USER,
-		password: process.env.DB_PASSWORD
-	});
-
-	await connection.query(`CREATE DATABASE IF NOT EXISTS \`${TEST_DB_NAME}\``);
-	await connection.end();
-}
-
-/**
- * Creates a TypeORM DataSource for testing with synchronize: true
- */
-function createTestDataSource(): DataSource {
-	return new DataSource({
+	const dataSource = new DataSource({
 		type: 'mysql',
 		host: process.env.DB_HOST,
 		port: parseInt(process.env.DB_PORT || '3306'),
@@ -57,6 +31,9 @@ function createTestDataSource(): DataSource {
 		synchronize: true, // Auto-create tables for tests
 		dropSchema: false // Keep schema between test runs
 	});
+
+	await dataSource.initialize();
+	return dataSource;
 }
 
 /**
@@ -69,8 +46,6 @@ async function cleanupTables(dataSource: DataSource, tableNames: string[]): Prom
 }
 
 export {
-	createTestDatabaseIfNotExists,
-	createTestDataSource,
 	initTestDatabase,
 	cleanupTables,
 	TEST_DB_NAME

@@ -16,6 +16,8 @@
 	"setupFiles": [
 		"<rootDir>/test-setup.ts"
 	],
+	"globalSetup": "<rootDir>/global-setup.ts",
+	"globalTeardown": "<rootDir>/global-teardown.ts",
 	"moduleNameMapper": {
 		"^@/(.*)$": "<rootDir>/../src/$1"
 	},
