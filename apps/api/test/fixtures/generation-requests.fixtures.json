@@ -10,7 +10,6 @@
 			"auth": "anonymous",
 			"expected": {
 				"status": 20,
-				"paymentLink": null,
 				"generation": {
 					"provider": "ollama",
 					"status": "waiting"
@@ -27,7 +26,6 @@
 			"auth": "authenticated",
 			"expected": {
 				"status": 10,
-				"paymentLinkPattern": "^https://checkout\\.stripe\\.com/",
 				"generation": {
 					"provider": "gemini",
 					"status": "waiting"
@@ -44,7 +42,6 @@
 			"auth": "anonymous",
 			"expected": {
 				"status": 10,
-				"paymentLinkPattern": "^https://checkout\\.stripe\\.com/",
 				"generation": {
 					"provider": "gemini",
 					"status": "waiting"

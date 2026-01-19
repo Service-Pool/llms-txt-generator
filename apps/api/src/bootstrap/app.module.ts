@@ -3,6 +3,8 @@ import { AppConfigService } from '../config/config.service';
 import { AuthModule } from '../modules/auth/auth.module';
 import { CalculationsModule } from '../modules/calculations/calculations.module';
 import { CalculationValidator } from '../validators/calculation.validator';
+import { GenerationRequest } from '../modules/generations/entities/generation-request.entity';
+import { GenerationRequestValidator } from '../validators/generation-request.validator';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { GenerationsModule } from '../modules/generations/generations.module';
@@ -31,6 +33,7 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		HttpModule,
 		RobotsModule,
 		SitemapModule,
+		TypeOrmModule.forFeature([GenerationRequest]),
 		TypeOrmModule.forRootAsync({
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm
@@ -42,7 +45,7 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		StripeModule,
 		WebSocketModule
 	],
-	providers: [ApiResponse, CalculationValidator],
+	providers: [ApiResponse, CalculationValidator, GenerationRequestValidator],
 	exports: [ApiResponse]
 })
 export class AppModule { }

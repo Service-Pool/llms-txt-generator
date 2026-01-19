@@ -1,6 +1,5 @@
 import { CalculationsModule } from '../calculations/calculations.module';
 import { ContentExtractorService } from './services/content-extractor.service';
-import { CurrentUserService } from '../auth/services/current-user.service';
 import { GeminiService } from './services/llm/gemini.service';
 import { Generation } from './entities/generation.entity';
 import { GenerationJobHandler } from '../queue/handlers/generation-job.handler';
@@ -36,7 +35,6 @@ import { User } from '../auth/entitites/user.entity';
 		ContentExtractorService,
 		OllamaService,
 		GeminiService,
-		CurrentUserService,
 		ApiResponse
 	],
 	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]

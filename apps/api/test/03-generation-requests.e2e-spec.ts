@@ -117,13 +117,6 @@ describe('GenerationRequestsController (e2e)', () => {
 				expect(data.generation.provider).toBe(fixture.expected.generation.provider);
 				expect(data.generation.status).toBe(fixture.expected.generation.status);
 
-				if (fixture.expected.paymentLink !== undefined) {
-					expect(data.paymentLink).toBe(fixture.expected.paymentLink);
-				}
-				if (fixture.expected.paymentLinkPattern) {
-					expect(data.paymentLink).toMatch(new RegExp(fixture.expected.paymentLinkPattern));
-				}
-
 				// Verify DB
 				const savedRequest = await dataSource
 					.getRepository(GenerationRequest)

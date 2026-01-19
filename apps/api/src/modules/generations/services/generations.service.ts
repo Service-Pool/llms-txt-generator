@@ -1,4 +1,3 @@
-import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
@@ -8,23 +7,18 @@ import { JobUtils } from '../../../utils/job.utils';
 import { Provider } from '../../../enums/provider.enum';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
+import { type UserContext } from '../../auth/models/user-context.model';
 
 @Injectable()
 class GenerationsService {
 	private queryRunner: QueryRunner | null = null;
-	private readonly userId: number | null;
-	private readonly sessionId: string;
 
 	public constructor(
 		private readonly queueService: QueueService,
 		private readonly dataSource: DataSource,
-		private readonly currentUserService: CurrentUserService,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
-	) {
-		this.userId = this.currentUserService.getUserId();
-		this.sessionId = this.currentUserService.getSessionId();
-	}
+	) { }
 
 	public async findById(id: number): Promise<Generation | null> {
 		return this.generationRepository.findOne({
@@ -33,7 +27,7 @@ class GenerationsService {
 		});
 	}
 
-	public async findByIdAndUser(id: number): Promise<Generation | null> {
+	public async findByIdAndUser(id: number, user: UserContext): Promise<Generation | null> {
 		const generation = await this.generationRepository.findOne({
 			where: { id },
 			relations: ['calculation']
@@ -46,8 +40,8 @@ class GenerationsService {
 		// Check if user has access through GenerationRequest
 		const hasAccess = await this.generationRequestRepository.findOne({
 			where: [
-				this.userId ? { generationId: id, userId: this.userId } : {},
-				this.sessionId ? { generationId: id, sessionId: this.sessionId } : {}
+				user.userId ? { generationId: id, userId: user.userId } : {},
+				{ generationId: id, sessionId: user.sessionId }
 			]
 		});
 

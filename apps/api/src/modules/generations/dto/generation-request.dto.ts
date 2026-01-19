@@ -1,8 +1,10 @@
 import { HOSTNAME_VALIDATION } from '../../../config/config.service';
-import { IsString, IsNotEmpty, IsEnum, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, Matches, IsInt, Min } from 'class-validator';
 import { Provider } from '../../../enums/provider.enum';
 import { HostnameValidator } from '../../../validators/hostname.validator';
 import { CalculationValidator } from '../../../validators/calculation.validator';
+import { GenerationRequestValidator } from '../../../validators/generation-request.validator';
+import { Type } from 'class-transformer';
 
 /**
  * DTO для создания генерации
@@ -31,4 +33,21 @@ class CreateGenerationDtoRequest {
 	}
 }
 
-export { CreateGenerationDtoRequest };
+/**
+ * DTO для параметра requestId
+ */
+class GenerationRequestIdDtoRequest {
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@GenerationRequestValidator.validateGenerationRequestExists({
+		message: 'Generation request not found'
+	})
+	public requestId: number;
+
+	constructor(requestId: number) {
+		this.requestId = requestId;
+	}
+}
+
+export { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest };

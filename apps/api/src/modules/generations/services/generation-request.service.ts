@@ -1,10 +1,9 @@
 import { AppConfigService } from '../../../config/config.service';
 import { Calculation } from '../../calculations/entities/calculation.entity';
-import { CurrentUserService } from '../../auth/services/current-user.service';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { GenerationRequest } from '../entities/generation-request.entity';
-import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse } from '../dto/generation-response.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentLinkDtoResponse } from '../dto/generation-response.dto';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
 import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
@@ -15,34 +14,23 @@ import { Provider } from '../../../enums/provider.enum';
 import { ProviderPrices } from '../../calculations/models/provider-prices.model';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
-import { RobotsService } from '../../robots/robots.service';
-import { SitemapService } from '../../sitemap/sitemap.service';
 import { StripeService } from '../../stripe/stripe.service';
-import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
+import { UserContext } from '../../auth/models/user-context.model';
 
 @Injectable()
 class GenerationRequestService {
 	private readonly logger = new Logger(GenerationRequestService.name);
-	private queryRunner: QueryRunner | null = null;
-	private readonly userId: number | null;
-	private readonly sessionId: string;
 
 	public constructor(
 		private readonly generationsService: GenerationsService,
 		private readonly queueService: QueueService,
 		private readonly configService: AppConfigService,
-		private readonly currentUserService: CurrentUserService,
-		private readonly robotsService: RobotsService,
-		private readonly sitemapService: SitemapService,
 		private readonly stripeService: StripeService,
 		private readonly dataSource: DataSource,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
-	) {
-		this.userId = this.currentUserService.getUserId();
-		this.sessionId = this.currentUserService.getSessionId();
-	}
+	) {}
 
-	public async deleteRequest(requestId: number): Promise<void> {
+	public async deleteRequest(requestId: number, user: UserContext): Promise<void> {
 		const generationRequest = await this.generationRequestRepository.findOneBy({ id: requestId });
 
 		if (!generationRequest) {
@@ -50,7 +38,7 @@ class GenerationRequestService {
 		}
 
 		// Check ownership
-		const isOwner = this.userId ? generationRequest.userId === this.userId : generationRequest.sessionId === this.sessionId;
+		const isOwner = user.userId ? generationRequest.userId === user.userId : generationRequest.sessionId === user.sessionId;
 		if (!isOwner) {
 			throw new ForbiddenException('Cannot delete request that does not belong to you');
 		}
@@ -58,11 +46,11 @@ class GenerationRequestService {
 		await this.generationRequestRepository.delete(requestId);
 	}
 
-	public async listUserGenerations(page: number, limit: number): Promise<GenerationRequestsListDtoResponse> {
+	public async listUserGenerations(page: number, limit: number, user: UserContext): Promise<GenerationRequestsListDtoResponse> {
 		const offset = (page - 1) * limit;
 
 		const [items, total] = await this.generationRequestRepository.findAndCount({
-			where: this.userId ? { userId: this.userId } : { sessionId: this.sessionId },
+			where: user.userId ? { userId: user.userId } : { sessionId: user.sessionId },
 			relations: ['generation', 'generation.calculation'],
 			order: { createdAt: 'DESC' },
 			skip: offset,
@@ -79,7 +67,7 @@ class GenerationRequestService {
 		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit);
 	}
 
-	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<GenerationRequestDtoResponse> {
+	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider, user: UserContext): Promise<GenerationRequestDtoResponse> {
 		// 1. Найти существующую generation
 		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(calculationId, provider);
 
@@ -93,7 +81,7 @@ class GenerationRequestService {
 
 		// 3. Если generation завершена - просто вернуть её с generationRequest
 		if (generation.status === GenerationStatus.COMPLETED) {
-			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null);
+			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null, user);
 			this.truncateOutput(generation);
 
 			existingRequest.generation = generation;
@@ -101,14 +89,15 @@ class GenerationRequestService {
 		}
 
 		// 4. Обработать generation request
-		return await this.handleGenerationRequest(generation, calculation, providerPrice, isNewGeneration);
+		return await this.handleGenerationRequest(generation, calculation, providerPrice, isNewGeneration, user);
 	}
 
 	private async ensureGenerationRequest(
 		generationId: number,
-		queryRunner: QueryRunner | null
+		queryRunner: QueryRunner | null,
+		user: UserContext
 	): Promise<{ generationRequest: GenerationRequest; isNew: boolean }> {
-		const whereCondition = this.userId ? { generationId, userId: this.userId } : { generationId, sessionId: this.sessionId };
+		const whereCondition = user.userId ? { generationId, userId: user.userId } : { generationId, sessionId: user.sessionId };
 
 		// Use provided queryRunner's manager or repository
 		let existing: GenerationRequest | null = null;
@@ -126,20 +115,62 @@ class GenerationRequestService {
 		if (queryRunner) {
 			const entity = queryRunner.manager.create(GenerationRequest, {
 				generationId,
-				userId: this.userId,
-				sessionId: this.sessionId
+				userId: user.userId,
+				sessionId: user.sessionId
 			});
 			generationRequest = await queryRunner.manager.save(entity);
 		} else {
 			const entity = this.generationRequestRepository.create({
 				generationId,
-				userId: this.userId,
-				sessionId: this.sessionId
+				userId: user.userId,
+				sessionId: user.sessionId
 			});
 			generationRequest = await this.generationRequestRepository.save(entity);
 		}
 
 		return { generationRequest, isNew: true };
+	}
+
+	public async createPaymentLink(requestId: number, user: UserContext): Promise<PaymentLinkDtoResponse> {
+		const generationRequest = (await this.generationRequestRepository.findOne({
+			where: { id: requestId },
+			relations: ['generation', 'generation.calculation']
+		}))!;
+
+		// Проверка ownership
+		const isOwner = user.userId ? generationRequest.userId === user.userId : generationRequest.sessionId === user.sessionId;
+		if (!isOwner) {
+			throw new ForbiddenException('Generation request does not belong to you');
+		}
+
+		// Проверить что оплата еще не прошла
+		if (generationRequest.status >= PAID_THRESHOLD) {
+			throw new ForbiddenException('Generation request is already paid');
+		}
+
+		const generation = generationRequest.generation;
+		const calculation = generation.calculation;
+
+		// Получить цену для провайдера
+		const providerPrice = calculation.prices.find(p => p.provider === generation.provider);
+
+		if (!providerPrice || providerPrice.price.total === 0) {
+			throw new ForbiddenException('This generation does not require payment');
+		}
+
+		// Создать новую Checkout Session
+		const session = await this.stripeService.createCheckoutSession({
+			generationRequestId: generationRequest.id,
+			amount: providerPrice.price.total,
+			currency: calculation.currency,
+			hostname: calculation.hostname,
+			provider: generation.provider
+		});
+
+		generationRequest.paymentLink = session.url;
+		await this.generationRequestRepository.save(generationRequest);
+
+		return PaymentLinkDtoResponse.fromData(session.url);
 	}
 
 	private async queueJob(generation: Generation, generationRequest: GenerationRequest, provider: Provider): Promise<string> {
@@ -174,66 +205,23 @@ class GenerationRequestService {
 	/**
 	 * Обработка generation request с учетом необходимости оплаты
 	 */
-	private async handleGenerationRequest(generation: Generation, calculation: Calculation, providerPrice: ProviderPrices, isNewGeneration: boolean): Promise<GenerationRequestDtoResponse> {
+	private async handleGenerationRequest(generation: Generation, calculation: Calculation, providerPrice: ProviderPrices, isNewGeneration: boolean, user: UserContext): Promise<GenerationRequestDtoResponse> {
 		const queryRunner = this.dataSource.createQueryRunner();
 		await queryRunner.connect();
 		await queryRunner.startTransaction();
 
-		this.queryRunner = queryRunner;
 		this.generationsService.setQueryRunner(queryRunner);
 
 		try {
-			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner);
+			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner, user);
 
-			// Если требуется оплата и еще не оплачено
+			// Если требуется оплата и еще не оплачено - вернуть GenerationRequest без создания ссылки
 			if (providerPrice.price.total > 0 && generationRequest.status < PAID_THRESHOLD) {
-				// Проверить существующую paymentLink
-				if (generationRequest.paymentLink) {
-					const sessionId = generationRequest.paymentLink.split('/').pop()!.split('#')[0];
-					const session = await this.stripeService.retrieveSession(sessionId);
-
-					switch (session.status) {
-						case StripeSessionStatus.COMPLETE:
-							// Оплачено - обновить status и продолжить обработку ниже
-							generationRequest.status = GenerationRequestStatus.ACCEPTED.value;
-							await queryRunner.manager.save(generationRequest);
-							break;
-
-						case StripeSessionStatus.OPEN:
-							// Ссылка еще активна - вернуть существующую
-							await queryRunner.manager.save(generation);
-
-							await queryRunner.commitTransaction();
-							this.truncateOutput(generation);
-							generationRequest.generation = generation;
-							return GenerationRequestDtoResponse.fromEntity(generationRequest);
-
-						case StripeSessionStatus.EXPIRED:
-							// Истекла - создать новую Session ниже
-							break;
-					}
-				}
-
-				// Если еще не оплачено - создать новую Checkout Session
-				if (generationRequest.status < PAID_THRESHOLD) {
-					const session = await this.stripeService.createCheckoutSession({
-						generationRequestId: generationRequest.id,
-						amount: providerPrice.price.total,
-						currency: calculation.currency,
-						hostname: calculation.hostname,
-						provider: generation.provider
-					});
-
-					generationRequest.paymentLink = session.url;
-
-					await queryRunner.manager.save(generationRequest);
-					await queryRunner.manager.save(generation);
-
-					await queryRunner.commitTransaction();
-					this.truncateOutput(generation);
-					generationRequest.generation = generation;
-					return GenerationRequestDtoResponse.fromEntity(generationRequest);
-				}
+				await queryRunner.manager.save(generation);
+				await queryRunner.commitTransaction();
+				this.truncateOutput(generation);
+				generationRequest.generation = generation;
+				return GenerationRequestDtoResponse.fromEntity(generationRequest);
 			}
 
 			// Бесплатный или уже оплачено - поставить в очередь
@@ -259,7 +247,6 @@ class GenerationRequestService {
 			throw error;
 		} finally {
 			await queryRunner.release();
-			this.queryRunner = null;
 			this.generationsService.setQueryRunner(null);
 		}
 	}

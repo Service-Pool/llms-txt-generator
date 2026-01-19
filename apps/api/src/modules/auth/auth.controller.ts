@@ -1,19 +1,19 @@
 import { AuthService } from './services/auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
 import { MessageSuccess } from '../../utils/response/message-success';
 import { MessageError } from '../../utils/response/message-error';
 import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req, Query } from '@nestjs/common';
-import { CurrentUserService } from './services/current-user.service';
 import { RequestLoginLinkRequestDto } from './dto/auth-request.dto';
 import { ApiResponse } from '../../utils/response/api-response';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
+import { type UserContext } from './models/user-context.model';
 import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkResponseDto } from './dto/auth-response.dto';
 
 @Controller('api/auth')
 class AuthController {
 	constructor(
 		private readonly authService: AuthService,
-		private readonly currentUserService: CurrentUserService,
 		private readonly apiResponse: ApiResponse
 	) { }
 
@@ -35,17 +35,14 @@ class AuthController {
 	}
 
 	@Get('me')
-	async status(): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
-		const userId = this.currentUserService.getUserId();
-		const sessionId = this.currentUserService.getSessionId();
-
-		if (userId) {
-			const user = await this.authService.findById(userId);
-			if (user) {
+	async status(@CurrentUser() user: UserContext): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
+		if (user.userId) {
+			const userEntity = await this.authService.findById(user.userId);
+			if (userEntity) {
 				return this.apiResponse.success(AuthStatusDtoResponse.fromEntity(
 					true,
-					sessionId,
-					user
+					user.sessionId,
+					userEntity
 				));
 			}
 		}

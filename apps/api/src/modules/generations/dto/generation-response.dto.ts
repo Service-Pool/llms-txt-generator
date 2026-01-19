@@ -64,7 +64,6 @@ class GenerationRequestDtoResponse {
 		public userId: number | null,
 		public sessionId: string | null,
 		public status: number,
-		public paymentLink: string | null,
 		public createdAt: string,
 		public generation: GenerationDtoResponse
 	) { }
@@ -79,7 +78,6 @@ class GenerationRequestDtoResponse {
 			entity.userId,
 			entity.sessionId,
 			entity.status,
-			entity.paymentLink,
 			entity.createdAt.toISOString(),
 			GenerationDtoResponse.fromEntity(entity.generation)
 		);
@@ -91,7 +89,6 @@ class GenerationRequestDtoResponse {
 			json.userId as number | null,
 			json.sessionId as string | null,
 			json.status as number,
-			json.paymentLink as string | null,
 			json.createdAt as string,
 			GenerationDtoResponse.fromJSON(json.generation as Record<string, unknown>)
 		);
@@ -153,4 +150,19 @@ class CalculateHostnamePriceDtoResponse {
 	}
 }
 
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse };
+/**
+ * DTO для ответа с платежной ссылкой
+ */
+class PaymentLinkDtoResponse {
+	constructor(public paymentLink: string | null) { }
+
+	static fromData(url: string | null): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse(url);
+	}
+
+	static fromJSON(json: Record<string, unknown>): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse(json.paymentLink as string | null);
+	}
+}
+
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse, PaymentLinkDtoResponse };
