@@ -20,8 +20,34 @@
 	let showContent = $state(false);
 	let fullContent = $state<string | null>(null);
 	let isLoading = $state(false);
+	let paymentLink = $state<string | null>(null);
+	let paymentLinkLoaded = $state(false);
+
+	const isReady = $derived(
+		item.status !== GenerationRequestStatus.PENDING_PAYMENT.value ||
+			paymentLinkLoaded,
+	);
 
 	const generationsService = new GenerationsService();
+
+	// Load payment link if status is PENDING_PAYMENT
+	$effect(() => {
+		if (
+			item.status === GenerationRequestStatus.PENDING_PAYMENT.value &&
+			!paymentLink
+		) {
+			generationsService
+				.getPaymentLink(item.id)
+				.then((response) => {
+					paymentLink = response.getMessage().data.paymentLink;
+					paymentLinkLoaded = true;
+				})
+				.catch(() => {
+					// Silent fail - payment link not critical
+					paymentLinkLoaded = true;
+				});
+		}
+	});
 
 	const status = $derived.by(() => {
 		return item.generation.status;
@@ -134,123 +160,131 @@
 	};
 </script>
 
-<div
-	class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-	<div class="flex flex-wrap items-start justify-between gap-3">
-		<div class="flex-1">
-			<!-- Hostname with Status -->
-			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
-				<h3
-					class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-					{item.generation.hostname}
-				</h3>
-				<span
-					class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
-					{statusConfig.text}
-				</span>
+{#if !isReady}
+	<div
+		class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 animate-pulse">
+		<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+		<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+	</div>
+{:else}
+	<div
+		class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div class="flex-1">
+				<!-- Hostname with Status -->
+				<div class="flex items-baseline gap-2 mb-2 flex-wrap">
+					<h3
+						class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+						{item.generation.hostname}
+					</h3>
+					<span
+						class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
+						{statusConfig.text}
+					</span>
+				</div>
+
+				<!-- Error Message -->
+				{#if status === GenerationStatus.FAILED && item.generation.errors}
+					<div class="text-xs text-red-600 dark:text-red-400 mt-1">
+						Error: {item.generation.errors}
+					</div>
+				{/if}
 			</div>
 
-			<!-- Error Message -->
-			{#if status === GenerationStatus.FAILED && item.generation.errors}
-				<div class="text-xs text-red-600 dark:text-red-400 mt-1">
-					Error: {item.generation.errors}
-				</div>
-			{/if}
-		</div>
+			<!-- Action Buttons -->
+			<div class="shrink-0 flex items-center gap-1">
+				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentLink}
+					<a
+						href={paymentLink}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+						Pay Now
+					</a>
+				{/if}
 
-		<!-- Action Buttons -->
-		<div class="shrink-0 flex items-center gap-1">
-			{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && item.paymentLink}
-				<a
-					href={item.paymentLink}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
-					Pay Now
-				</a>
-			{/if}
+				{#if status === GenerationStatus.COMPLETED}
+					<button
+						onclick={handleShowContent}
+						disabled={false}
+						class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+						<span>{showContent ? "Hide" : "Show"}</span>
+					</button>
+				{/if}
 
-			{#if status === GenerationStatus.COMPLETED}
 				<button
-					onclick={handleShowContent}
-					disabled={false}
-					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-					<span>{showContent ? "Hide" : "Show"}</span>
+					onclick={handleDelete}
+					class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
+					aria-label="Delete generation">
+					Delete
 				</button>
-			{/if}
-
-			<button
-				onclick={handleDelete}
-				class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
-				aria-label="Delete generation">
-				Delete
-			</button>
+			</div>
 		</div>
-	</div>
 
-	<!-- Provider & Metadata in one line -->
-	<div
-		class="w-full flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs text-gray-500 dark:text-gray-400">
-		<span>{item.generation.provider}</span>
-		<span>•</span>
-		<span>{formattedDate}</span>
-		{#if item.generation.urlsCount}
-			<span>•</span>
-			<span>{formatNumber(item.generation.urlsCount)} urls</span>
-		{/if}
-		{#if requestStatusConfig}
-			<span>•</span>
-			<span class={requestStatusConfig.class}>
-				{requestStatusConfig.text}
-			</span>
-		{/if}
-	</div>
-
-	<!-- Progress Bar for Active Generations -->
-	{#if status === GenerationStatus.ACTIVE && progress}
-		<div class="mt-3">
-			<ProgressBar
-				current={progress.processedUrls}
-				total={progress.totalUrls}
-				size="sm"
-				showPercentage={true}
-				showNumbers={true} />
-		</div>
-	{/if}
-
-	<!-- Content Section -->
-	{#if showContent || isLoading}
+		<!-- Provider & Metadata in one line -->
 		<div
-			class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
-			{#if isLoading}
-				<div class="flex justify-center items-center py-6">
-					<Spinner
-						size="md"
-						color="var(--spinner-color)"
-						delay={1000} />
-				</div>
-			{:else}
-				<p
-					class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
-					{fullContent}
-				</p>
+			class="w-full flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs text-gray-500 dark:text-gray-400">
+			<span>{item.generation.provider}</span>
+			<span>•</span>
+			<span>{formattedDate}</span>
+			{#if item.generation.urlsCount}
+				<span>•</span>
+				<span>{formatNumber(item.generation.urlsCount)} urls</span>
+			{/if}
+			{#if requestStatusConfig}
+				<span>•</span>
+				<span class={requestStatusConfig.class}>
+					{requestStatusConfig.text}
+				</span>
 			{/if}
 		</div>
-	{/if}
 
-	<!-- Action Buttons for Content -->
-	{#if showContent && fullContent && !isLoading}
-		<div class="flex gap-1 justify-end mt-2">
-			<button
-				onclick={handleCopy}
-				class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors">
-				Copy
-			</button>
-			<button
-				onclick={handleDownload}
-				class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors">
-				Download
-			</button>
-		</div>
-	{/if}
-</div>
+		<!-- Progress Bar for Active Generations -->
+		{#if status === GenerationStatus.ACTIVE && progress}
+			<div class="mt-3">
+				<ProgressBar
+					current={progress.processedUrls}
+					total={progress.totalUrls}
+					size="sm"
+					showPercentage={true}
+					showNumbers={true} />
+			</div>
+		{/if}
+
+		<!-- Content Section -->
+		{#if showContent || isLoading}
+			<div
+				class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
+				{#if isLoading}
+					<div class="flex justify-center items-center py-6">
+						<Spinner
+							size="md"
+							color="var(--spinner-color)"
+							delay={1000} />
+					</div>
+				{:else}
+					<p
+						class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
+						{fullContent}
+					</p>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Action Buttons for Content -->
+		{#if showContent && fullContent && !isLoading}
+			<div class="flex gap-1 justify-end mt-2">
+				<button
+					onclick={handleCopy}
+					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors">
+					Copy
+				</button>
+				<button
+					onclick={handleDownload}
+					class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors">
+					Download
+				</button>
+			</div>
+		{/if}
+	</div>
+{/if}

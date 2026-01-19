@@ -1,4 +1,5 @@
 import { CalculationsModule } from '../calculations/calculations.module';
+import { ClsModule } from 'nestjs-cls';
 import { ContentExtractorService } from './services/content-extractor.service';
 import { GeminiService } from './services/llm/gemini.service';
 import { Generation } from './entities/generation.entity';
@@ -21,6 +22,7 @@ import { User } from '../auth/entitites/user.entity';
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([Generation, GenerationRequest, User]),
+		ClsModule,
 		CalculationsModule,
 		QueueModule,
 		RobotsModule,

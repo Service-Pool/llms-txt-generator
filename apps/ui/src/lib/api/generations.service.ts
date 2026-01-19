@@ -40,5 +40,9 @@ class GenerationsService extends HttpClient {
 			method: 'DELETE'
 		});
 	}
+
+	public async getPaymentLink(requestId: number): Promise<ApiResponse<MessageSuccess<{ paymentLink: string }>>> {
+		return this.fetch(configService.endpoints.generationRequests.paymentLink(requestId));
+	}
 }
 export { GenerationsService };

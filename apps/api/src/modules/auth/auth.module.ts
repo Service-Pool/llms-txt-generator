@@ -1,6 +1,5 @@
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
-import { CurrentUserService } from './services/current-user.service';
 import { GenerationRequest } from '../generations/entities/generation-request.entity';
 import { MailService } from './services/mail.service';
 import { Module } from '@nestjs/common';
@@ -19,7 +18,6 @@ import { User } from './entitites/user.entity';
 	controllers: [AuthController],
 	providers: [
 		AuthService,
-		CurrentUserService,
 		MailService,
 		SessionCleanupService,
 		ApiResponse

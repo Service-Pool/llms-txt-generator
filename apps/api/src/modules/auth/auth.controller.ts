@@ -1,26 +1,26 @@
-import { AuthService } from './services/auth.service';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { MessageSuccess } from '../../utils/response/message-success';
-import { MessageError } from '../../utils/response/message-error';
-import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req, Query } from '@nestjs/common';
-import { RequestLoginLinkRequestDto } from './dto/auth-request.dto';
 import { ApiResponse } from '../../utils/response/api-response';
+import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkResponseDto } from './dto/auth-response.dto';
+import { AuthService } from './services/auth.service';
+import { ClsService } from 'nestjs-cls';
+import { Controller, Post, Get, Body, HttpCode, HttpStatus, Req, Query } from '@nestjs/common';
+import { MessageError } from '../../utils/response/message-error';
+import { MessageSuccess } from '../../utils/response/message-success';
+import { RequestLoginLinkRequestDto } from './dto/auth-request.dto';
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type FastifyRequest } from 'fastify';
-import { type UserContext } from './models/user-context.model';
-import { AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkResponseDto } from './dto/auth-response.dto';
-
+import { type UserClsStore } from './models/user-context.model';
 @Controller('api/auth')
 class AuthController {
 	constructor(
 		private readonly authService: AuthService,
-		private readonly apiResponse: ApiResponse
+		private readonly apiResponse: ApiResponse,
+		private readonly cls: ClsService<UserClsStore>
 	) { }
 
 	@Post('logout')
 	@HttpCode(HttpStatus.OK)
 	async logout(@Req() request: FastifyRequest): Promise<ApiResponse<MessageSuccess<AuthLogoutDtoResponse> | MessageError>> {
-		if (!request.session.userId) {
+		if (!this.cls.get('userId')) {
 			return this.apiResponse.error(ResponseCode.ERROR, 'Not authenticated');
 		}
 
@@ -35,13 +35,16 @@ class AuthController {
 	}
 
 	@Get('me')
-	async status(@CurrentUser() user: UserContext): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
-		if (user.userId) {
-			const userEntity = await this.authService.findById(user.userId);
+	async status(): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
+		const userId = this.cls.get('userId');
+		const sessionId = this.cls.get('sessionId');
+
+		if (userId) {
+			const userEntity = await this.authService.findById(userId);
 			if (userEntity) {
 				return this.apiResponse.success(AuthStatusDtoResponse.fromEntity(
 					true,
-					user.sessionId,
+					sessionId,
 					userEntity
 				));
 			}
@@ -74,7 +77,7 @@ class AuthController {
 		}
 
 		// Migrate anonymous GenerationRequests from this session to user
-		const migratedCount = await this.authService.migrateSessionToUser(request.session.sessionId, user.id);
+		const migratedCount = await this.authService.migrateSessionToUser(this.cls.get('sessionId'), user.id);
 
 		// Set session data
 		request.session.userId = user.id;

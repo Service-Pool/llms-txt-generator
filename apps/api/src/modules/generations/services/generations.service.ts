@@ -1,3 +1,4 @@
+import { ClsService } from 'nestjs-cls';
 import { Generation } from '../entities/generation.entity';
 import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
@@ -7,7 +8,7 @@ import { JobUtils } from '../../../utils/job.utils';
 import { Provider } from '../../../enums/provider.enum';
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
-import { type UserContext } from '../../auth/models/user-context.model';
+import { type UserClsStore } from '../../auth/models/user-context.model';
 
 @Injectable()
 class GenerationsService {
@@ -16,6 +17,7 @@ class GenerationsService {
 	public constructor(
 		private readonly queueService: QueueService,
 		private readonly dataSource: DataSource,
+		private readonly cls: ClsService<UserClsStore>,
 		@InjectRepository(Generation) private readonly generationRepository: Repository<Generation>,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
 	) { }
@@ -27,7 +29,7 @@ class GenerationsService {
 		});
 	}
 
-	public async findByIdAndUser(id: number, user: UserContext): Promise<Generation | null> {
+	public async findByIdAndUser(id: number): Promise<Generation | null> {
 		const generation = await this.generationRepository.findOne({
 			where: { id },
 			relations: ['calculation']
@@ -37,11 +39,14 @@ class GenerationsService {
 			return null;
 		}
 
+		const userId = this.cls.get('userId');
+		const sessionId = this.cls.get('sessionId');
+
 		// Check if user has access through GenerationRequest
 		const hasAccess = await this.generationRequestRepository.findOne({
 			where: [
-				user.userId ? { generationId: id, userId: user.userId } : {},
-				{ generationId: id, sessionId: user.sessionId }
+				userId ? { generationId: id, userId } : {},
+				{ generationId: id, sessionId }
 			]
 		});
 

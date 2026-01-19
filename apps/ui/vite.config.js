@@ -23,10 +23,12 @@ const stubServerImports = {
 		switch (true) {
 			case id === '@nestjs/common':
 			case id === 'class-validator':
+			case id === 'class-transformer':
 			case id === 'robots-parser':
 			case id.includes('common/validators'):
 			case id.includes('validators/hostname.validator'):
 			case id.includes('validators/calculation.validator'):
+			case id.includes('validators/generation-request.validator'):
 			case id.includes('config/config.service'):
 				return id;
 
@@ -52,11 +54,23 @@ const stubServerImports = {
 				return exports;
 			}
 
+			case id === 'class-transformer': {
+				// Все популярные декораторы class-transformer
+				const decorators = [
+					'Type'
+				];
+				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				return exports;
+			}
+
 			case id.includes('validators/hostname.validator'):
 				return `export class HostnameValidator { static validateHostnameRobotsAndSitemap = () => () => {}; }`;
 
 			case id.includes('validators/calculation.validator'):
 				return `export class CalculationValidator { static validateCalculationExists = () => () => {}; }`;
+
+			case id.includes('validators/generation-request.validator'):
+				return `export class GenerationRequestValidator { static validateGenerationRequestExists = () => () => {}; }`;
 
 			case id.includes('config/config.service'):
 				return `export const HOSTNAME_VALIDATION = () => () => {};`;

@@ -1,12 +1,13 @@
 import { AppConfigService } from '../../../config/config.service';
 import { Calculation } from '../../calculations/entities/calculation.entity';
+import { ClsService } from 'nestjs-cls';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { GenerationRequest } from '../entities/generation-request.entity';
 import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentLinkDtoResponse } from '../dto/generation-response.dto';
+import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
-import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobUtils } from '../../../utils/job.utils';
@@ -15,7 +16,7 @@ import { ProviderPrices } from '../../calculations/models/provider-prices.model'
 import { QueueService } from '../../queue/queue.service';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { StripeService } from '../../stripe/stripe.service';
-import { UserContext } from '../../auth/models/user-context.model';
+import { type UserClsStore } from '../../auth/models/user-context.model';
 
 @Injectable()
 class GenerationRequestService {
@@ -27,10 +28,18 @@ class GenerationRequestService {
 		private readonly configService: AppConfigService,
 		private readonly stripeService: StripeService,
 		private readonly dataSource: DataSource,
+		private readonly cls: ClsService<UserClsStore>,
 		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>
-	) {}
+	) { }
 
-	public async deleteRequest(requestId: number, user: UserContext): Promise<void> {
+	private get user(): UserClsStore {
+		return {
+			userId: this.cls.get('userId'),
+			sessionId: this.cls.get('sessionId')
+		};
+	}
+
+	public async deleteRequest(requestId: number): Promise<void> {
 		const generationRequest = await this.generationRequestRepository.findOneBy({ id: requestId });
 
 		if (!generationRequest) {
@@ -38,7 +47,7 @@ class GenerationRequestService {
 		}
 
 		// Check ownership
-		const isOwner = user.userId ? generationRequest.userId === user.userId : generationRequest.sessionId === user.sessionId;
+		const isOwner = this.user.userId ? generationRequest.userId === this.user.userId : generationRequest.sessionId === this.user.sessionId;
 		if (!isOwner) {
 			throw new ForbiddenException('Cannot delete request that does not belong to you');
 		}
@@ -46,11 +55,11 @@ class GenerationRequestService {
 		await this.generationRequestRepository.delete(requestId);
 	}
 
-	public async listUserGenerations(page: number, limit: number, user: UserContext): Promise<GenerationRequestsListDtoResponse> {
+	public async listUserGenerations(page: number, limit: number): Promise<GenerationRequestsListDtoResponse> {
 		const offset = (page - 1) * limit;
 
 		const [items, total] = await this.generationRequestRepository.findAndCount({
-			where: user.userId ? { userId: user.userId } : { sessionId: user.sessionId },
+			where: this.user.userId ? { userId: this.user.userId } : { sessionId: this.user.sessionId },
 			relations: ['generation', 'generation.calculation'],
 			order: { createdAt: 'DESC' },
 			skip: offset,
@@ -67,7 +76,7 @@ class GenerationRequestService {
 		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit);
 	}
 
-	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider, user: UserContext): Promise<GenerationRequestDtoResponse> {
+	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<GenerationRequestDtoResponse> {
 		// 1. Найти существующую generation
 		const { generation, isNew: isNewGeneration } = await this.generationsService.findOrCreateGeneration(calculationId, provider);
 
@@ -81,7 +90,7 @@ class GenerationRequestService {
 
 		// 3. Если generation завершена - просто вернуть её с generationRequest
 		if (generation.status === GenerationStatus.COMPLETED) {
-			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null, user);
+			const { generationRequest: existingRequest } = await this.ensureGenerationRequest(generation.id, null);
 			this.truncateOutput(generation);
 
 			existingRequest.generation = generation;
@@ -89,15 +98,14 @@ class GenerationRequestService {
 		}
 
 		// 4. Обработать generation request
-		return await this.handleGenerationRequest(generation, calculation, providerPrice, isNewGeneration, user);
+		return await this.handleGenerationRequest(generation, calculation, providerPrice, isNewGeneration);
 	}
 
 	private async ensureGenerationRequest(
 		generationId: number,
-		queryRunner: QueryRunner | null,
-		user: UserContext
+		queryRunner: QueryRunner | null
 	): Promise<{ generationRequest: GenerationRequest; isNew: boolean }> {
-		const whereCondition = user.userId ? { generationId, userId: user.userId } : { generationId, sessionId: user.sessionId };
+		const whereCondition = this.user.userId ? { generationId, userId: this.user.userId } : { generationId, sessionId: this.user.sessionId };
 
 		// Use provided queryRunner's manager or repository
 		let existing: GenerationRequest | null = null;
@@ -115,15 +123,15 @@ class GenerationRequestService {
 		if (queryRunner) {
 			const entity = queryRunner.manager.create(GenerationRequest, {
 				generationId,
-				userId: user.userId,
-				sessionId: user.sessionId
+				userId: this.user.userId,
+				sessionId: this.user.sessionId
 			});
 			generationRequest = await queryRunner.manager.save(entity);
 		} else {
 			const entity = this.generationRequestRepository.create({
 				generationId,
-				userId: user.userId,
-				sessionId: user.sessionId
+				userId: this.user.userId,
+				sessionId: this.user.sessionId
 			});
 			generationRequest = await this.generationRequestRepository.save(entity);
 		}
@@ -131,14 +139,14 @@ class GenerationRequestService {
 		return { generationRequest, isNew: true };
 	}
 
-	public async createPaymentLink(requestId: number, user: UserContext): Promise<PaymentLinkDtoResponse> {
+	public async createPaymentLink(requestId: number): Promise<PaymentLinkDtoResponse> {
 		const generationRequest = (await this.generationRequestRepository.findOne({
 			where: { id: requestId },
 			relations: ['generation', 'generation.calculation']
 		}))!;
 
 		// Проверка ownership
-		const isOwner = user.userId ? generationRequest.userId === user.userId : generationRequest.sessionId === user.sessionId;
+		const isOwner = this.user.userId ? generationRequest.userId === this.user.userId : generationRequest.sessionId === this.user.sessionId;
 		if (!isOwner) {
 			throw new ForbiddenException('Generation request does not belong to you');
 		}
@@ -205,7 +213,7 @@ class GenerationRequestService {
 	/**
 	 * Обработка generation request с учетом необходимости оплаты
 	 */
-	private async handleGenerationRequest(generation: Generation, calculation: Calculation, providerPrice: ProviderPrices, isNewGeneration: boolean, user: UserContext): Promise<GenerationRequestDtoResponse> {
+	private async handleGenerationRequest(generation: Generation, calculation: Calculation, providerPrice: ProviderPrices, isNewGeneration: boolean): Promise<GenerationRequestDtoResponse> {
 		const queryRunner = this.dataSource.createQueryRunner();
 		await queryRunner.connect();
 		await queryRunner.startTransaction();
@@ -213,7 +221,7 @@ class GenerationRequestService {
 		this.generationsService.setQueryRunner(queryRunner);
 
 		try {
-			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner, user);
+			const { generationRequest, isNew: isNewRequest } = await this.ensureGenerationRequest(generation.id, queryRunner);
 
 			// Если требуется оплата и еще не оплачено - вернуть GenerationRequest без создания ссылки
 			if (providerPrice.price.total > 0 && generationRequest.status < PAID_THRESHOLD) {

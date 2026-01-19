@@ -20,7 +20,8 @@ class AppConfigService {
 		},
 		generationRequests: {
 			base: '/api/generation-requests',
-			byId: (id: number) => `/api/generation-requests/${id}`
+			byId: (id: number) => `/api/generation-requests/${id}`,
+			paymentLink: (id: number) => `/api/generation-requests/${id}/payment-link`
 		},
 		calculate: {
 			host: (hostname: string) => `/api/calculations?hostname=${encodeURIComponent(hostname)}`
