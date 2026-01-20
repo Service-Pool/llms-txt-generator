@@ -15,6 +15,7 @@
 		onPageChange: (page: number) => void;
 		onLimitChange: (limit: number) => void;
 		onDelete: (id: number) => void;
+		onPaymentSuccess?: (id: number) => void;
 	}
 
 	let {
@@ -26,6 +27,7 @@
 		onPageChange,
 		onLimitChange,
 		onDelete,
+		onPaymentSuccess,
 	}: Props = $props();
 </script>
 
@@ -61,7 +63,8 @@
 				<GenerationListItem
 					{item}
 					progress={progressMap[item.generation.id]}
-					{onDelete} />
+					{onDelete}
+					{onPaymentSuccess} />
 			{/each}
 		</div>
 

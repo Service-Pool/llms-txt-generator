@@ -151,17 +151,31 @@ class CalculateHostnamePriceDtoResponse {
 }
 
 /**
- * DTO для ответа с платежной ссылкой
+ * DTO для ответа с платежной информацией (Checkout URL или Elements client secret)
  */
 class PaymentLinkDtoResponse {
-	constructor(public paymentLink: string | null) { }
+	constructor(
+		public method: 'checkout' | 'elements',
+		public publishableKey: string,
+		public url?: string,
+		public clientSecret?: string
+	) { }
 
-	static fromData(url: string | null): PaymentLinkDtoResponse {
-		return new PaymentLinkDtoResponse(url);
+	static fromCheckout(url: string, publishableKey: string): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse('checkout', publishableKey, url, undefined);
+	}
+
+	static fromElements(clientSecret: string, publishableKey: string): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse('elements', publishableKey, undefined, clientSecret);
 	}
 
 	static fromJSON(json: Record<string, unknown>): PaymentLinkDtoResponse {
-		return new PaymentLinkDtoResponse(json.paymentLink as string | null);
+		return new PaymentLinkDtoResponse(
+			json.method as 'checkout' | 'elements',
+			json.publishableKey as string,
+			json.url as string | undefined,
+			json.clientSecret as string | undefined
+		);
 	}
 }
 

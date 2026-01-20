@@ -7,26 +7,26 @@ const configService = new AppConfigService();
 class AuthService extends HttpClient {
 	public async requestLoginLink(email: string, redirectUrl?: string): Promise<ApiResponse<MessageSuccess<RequestLoginLinkResponseDto>>> {
 		const dto: RequestLoginLinkRequestDto = { email, redirectUrl };
-		return this.fetch(configService.endpoints.auth.requestLoginLink, {
+		return this.fetch(configService.endpoints.auth.requestLoginLink, RequestLoginLinkResponseDto, {
 			method: 'POST',
 			body: JSON.stringify(dto)
-		}, RequestLoginLinkResponseDto);
+		});
 	}
 
 	public async verifyLoginLink(crd: string): Promise<ApiResponse<MessageSuccess<AuthLoginDtoResponse>>> {
-		return this.fetch(`${configService.endpoints.auth.verifyLoginLink}?crd=${encodeURIComponent(crd)}`, {
+		return this.fetch(`${configService.endpoints.auth.verifyLoginLink}?crd=${encodeURIComponent(crd)}`, AuthLoginDtoResponse, {
 			method: 'GET'
-		}, AuthLoginDtoResponse);
+		});
 	}
 
 	public async logout(): Promise<ApiResponse<MessageSuccess<AuthLogoutDtoResponse>>> {
-		return this.fetch(configService.endpoints.auth.logout, {
+		return this.fetch(configService.endpoints.auth.logout, AuthLogoutDtoResponse, {
 			method: 'POST'
-		}, AuthLogoutDtoResponse);
+		});
 	}
 
 	public async getStatus(): Promise<ApiResponse<MessageSuccess<AuthStatusDtoResponse>>> {
-		return this.fetch(configService.endpoints.auth.status, undefined, AuthStatusDtoResponse);
+		return this.fetch(configService.endpoints.auth.status, AuthStatusDtoResponse);
 	}
 }
 

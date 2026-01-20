@@ -7,6 +7,7 @@ import { Calculation } from '../modules/calculations/entities/calculation.entity
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Provider } from '../enums/provider.enum';
 import { Session } from '../modules/auth/entitites/session.entity';
+import { StripePaymentMethod } from '../enums/stripe-payment-method.enum';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { User } from '../modules/auth/entitites/user.entity';
 import * as Joi from 'joi';
@@ -47,7 +48,9 @@ interface ValidatedEnv {
 	SESSION_SECRET: string;
 	SOCKET_PATH: string;
 	STRIPE_SECRET_KEY: string;
+	STRIPE_PUBLISHABLE_KEY: string;
 	STRIPE_WEBHOOK_SECRET: string;
+	STRIPE_PAYMENT_METHOD: StripePaymentMethod;
 	FRONTEND_HOST: string;
 	SMTP_HOST: string;
 	SMTP_PORT: number;
@@ -100,7 +103,9 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SESSION_SECRET: Joi.string().required(),
 	SOCKET_PATH: Joi.string(),
 	STRIPE_SECRET_KEY: Joi.string().required(),
+	STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
 	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+	STRIPE_PAYMENT_METHOD: Joi.string().valid(...Object.values(StripePaymentMethod)).default(StripePaymentMethod.CHECKOUT),
 	FRONTEND_HOST: Joi.string().uri().required(),
 	SMTP_HOST: Joi.string().required(),
 	SMTP_PORT: Joi.number().port().required(),
@@ -254,8 +259,10 @@ class AppConfigService {
 	// Stripe config
 	public readonly stripe = {
 		secretKey: env.STRIPE_SECRET_KEY,
+		publishableKey: env.STRIPE_PUBLISHABLE_KEY,
 		webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-		frontendHost: env.FRONTEND_HOST
+		frontendHost: env.FRONTEND_HOST,
+		paymentMethod: env.STRIPE_PAYMENT_METHOD
 	};
 
 	// SMTP config

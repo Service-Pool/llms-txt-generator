@@ -55,11 +55,18 @@ class GenerationRequestService {
 		await this.generationRequestRepository.delete(requestId);
 	}
 
-	public async listUserGenerationRequests(page: number, limit: number): Promise<GenerationRequestsListDtoResponse> {
+	public async listUserGenerationRequests(page: number, limit: number, generationRequestId?: number): Promise<GenerationRequestsListDtoResponse> {
 		const offset = (page - 1) * limit;
 
+		const where = this.user.userId ? { userId: this.user.userId } : { sessionId: this.user.sessionId };
+		
+		// Если передан generationRequestId - добавляем фильтр
+		if (generationRequestId) {
+			Object.assign(where, { id: generationRequestId });
+		}
+
 		const [items, total] = await this.generationRequestRepository.findAndCount({
-			where: this.user.userId ? { userId: this.user.userId } : { sessionId: this.user.sessionId },
+			where,
 			relations: ['generation', 'generation.calculation'],
 			order: { createdAt: 'DESC' },
 			skip: offset,
@@ -169,8 +176,8 @@ class GenerationRequestService {
 			throw new ForbiddenException('This generation does not require payment');
 		}
 
-		// Создать новую Checkout Session
-		const session = await this.stripeService.createCheckoutSession({
+		// Создать платеж (Checkout или Elements)
+		const paymentResponse = await this.stripeService.createPayment({
 			generationRequestId: generationRequest.id,
 			amount: providerPrice.price.total,
 			currency: calculation.currency,
@@ -178,10 +185,11 @@ class GenerationRequestService {
 			provider: generation.provider
 		});
 
-		generationRequest.paymentLink = session.url;
+		// Сохранить URL или client secret в зависимости от метода
+		generationRequest.paymentLink = paymentResponse.url || paymentResponse.clientSecret!;
 		await this.generationRequestRepository.save(generationRequest);
 
-		return PaymentLinkDtoResponse.fromData(session.url);
+		return paymentResponse;
 	}
 
 	private async queueJob(generation: Generation, generationRequest: GenerationRequest, provider: Provider): Promise<string> {
@@ -212,14 +220,14 @@ class GenerationRequestService {
 
 		for (const request of unpaidRequests) {
 			try {
-				const sessionId = this.stripeService.extractSessionId(request.paymentLink!);
-				if (!sessionId) {
+				const paymentId = this.stripeService.extractPaymentId(request.paymentLink!);
+				if (!paymentId) {
 					continue;
 				}
 
-				const { status, session } = await this.stripeService.getGenerationRequestStatus(sessionId);
+				const { status, session, paymentIntent } = await this.stripeService.getGenerationRequestStatus(paymentId);
 
-				if (status === null || !session) {
+				if (status === null) {
 					continue;
 				}
 
@@ -234,7 +242,10 @@ class GenerationRequestService {
 					await this.queueJob(request.generation, request, request.generation.provider);
 					this.logger.log(`Synced payment status for GenerationRequest ${request.id}: Stripe PAID -> DB ACCEPTED, queued job`);
 				} else {
-					this.logger.debug(`Synced payment status for GenerationRequest ${request.id}: Stripe ${session.payment_status}/${session.status} -> DB PENDING_PAYMENT`);
+					const statusInfo = session
+						? `${session.payment_status}/${session.status}`
+						: paymentIntent?.status || 'unknown';
+					this.logger.debug(`Synced payment status for GenerationRequest ${request.id}: Stripe ${statusInfo} -> DB PENDING_PAYMENT`);
 				}
 			} catch (error) {
 				this.logger.error(`Failed to sync payment status for GenerationRequest ${request.id}`, error);

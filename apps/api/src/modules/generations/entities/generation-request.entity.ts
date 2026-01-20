@@ -28,6 +28,11 @@ class GenerationRequest {
 	@Index('idx_session')
 	public sessionId: string | null;
 
+	/**
+	 * Payment link для Checkout или client secret для Elements
+	 * Формат: https://checkout.stripe.com/c/pay/cs_... (Checkout)
+	 * или pi_xxx_secret_yyy (Elements client secret)
+	 */
 	@Column({ type: 'varchar', length: 500, nullable: true, name: 'payment_link' })
 	public paymentLink: string | null;
 

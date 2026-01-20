@@ -17,9 +17,10 @@ class GenerationRequestsController {
 	@Get()
 	public async list(
 		@Query('page') page: number = 1,
-		@Query('limit') limit: number = 20
+		@Query('limit') limit: number = 20,
+		@Query('generationRequestId') generationRequestId?: number
 	): Promise<ApiResponse<MessageSuccess<GenerationRequestsListDtoResponse>>> {
-		const result = await this.generationRequestService.listUserGenerationRequests(page, limit);
+		const result = await this.generationRequestService.listUserGenerationRequests(page, limit, generationRequestId);
 		return this.apiResponse.success(result);
 	}
 

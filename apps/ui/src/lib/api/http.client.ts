@@ -23,7 +23,7 @@ class HttpClient {
 		this.timeout = configService.http.timeout;
 	}
 
-	protected async fetch<T>(endpoint: string, options?: RequestInit, DataClass?: Deserializable<T>): Promise<ApiResponse<MessageSuccess<T>>> {
+	protected async fetch<T>(endpoint: string, DataClass?: Deserializable<T>, options?: RequestInit): Promise<ApiResponse<MessageSuccess<T>>> {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		const controller = new AbortController();

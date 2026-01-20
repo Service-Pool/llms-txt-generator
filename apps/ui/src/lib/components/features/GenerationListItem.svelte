@@ -8,20 +8,28 @@
 	import { GenerationsService } from "$lib/api/generations.service";
 	import Spinner from "../common/Spinner.svelte";
 	import { formatNumber } from "$lib/utils/number-format";
+	import StripeElementsModal from "../common/StripeElementsModal.svelte";
 
 	interface Props {
 		item: GenerationRequestDtoResponse;
 		progress?: { processedUrls: number; totalUrls: number } | null;
 		onDelete: (id: number) => void;
+		onPaymentSuccess?: (id: number) => void;
 	}
 
-	let { item, progress = null, onDelete }: Props = $props();
+	let { item, progress = null, onDelete, onPaymentSuccess }: Props = $props();
 
 	let showContent = $state(false);
 	let fullContent = $state<string | null>(null);
 	let isLoading = $state(false);
-	let paymentLink = $state<string | null>(null);
+	let paymentData = $state<{
+		method: "checkout" | "elements";
+		publishableKey: string;
+		url?: string;
+		clientSecret?: string;
+	} | null>(null);
 	let paymentLinkLoaded = $state(false);
+	let showPaymentModal = $state(false);
 
 	const isReady = $derived(
 		item.status !== GenerationRequestStatus.PENDING_PAYMENT.value ||
@@ -34,12 +42,18 @@
 	$effect(() => {
 		if (
 			item.status === GenerationRequestStatus.PENDING_PAYMENT.value &&
-			!paymentLink
+			!paymentData
 		) {
 			generationsService
 				.getPaymentLink(item.id)
 				.then((response) => {
-					paymentLink = response.getMessage().data.paymentLink;
+					const data = response.getMessage().data;
+					paymentData = {
+						method: data.method,
+						publishableKey: data.publishableKey,
+						url: data.url,
+						clientSecret: data.clientSecret,
+					};
 					paymentLinkLoaded = true;
 				})
 				.catch(() => {
@@ -158,6 +172,21 @@
 		element.click();
 		document.body.removeChild(element);
 	};
+
+	const handleOpenPaymentModal = () => {
+		showPaymentModal = true;
+	};
+
+	const handlePaymentSuccess = () => {
+		if (onPaymentSuccess) {
+			onPaymentSuccess(item.id);
+		}
+		showPaymentModal = false;
+	};
+
+	const handleClosePaymentModal = () => {
+		showPaymentModal = false;
+	};
 </script>
 
 {#if !isReady}
@@ -193,14 +222,20 @@
 
 			<!-- Action Buttons -->
 			<div class="shrink-0 flex items-center gap-1">
-				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentLink}
-					<a
-						href={paymentLink}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
-						Pay Now
-					</a>
+				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentData}
+					{#if paymentData.method === "checkout" && paymentData.url}
+						<a
+							href={paymentData.url}
+							class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+							Pay Now
+						</a>
+					{:else if paymentData.method === "elements" && paymentData.clientSecret}
+						<button
+							onclick={handleOpenPaymentModal}
+							class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+							Pay Now
+						</button>
+					{/if}
 				{/if}
 
 				{#if status === GenerationStatus.COMPLETED}
@@ -287,4 +322,13 @@
 			</div>
 		{/if}
 	</div>
+{/if}
+
+<!-- Stripe Elements Payment Modal -->
+{#if showPaymentModal && paymentData?.method === "elements" && paymentData.clientSecret}
+	<StripeElementsModal
+		clientSecret={paymentData.clientSecret}
+		publishableKey={paymentData.publishableKey}
+		onSuccess={handlePaymentSuccess}
+		onClose={handleClosePaymentModal} />
 {/if}

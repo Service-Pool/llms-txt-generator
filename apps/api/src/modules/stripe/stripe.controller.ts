@@ -48,49 +48,63 @@ class StripeController {
 			case 'checkout.session.completed': {
 				const session = event.data.object;
 				const generationRequestId = parseInt(session.metadata!.generationRequestId);
-
-				// Загрузить GenerationRequest с Generation
-				const generationRequest = await this.generationRequestRepository.findOne({
-					where: { id: generationRequestId },
-					relations: ['generation', 'generation.calculation']
-				});
-
-				if (!generationRequest) {
-					this.logger.error(`GenerationRequest ${generationRequestId} not found`);
-					return { received: true };
-				}
-
-				const generation = generationRequest.generation;
-
-				// Идемпотентность: если уже оплачено, не делать повторно
-				if (generationRequest.status < PAID_THRESHOLD) {
-					generationRequest.status = GenerationRequestStatus.ACCEPTED.value;
-					generation.status = GenerationStatus.WAITING;
-
-					await this.generationRequestRepository.save(generationRequest);
-					await this.generationRepository.save(generation);
-
-					// Отправить WebSocket событие об обновлении запроса
-					const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
-					this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(dto));
-
-					// Поставить в очередь
-					const message = new GenerationJobMessage(
-						generation.id,
-						generationRequest.id,
-						generation.provider
-					);
-
-					const providerConfig = this.configService.providers[generation.provider];
-					const jobId = JobUtils.generateId(generation.id);
-
-					await this.queueService.send(providerConfig.queueName, message, jobId);
-				}
+				await this.processPaymentSuccess(generationRequestId);
+				break;
+			}
+			case 'payment_intent.succeeded': {
+				const paymentIntent = event.data.object;
+				const generationRequestId = parseInt(paymentIntent.metadata.generationRequestId);
+				await this.processPaymentSuccess(generationRequestId);
 				break;
 			}
 		}
 
 		return { received: true };
+	}
+
+	/**
+	 * Обработка успешной оплаты (для Checkout и Elements)
+	 */
+	private async processPaymentSuccess(generationRequestId: number): Promise<void> {
+		// Загрузить GenerationRequest с Generation
+		const generationRequest = await this.generationRequestRepository.findOne({
+			where: { id: generationRequestId },
+			relations: ['generation', 'generation.calculation']
+		});
+
+		if (!generationRequest) {
+			this.logger.error(`GenerationRequest ${generationRequestId} not found`);
+			return;
+		}
+
+		const generation = generationRequest.generation;
+
+		// Идемпотентность: если уже оплачено, не делать повторно
+		if (generationRequest.status < PAID_THRESHOLD) {
+			generationRequest.status = GenerationRequestStatus.ACCEPTED.value;
+			generation.status = GenerationStatus.WAITING;
+
+			await this.generationRequestRepository.save(generationRequest);
+			await this.generationRepository.save(generation);
+
+			// Отправить WebSocket событие об обновлении запроса
+			const dto = GenerationRequestDtoResponse.fromEntity(generationRequest);
+			this.eventEmitter.emit('generation.request.update', new GenerationRequestUpdateEvent(dto));
+
+			// Поставить в очередь
+			const message = new GenerationJobMessage(
+				generation.id,
+				generationRequest.id,
+				generation.provider
+			);
+
+			const providerConfig = this.configService.providers[generation.provider];
+			const jobId = JobUtils.generateId(generation.id);
+
+			await this.queueService.send(providerConfig.queueName, message, jobId);
+
+			this.logger.log(`Payment success processed for GenerationRequest ${generationRequestId}`);
+		}
 	}
 }
 

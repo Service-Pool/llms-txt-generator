@@ -99,6 +99,20 @@
 		total = total + 1;
 	};
 
+	const handlePaymentSuccess = async (requestId: number) => {
+		// Обновляем только оплаченную генерацию из сервера
+		const response = await generationsService.refreshOne(requestId);
+		const refreshedItems = response.getMessage().data.items;
+		
+		if (refreshedItems.length > 0) {
+			const refreshedItem = refreshedItems[0];
+			// Обновляем элемент в массиве
+			items = items.map((item) => 
+				item.id === requestId ? refreshedItem : item
+			);
+		}
+	};
+
 	const handleUpdate = (event: GenerationRequestUpdateEvent) => {
 		// Update the entire item with the new data from the event
 		items = items.map((item) => {
@@ -185,6 +199,7 @@
 			{progressMap}
 			onPageChange={handlePageChange}
 			onLimitChange={handleLimitChange}
-			onDelete={handleDelete} />
+			onDelete={handleDelete}
+			onPaymentSuccess={handlePaymentSuccess} />
 	{/if}
 </div>
