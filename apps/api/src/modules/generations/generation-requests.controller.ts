@@ -19,7 +19,7 @@ class GenerationRequestsController {
 		@Query('page') page: number = 1,
 		@Query('limit') limit: number = 20
 	): Promise<ApiResponse<MessageSuccess<GenerationRequestsListDtoResponse>>> {
-		const result = await this.generationRequestService.listUserGenerations(page, limit);
+		const result = await this.generationRequestService.listUserGenerationRequests(page, limit);
 		return this.apiResponse.success(result);
 	}
 
@@ -38,7 +38,7 @@ class GenerationRequestsController {
 
 	@Delete(':requestId')
 	public async delete(@Param() params: GenerationRequestIdDtoRequest): Promise<ApiResponse<MessageSuccess<string>>> {
-		await this.generationRequestService.deleteRequest(params.requestId);
+		await this.generationRequestService.deleteGenerationRequest(params.requestId);
 		return this.apiResponse.success('Generation request deleted');
 	}
 

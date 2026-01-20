@@ -39,7 +39,7 @@ class GenerationRequestService {
 		};
 	}
 
-	public async deleteRequest(requestId: number): Promise<void> {
+	public async deleteGenerationRequest(requestId: number): Promise<void> {
 		const generationRequest = await this.generationRequestRepository.findOneBy({ id: requestId });
 
 		if (!generationRequest) {
@@ -55,7 +55,7 @@ class GenerationRequestService {
 		await this.generationRequestRepository.delete(requestId);
 	}
 
-	public async listUserGenerations(page: number, limit: number): Promise<GenerationRequestsListDtoResponse> {
+	public async listUserGenerationRequests(page: number, limit: number): Promise<GenerationRequestsListDtoResponse> {
 		const offset = (page - 1) * limit;
 
 		const [items, total] = await this.generationRequestRepository.findAndCount({
@@ -65,6 +65,9 @@ class GenerationRequestService {
 			skip: offset,
 			take: limit
 		});
+
+		// Check and update payment status for unpaid requests
+		await this.syncPaymentStatuses(items);
 
 		// Truncate content to avoid loading huge data
 		items.forEach((item) => {
@@ -199,6 +202,45 @@ class GenerationRequestService {
 		await this.queueService.send(providerConfig.queueName, message, jobId);
 
 		return jobId;
+	}
+
+	/**
+	 * Sync payment status from Stripe to database unconditionally
+	 */
+	private async syncPaymentStatuses(items: GenerationRequest[]): Promise<void> {
+		const unpaidRequests = items.filter(item => item.status < PAID_THRESHOLD && item.paymentLink);
+
+		for (const request of unpaidRequests) {
+			try {
+				const sessionId = this.stripeService.extractSessionId(request.paymentLink!);
+				if (!sessionId) {
+					continue;
+				}
+
+				const { status, session } = await this.stripeService.getGenerationRequestStatus(sessionId);
+
+				if (status === null || !session) {
+					continue;
+				}
+
+				// Безусловная синхронизация статуса из Stripe в БД
+				request.status = status;
+				await this.generationRequestRepository.save(request);
+
+				// Если оплачено - обновляем статус генерации и ставим в очередь
+				if (status === GenerationRequestStatus.ACCEPTED.value) {
+					request.generation.status = GenerationStatus.WAITING;
+					await this.generationsService.updateGenerationStatus(request.generation.id, GenerationStatus.WAITING);
+					await this.queueJob(request.generation, request, request.generation.provider);
+					this.logger.log(`Synced payment status for GenerationRequest ${request.id}: Stripe PAID -> DB ACCEPTED, queued job`);
+				} else {
+					this.logger.debug(`Synced payment status for GenerationRequest ${request.id}: Stripe ${session.payment_status}/${session.status} -> DB PENDING_PAYMENT`);
+				}
+			} catch (error) {
+				this.logger.error(`Failed to sync payment status for GenerationRequest ${request.id}`, error);
+				// Continue with other requests even if one fails
+			}
+		}
 	}
 
 	/**

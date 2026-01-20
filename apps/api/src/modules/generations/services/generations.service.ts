@@ -119,6 +119,10 @@ class GenerationsService {
 		this.queryRunner = queryRunner;
 	}
 
+	public async updateGenerationStatus(id: number, status: GenerationStatus): Promise<void> {
+		await this.manager.update(Generation, id, { status });
+	}
+
 	public getDataSource(): DataSource {
 		return this.dataSource;
 	}
