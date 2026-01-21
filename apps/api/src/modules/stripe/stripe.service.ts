@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '../../config/config.service';
 import { GenerationRequestStatus, type GenerationRequestStatusValue } from '../../enums/generation-request-status.enum';
-import { StripePaymentMethod } from '../../enums/stripe-payment-method.enum';
 import { StripePaymentStatus } from '../../enums/stripe-payment-status.enum';
 import { StripeSessionStatus } from '../../enums/stripe-session-status.enum';
-import { PaymentLinkDtoResponse } from '../generations/dto/generation-response.dto';
+import { PaymentIntentDtoResponse, PaymentLinkDtoResponse } from '../generations/dto/generation-response.dto';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -19,32 +18,15 @@ class StripeService {
 	}
 
 	/**
-	 * Создать платеж (универсальный метод для Checkout или Elements)
-	 */
-	public async createPayment(params: {
-		generationRequestId: number;
-		amount: number;
-		currency: string;
-		hostname: string;
-		provider: string;
-	}): Promise<PaymentLinkDtoResponse> {
-		if (this.configService.stripe.paymentMethod === StripePaymentMethod.ELEMENTS) {
-			return this.createPaymentIntent(params);
-		} else {
-			return this.createCheckoutSession(params);
-		}
-	}
-
-	/**
 	 * Создать Payment Intent для Elements
 	 */
-	private async createPaymentIntent(params: {
+	public async createPaymentIntent(params: {
 		generationRequestId: number;
 		amount: number;
 		currency: string;
 		hostname: string;
 		provider: string;
-	}): Promise<PaymentLinkDtoResponse> {
+	}): Promise<PaymentIntentDtoResponse> {
 		const { generationRequestId, amount, currency, hostname, provider } = params;
 
 		const paymentIntent = await this.stripe.paymentIntents.create({
@@ -60,13 +42,13 @@ class StripeService {
 			}
 		});
 
-		return PaymentLinkDtoResponse.fromElements(paymentIntent.client_secret!, this.configService.stripe.publishableKey);
+		return PaymentIntentDtoResponse.fromData(paymentIntent.client_secret!, this.configService.stripe.publishableKey);
 	}
 
 	/**
 	 * Создать Checkout Session и вернуть Response
 	 */
-	private async createCheckoutSession(params: {
+	public async createCheckoutSession(params: {
 		generationRequestId: number;
 		amount: number;
 		currency: string;
@@ -95,20 +77,16 @@ class StripeService {
 			cancel_url: `${this.configService.stripe.frontendHost}/generations?canceled=true`
 		});
 
-		return PaymentLinkDtoResponse.fromCheckout(session.url!, this.configService.stripe.publishableKey);
-	}
-
-	/**
-	 * Получить Checkout Session из Stripe
-	 */
-	private async retrieveSession(sessionId: string): Promise<Stripe.Checkout.Session> {
-		return this.stripe.checkout.sessions.retrieve(sessionId);
+		return PaymentLinkDtoResponse.fromData(session.url!);
 	}
 
 	/**
 	 * Получить статус генерационного запроса на основе статуса Stripe (универсальный для Checkout и Elements)
 	 */
-	public async getGenerationRequestStatus(paymentId: string): Promise<{ status: GenerationRequestStatusValue | null; session: Stripe.Checkout.Session | null; paymentIntent: Stripe.PaymentIntent | null }> {
+	public async getGenerationRequestStatus(paymentId: string): Promise<{
+		status: GenerationRequestStatusValue | null;
+		session: Stripe.Checkout.Session | null; paymentIntent: Stripe.PaymentIntent | null;
+	}> {
 		// Определяем тип по префиксу ID
 		if (paymentId.startsWith('cs_')) {
 			// Checkout Session
@@ -201,6 +179,13 @@ class StripeService {
 			signature,
 			this.configService.stripe.webhookSecret
 		);
+	}
+
+	/**
+	 * Получить Checkout Session из Stripe
+	 */
+	private async retrieveSession(sessionId: string): Promise<Stripe.Checkout.Session> {
+		return this.stripe.checkout.sessions.retrieve(sessionId);
 	}
 }
 

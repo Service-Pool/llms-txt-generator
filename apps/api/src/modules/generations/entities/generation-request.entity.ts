@@ -29,12 +29,18 @@ class GenerationRequest {
 	public sessionId: string | null;
 
 	/**
-	 * Payment link для Checkout или client secret для Elements
-	 * Формат: https://checkout.stripe.com/c/pay/cs_... (Checkout)
-	 * или pi_xxx_secret_yyy (Elements client secret)
+	 * Checkout Session URL для Stripe Checkout
+	 * Формат: https://checkout.stripe.com/c/pay/cs_...
 	 */
-	@Column({ type: 'varchar', length: 500, nullable: true, name: 'payment_link' })
-	public paymentLink: string | null;
+	@Column({ type: 'varchar', length: 500, nullable: true, name: 'checkout_session_url' })
+	public checkoutSessionUrl: string | null;
+
+	/**
+	 * Payment Intent Client Secret для Stripe Elements
+	 * Формат: pi_xxx_secret_yyy
+	 */
+	@Column({ type: 'varchar', length: 500, nullable: true, name: 'payment_intent_client_secret' })
+	public paymentIntentClientSecret: string | null;
 
 	@Column({ type: 'smallint', default: GenerationRequestStatus.PENDING_PAYMENT.value })
 	public status: GenerationRequestStatusValue;

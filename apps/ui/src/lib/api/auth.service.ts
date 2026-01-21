@@ -1,8 +1,6 @@
 import { HttpClient } from './http.client';
-import { AppConfigService } from './config.service';
+import { configService } from './config.service';
 import { ApiResponse, AuthLoginDtoResponse, AuthLogoutDtoResponse, AuthStatusDtoResponse, RequestLoginLinkRequestDto, RequestLoginLinkResponseDto, MessageSuccess } from '@api/shared';
-
-const configService = new AppConfigService();
 
 class AuthService extends HttpClient {
 	public async requestLoginLink(email: string, redirectUrl?: string): Promise<ApiResponse<MessageSuccess<RequestLoginLinkResponseDto>>> {
@@ -30,4 +28,6 @@ class AuthService extends HttpClient {
 	}
 }
 
-export { AuthService };
+const authService = new AuthService();
+
+export { authService };

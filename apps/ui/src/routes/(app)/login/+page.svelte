@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
-	import { AuthService } from "$lib/api/auth.service";
+	import { authService } from "$lib/api/auth.service";
 	import { authStore } from "$lib/stores/auth.store";
 
 	let redirectUrl = "";
@@ -11,8 +11,6 @@
 	let success = false;
 	let loading = false;
 	let checkingAuth = true;
-
-	const authService = new AuthService();
 
 	onMount(async () => {
 		redirectUrl = $page.url.href;

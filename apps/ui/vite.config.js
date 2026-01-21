@@ -29,6 +29,7 @@ const stubServerImports = {
 			case id.includes('validators/hostname.validator'):
 			case id.includes('validators/calculation.validator'):
 			case id.includes('validators/generation-request.validator'):
+			case id.includes('validators/payment-method.validator'):
 			case id.includes('config/config.service'):
 				return id;
 
@@ -72,6 +73,15 @@ const stubServerImports = {
 			case id.includes('validators/generation-request.validator'):
 				return `export class GenerationRequestValidator { static validateGenerationRequestExists = () => () => {}; }`;
 
+			case id.includes('validators/payment-method.validator'):
+				return `
+					export class NoCheckoutSessionExistsValidator { 
+						static validateNoCheckoutSessionExists = () => () => {}; 
+					}
+					export class NoPaymentIntentExistsValidator { 
+						static validateNoPaymentIntentExists = () => () => {}; 
+					}
+				`;
 			case id.includes('config/config.service'):
 				return `export const HOSTNAME_VALIDATION = () => () => {};`;
 

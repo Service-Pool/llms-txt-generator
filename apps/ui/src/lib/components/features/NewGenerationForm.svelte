@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { GenerationsService } from "$lib/api/generations.service";
-	import { CalculateService } from "$lib/api/calc.service";
+	import { generationsService } from "$lib/api/generations.service";
+	import { calculateService } from "$lib/api/calculate.service";
 	import Spinner from "../common/Spinner.svelte";
 	import { HttpClientError } from "../../api/http.client";
 	import {
@@ -19,9 +19,6 @@
 	}
 
 	let { onCreate }: Props = $props();
-
-	const generationsService = new GenerationsService();
-	const calculateService = new CalculateService();
 
 	// Step 1: input, Step 2: calc
 	let step = $state<"input" | "calc">("input");
@@ -84,6 +81,7 @@
 			const response = await calculateService.calculateHost(hostname);
 			calc = response.getMessage().data;
 
+			// Move to provider selection step
 			step = "calc";
 		} catch (err) {
 			if (

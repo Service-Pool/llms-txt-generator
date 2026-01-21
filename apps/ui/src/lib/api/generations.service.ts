@@ -1,5 +1,5 @@
 import { HttpClient } from './http.client';
-import { AppConfigService } from './config.service';
+import { configService } from './config.service';
 import {
 	ApiResponse,
 	GenerationDtoResponse,
@@ -7,10 +7,9 @@ import {
 	GenerationRequestsListDtoResponse,
 	CreateGenerationDtoRequest,
 	PaymentLinkDtoResponse,
+	PaymentIntentDtoResponse,
 	MessageSuccess
 } from '@api/shared';
-
-const configService = new AppConfigService();
 
 class GenerationsService extends HttpClient {
 	public async create(request: CreateGenerationDtoRequest): Promise<ApiResponse<MessageSuccess<GenerationRequestDtoResponse>>> {
@@ -50,5 +49,12 @@ class GenerationsService extends HttpClient {
 	public async getPaymentLink(requestId: number): Promise<ApiResponse<MessageSuccess<PaymentLinkDtoResponse>>> {
 		return this.fetch(configService.endpoints.generationRequests.paymentLink(requestId), PaymentLinkDtoResponse);
 	}
+
+	public async getPaymentIntent(requestId: number): Promise<ApiResponse<MessageSuccess<PaymentIntentDtoResponse>>> {
+		return this.fetch(configService.endpoints.generationRequests.paymentIntent(requestId), PaymentIntentDtoResponse);
+	}
 }
-export { GenerationsService };
+
+const generationsService = new GenerationsService();
+
+export { generationsService };

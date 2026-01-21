@@ -3,11 +3,14 @@
 		GenerationStatus,
 		GenerationRequestStatus,
 		type GenerationRequestDtoResponse,
+		ResponseCode,
 	} from "@api/shared";
-	import ProgressBar from "../common/ProgressBar.svelte";
-	import { GenerationsService } from "$lib/api/generations.service";
-	import Spinner from "../common/Spinner.svelte";
+	import { configService } from "$lib/api/config.service";
 	import { formatNumber } from "$lib/utils/number-format";
+	import { generationsService } from "$lib/api/generations.service";
+	import { HttpClientError } from "$lib/api/http.client";
+	import ProgressBar from "../common/ProgressBar.svelte";
+	import Spinner from "../common/Spinner.svelte";
 	import StripeElementsModal from "../common/StripeElementsModal.svelte";
 
 	interface Props {
@@ -22,44 +25,81 @@
 	let showContent = $state(false);
 	let fullContent = $state<string | null>(null);
 	let isLoading = $state(false);
-	let paymentData = $state<{
-		method: "checkout" | "elements";
-		publishableKey: string;
-		url?: string;
-		clientSecret?: string;
-	} | null>(null);
+	let paymentData = $state<
+		| {
+				method: "checkout";
+				url: string;
+		  }
+		| {
+				method: "elements";
+				publishableKey: string;
+				clientSecret: string;
+		  }
+		| null
+	>(null);
 	let paymentLinkLoaded = $state(false);
 	let showPaymentModal = $state(false);
+	let error = $state<string[] | null>(null);
 
 	const isReady = $derived(
 		item.status !== GenerationRequestStatus.PENDING_PAYMENT.value ||
 			paymentLinkLoaded,
 	);
 
-	const generationsService = new GenerationsService();
+	const loadPaymentData = async () => {
+		const paymentMethod = configService.stripe.paymentMethod;
+		error = null;
 
-	// Load payment link if status is PENDING_PAYMENT
+		try {
+			switch (paymentMethod) {
+				case "elements": {
+					// Payment Intent for Elements
+					const response = await generationsService.getPaymentIntent(
+						item.id,
+					);
+					const data = response.getMessage().data;
+					paymentData = {
+						method: "elements",
+						publishableKey: data.publishableKey,
+						clientSecret: data.clientSecret,
+					};
+					break;
+				}
+
+				case "checkout": {
+					// Payment Link for Checkout
+					const response = await generationsService.getPaymentLink(
+						item.id,
+					);
+					const data = response.getMessage().data;
+					paymentData = {
+						method: "checkout",
+						url: data.paymentLink,
+					};
+					break;
+				}
+			}
+		} catch (err) {
+			if (
+				err instanceof HttpClientError &&
+				err.code === ResponseCode.INVALID
+			) {
+				error = err.violations;
+			}
+
+			throw err;
+		} finally {
+			paymentLinkLoaded = true;
+		}
+	};
+
+	// Load payment data based on configured method
 	$effect(() => {
 		if (
 			item.status === GenerationRequestStatus.PENDING_PAYMENT.value &&
 			!paymentData
 		) {
-			generationsService
-				.getPaymentLink(item.id)
-				.then((response) => {
-					const data = response.getMessage().data;
-					paymentData = {
-						method: data.method,
-						publishableKey: data.publishableKey,
-						url: data.url,
-						clientSecret: data.clientSecret,
-					};
-					paymentLinkLoaded = true;
-				})
-				.catch(() => {
-					// Silent fail - payment link not critical
-					paymentLinkLoaded = true;
-				});
+			loadPaymentData();
 		}
 	});
 
@@ -273,6 +313,19 @@
 				</span>
 			{/if}
 		</div>
+
+		<!-- Payment Error Messages -->
+		{#if error}
+			<div
+				class="mt-3 pt-2 dark:bg-red-900/20 border-t border-t-red-200 dark:border-t-red-800">
+				<ul
+					class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-1">
+					{#each error as errMsg}
+						<li>{errMsg}</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 
 		<!-- Progress Bar for Active Generations -->
 		{#if status === GenerationStatus.ACTIVE && progress}

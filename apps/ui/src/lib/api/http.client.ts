@@ -1,7 +1,5 @@
 import { ApiResponse, ResponseCode, MessageInvalid, MessageError, MessageSuccess, type Deserializable } from '@api/shared';
-import { AppConfigService } from './config.service';
-
-const configService = new AppConfigService();
+import { configService } from './config.service';
 
 class HttpClientError extends Error {
 	constructor(
@@ -67,31 +65,31 @@ class HttpClient {
 				}
 
 				return apiResponse as ApiResponse<MessageSuccess<T>>;
-			} catch (error) {
+			} catch (err) {
 				// Re-throw HttpClientError as is
-				if (error instanceof HttpClientError) {
-					throw error;
+				if (err instanceof HttpClientError) {
+					throw err;
 				}
 
 				const code = ((json as Record<string, unknown>).code as number) || 0;
-				const message = error instanceof Error ? error.message : 'Unknown error';
+				const message = err instanceof Error ? err.message : 'Unknown error';
 				throw new HttpClientError(code, message);
 			}
-		} catch (error) {
+		} catch (err) {
 			clearTimeout(timeoutId);
 
 			// Re-throw HttpClientError as is
-			if (error instanceof HttpClientError) {
-				throw error;
+			if (err instanceof HttpClientError) {
+				throw err;
 			}
 
 			// AbortError
-			if (error instanceof Error && error.name === 'AbortError') {
+			if (err instanceof Error && err.name === 'AbortError') {
 				throw new HttpClientError(ResponseCode.ERROR, 'Request timeout');
 			}
 
 			// Network errors, JSON parse errors, etc.
-			throw new HttpClientError(ResponseCode.ERROR, error instanceof Error ? error.message : 'Network error');
+			throw new HttpClientError(ResponseCode.ERROR, err instanceof Error ? err.message : 'Network error');
 		}
 	}
 }

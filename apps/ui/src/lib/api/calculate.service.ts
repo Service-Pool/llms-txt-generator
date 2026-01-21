@@ -1,8 +1,6 @@
 import { HttpClient } from './http.client';
-import { AppConfigService } from './config.service';
+import { configService } from './config.service';
 import { ApiResponse, CalculationDtoResponse, MessageSuccess } from '@api/shared';
-
-const configService = new AppConfigService();
 
 class CalculateService extends HttpClient {
 	public async calculateHost(hostname: string): Promise<ApiResponse<MessageSuccess<CalculationDtoResponse>>> {
@@ -12,4 +10,6 @@ class CalculateService extends HttpClient {
 	}
 }
 
-export { CalculateService };
+const calculateService = new CalculateService();
+
+export { calculateService };

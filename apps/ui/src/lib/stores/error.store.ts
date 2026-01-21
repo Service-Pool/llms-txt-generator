@@ -7,12 +7,12 @@ export interface ErrorNotification {
 	timestamp: number;
 }
 
-function logError(error: unknown): void {
+function logError(...args: unknown[]): void {
 	console.error(
 		'%c🚨 Application Error %c',
 		'background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;',
 		'',
-		error
+		...args
 	);
 }
 
@@ -45,24 +45,37 @@ function createErrorStore() {
 }
 
 function handleCriticalError(error: unknown): void {
-	logError(error);
-
 	let message = 'An unexpected error occurred';
 
-	if (error instanceof HttpClientError) {
-		message = error.message;
-	} else if (error instanceof Error) {
-		message = error.message;
-	} else if (typeof error === 'string') {
-		message = error;
-	} else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-		message = error.message;
-	} else if (error != null) {
-		try {
-			message = JSON.stringify(error);
-		} catch {
-			message = 'An unexpected error occurred';
-		}
+	switch (true) {
+		case error instanceof HttpClientError:
+			message = error.message;
+			logError(error.message, error.violations);
+			break;
+
+		case error instanceof Error:
+			message = error.message;
+			logError(error.message);
+			break;
+
+		case typeof error === 'string':
+			message = error;
+			logError(error);
+			break;
+
+		case error && typeof error === 'object' && 'message' in error && typeof error.message === 'string':
+			message = error.message;
+			logError(error.message);
+			break;
+
+		case error != null:
+			try {
+				message = JSON.stringify(error);
+			} catch {
+				message = 'An unexpected error occurred';
+			}
+			logError(message);
+			break;
 	}
 
 	errorStore.add(message);

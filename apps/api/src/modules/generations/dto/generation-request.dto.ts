@@ -4,6 +4,7 @@ import { Provider } from '../../../enums/provider.enum';
 import { HostnameValidator } from '../../../validators/hostname.validator';
 import { CalculationValidator } from '../../../validators/calculation.validator';
 import { GenerationRequestValidator } from '../../../validators/generation-request.validator';
+import { NoCheckoutSessionExistsValidator, NoPaymentIntentExistsValidator } from '../../../validators/payment-method.validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -50,4 +51,44 @@ class GenerationRequestIdDtoRequest {
 	}
 }
 
-export { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest };
+/**
+ * DTO для создания Checkout Session (payment-link)
+ */
+class CreatePaymentLinkDtoRequest {
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@GenerationRequestValidator.validateGenerationRequestExists({
+		message: 'Generation request not found'
+	})
+	@NoPaymentIntentExistsValidator.validateNoPaymentIntentExists({
+		message: 'Payment Intent already exists for this request. Cannot create Checkout Session.'
+	})
+	public requestId: number;
+
+	constructor(requestId: number) {
+		this.requestId = requestId;
+	}
+}
+
+/**
+ * DTO для создания Payment Intent (payment-intent)
+ */
+class CreatePaymentIntentDtoRequest {
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@GenerationRequestValidator.validateGenerationRequestExists({
+		message: 'Generation request not found'
+	})
+	@NoCheckoutSessionExistsValidator.validateNoCheckoutSessionExists({
+		message: 'Checkout session already exists for this request. Cannot create Payment Intent.'
+	})
+	public requestId: number;
+
+	constructor(requestId: number) {
+		this.requestId = requestId;
+	}
+}
+
+export { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest, CreatePaymentLinkDtoRequest, CreatePaymentIntentDtoRequest };

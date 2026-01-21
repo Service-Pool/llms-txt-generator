@@ -18,6 +18,7 @@ import { StripeModule } from '../stripe/stripe.module';
 import { ApiResponse } from '../../utils/response/api-response';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../auth/entitites/user.entity';
+import { NoCheckoutSessionExistsValidator, NoPaymentIntentExistsValidator } from '../../validators/payment-method.validator';
 
 @Module({
 	imports: [
@@ -37,7 +38,9 @@ import { User } from '../auth/entitites/user.entity';
 		ContentExtractorService,
 		OllamaService,
 		GeminiService,
-		ApiResponse
+		ApiResponse,
+		NoCheckoutSessionExistsValidator,
+		NoPaymentIntentExistsValidator
 	],
 	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]
 })

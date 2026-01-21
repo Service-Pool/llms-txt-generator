@@ -7,6 +7,11 @@ class AppConfigService {
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT)
 	};
 
+	// Stripe config
+	public readonly stripe: { paymentMethod: 'checkout' | 'elements' } = {
+		paymentMethod: (String(env.PUBLIC_STRIPE_PAYMENT_METHOD)) as 'checkout' | 'elements'
+	};
+
 	// Endpoints config
 	public readonly endpoints = {
 		auth: {
@@ -21,7 +26,8 @@ class AppConfigService {
 		generationRequests: {
 			base: '/api/generation-requests',
 			byId: (id: number) => `/api/generation-requests/${id}`,
-			paymentLink: (id: number) => `/api/generation-requests/${id}/payment-link`
+			paymentLink: (id: number) => `/api/generation-requests/${id}/payment-link`,
+			paymentIntent: (id: number) => `/api/generation-requests/${id}/payment-intent`
 		},
 		calculate: {
 			host: (hostname: string) => `/api/calculations?hostname=${encodeURIComponent(hostname)}`
@@ -54,4 +60,7 @@ class AppConfigService {
 	};
 }
 
-export { AppConfigService };
+// Singleton instance
+const configService = new AppConfigService();
+
+export { configService };

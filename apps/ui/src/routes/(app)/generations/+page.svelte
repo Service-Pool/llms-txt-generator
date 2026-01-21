@@ -3,15 +3,12 @@
 	import { type GenerationRequestDtoResponse } from "@api/shared";
 	import { onMount, onDestroy } from "svelte";
 	import { HttpClientError } from "../../../lib/api/http.client";
-	import { GenerationsService } from "$lib/api/generations.service";
-	import { AppConfigService } from "$lib/api/config.service";
+	import { generationsService } from "$lib/api/generations.service";
+	import { configService } from "$lib/api/config.service";
 	import { WebSocketService } from "$lib/services/websocket.service";
 	import GenerationsList from "$lib/components/features/GenerationsList.svelte";
 	import NewGenerationForm from "$lib/components/features/NewGenerationForm.svelte";
 	import Spinner from "$lib/components/common/Spinner.svelte";
-
-	const generationsService = new GenerationsService();
-	const configService = new AppConfigService();
 
 	let items = $state<GenerationRequestDtoResponse[]>([]);
 	let total = $state(0);
@@ -103,12 +100,12 @@
 		// Обновляем только оплаченную генерацию из сервера
 		const response = await generationsService.refreshOne(requestId);
 		const refreshedItems = response.getMessage().data.items;
-		
+
 		if (refreshedItems.length > 0) {
 			const refreshedItem = refreshedItems[0];
 			// Обновляем элемент в массиве
-			items = items.map((item) => 
-				item.id === requestId ? refreshedItem : item
+			items = items.map((item) =>
+				item.id === requestId ? refreshedItem : item,
 			);
 		}
 	};

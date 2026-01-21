@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import { authStore } from "$lib/stores/auth.store";
-	import { AuthService } from "$lib/api/auth.service";
+	import { authService } from "$lib/api/auth.service";
 	import { onMount } from "svelte";
 
 	const navItems = [
@@ -13,8 +13,6 @@
 	let user: any = null;
 	let isLoading = true;
 	let showMenu = false;
-
-	const authService = new AuthService();
 
 	authStore.subscribe((state) => {
 		user = state.user;

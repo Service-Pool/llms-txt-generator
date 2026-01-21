@@ -2,16 +2,13 @@
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { goto } from "$app/navigation";
-	import { AuthService } from "$lib/api/auth.service";
+	import { authService } from "$lib/api/auth.service";
 	import { authStore } from "$lib/stores/auth.store";
 	import { HttpClientError } from "../../../../lib/api/http.client";
-	import { ResponseCode } from "@api/shared";
 
 	let loading = true;
 	let error: string[] | null = null;
 	let success = false;
-
-	const authService = new AuthService();
 
 	onMount(async () => {
 		const crd = $page.url.searchParams.get("crd");

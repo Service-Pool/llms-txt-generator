@@ -4,7 +4,7 @@ import { ClsService } from 'nestjs-cls';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { GenerationRequest } from '../entities/generation-request.entity';
-import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentLinkDtoResponse } from '../dto/generation-response.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse } from '../dto/generation-response.dto';
 import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
@@ -59,7 +59,7 @@ class GenerationRequestService {
 		const offset = (page - 1) * limit;
 
 		const where = this.user.userId ? { userId: this.user.userId } : { sessionId: this.user.sessionId };
-		
+
 		// Если передан generationRequestId - добавляем фильтр
 		if (generationRequestId) {
 			Object.assign(where, { id: generationRequestId });
@@ -149,7 +149,47 @@ class GenerationRequestService {
 		return { generationRequest, isNew: true };
 	}
 
-	public async createPaymentLink(requestId: number): Promise<PaymentLinkDtoResponse> {
+	public async createCheckoutSession(requestId: number): Promise<PaymentLinkDtoResponse> {
+		const generationRequest = await this.validatePaymentRequest(requestId);
+		const { calculation, providerPrice } = this.getCalculationAndPrice(generationRequest);
+
+		// Создать Checkout Session
+		const paymentResponse = await this.stripeService.createCheckoutSession({
+			generationRequestId: generationRequest.id,
+			amount: providerPrice.price.total,
+			currency: calculation.currency,
+			hostname: calculation.hostname,
+			provider: generationRequest.generation.provider
+		});
+
+		// Сохранить Checkout Session URL
+		generationRequest.checkoutSessionUrl = paymentResponse.paymentLink!;
+		await this.generationRequestRepository.save(generationRequest);
+
+		return paymentResponse;
+	}
+
+	public async createPaymentIntent(requestId: number): Promise<PaymentIntentDtoResponse> {
+		const generationRequest = await this.validatePaymentRequest(requestId);
+		const { calculation, providerPrice } = this.getCalculationAndPrice(generationRequest);
+
+		// Создать Payment Intent
+		const paymentResponse = await this.stripeService.createPaymentIntent({
+			generationRequestId: generationRequest.id,
+			amount: providerPrice.price.total,
+			currency: calculation.currency,
+			hostname: calculation.hostname,
+			provider: generationRequest.generation.provider
+		});
+
+		// Сохранить Payment Intent Client Secret
+		generationRequest.paymentIntentClientSecret = paymentResponse.clientSecret!;
+		await this.generationRequestRepository.save(generationRequest);
+
+		return paymentResponse;
+	}
+
+	private async validatePaymentRequest(requestId: number): Promise<GenerationRequest> {
 		const generationRequest = (await this.generationRequestRepository.findOne({
 			where: { id: requestId },
 			relations: ['generation', 'generation.calculation']
@@ -166,6 +206,10 @@ class GenerationRequestService {
 			throw new ForbiddenException('Generation request is already paid');
 		}
 
+		return generationRequest;
+	}
+
+	private getCalculationAndPrice(generationRequest: GenerationRequest): { calculation: Calculation; providerPrice: ProviderPrices } {
 		const generation = generationRequest.generation;
 		const calculation = generation.calculation;
 
@@ -176,20 +220,7 @@ class GenerationRequestService {
 			throw new ForbiddenException('This generation does not require payment');
 		}
 
-		// Создать платеж (Checkout или Elements)
-		const paymentResponse = await this.stripeService.createPayment({
-			generationRequestId: generationRequest.id,
-			amount: providerPrice.price.total,
-			currency: calculation.currency,
-			hostname: calculation.hostname,
-			provider: generation.provider
-		});
-
-		// Сохранить URL или client secret в зависимости от метода
-		generationRequest.paymentLink = paymentResponse.url || paymentResponse.clientSecret!;
-		await this.generationRequestRepository.save(generationRequest);
-
-		return paymentResponse;
+		return { calculation, providerPrice };
 	}
 
 	private async queueJob(generation: Generation, generationRequest: GenerationRequest, provider: Provider): Promise<string> {
@@ -216,11 +247,17 @@ class GenerationRequestService {
 	 * Sync payment status from Stripe to database unconditionally
 	 */
 	private async syncPaymentStatuses(items: GenerationRequest[]): Promise<void> {
-		const unpaidRequests = items.filter(item => item.status < PAID_THRESHOLD && item.paymentLink);
+		const unpaidRequests = items.filter(item =>
+			item.status < PAID_THRESHOLD && (item.checkoutSessionUrl || item.paymentIntentClientSecret));
 
 		for (const request of unpaidRequests) {
 			try {
-				const paymentId = this.stripeService.extractPaymentId(request.paymentLink!);
+				const paymentLinkOrSecret = request.checkoutSessionUrl || request.paymentIntentClientSecret;
+				if (!paymentLinkOrSecret) {
+					continue;
+				}
+
+				const paymentId = this.stripeService.extractPaymentId(paymentLinkOrSecret);
 				if (!paymentId) {
 					continue;
 				}

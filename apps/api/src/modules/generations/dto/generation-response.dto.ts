@@ -151,32 +151,39 @@ class CalculateHostnamePriceDtoResponse {
 }
 
 /**
- * DTO для ответа с платежной информацией (Checkout URL или Elements client secret)
+ * DTO для ответа с Payment Intent (Stripe Elements)
  */
-class PaymentLinkDtoResponse {
+class PaymentIntentDtoResponse {
 	constructor(
-		public method: 'checkout' | 'elements',
-		public publishableKey: string,
-		public url?: string,
-		public clientSecret?: string
+		public clientSecret: string,
+		public publishableKey: string
 	) { }
 
-	static fromCheckout(url: string, publishableKey: string): PaymentLinkDtoResponse {
-		return new PaymentLinkDtoResponse('checkout', publishableKey, url, undefined);
+	static fromData(clientSecret: string, publishableKey: string): PaymentIntentDtoResponse {
+		return new PaymentIntentDtoResponse(clientSecret, publishableKey);
 	}
 
-	static fromElements(clientSecret: string, publishableKey: string): PaymentLinkDtoResponse {
-		return new PaymentLinkDtoResponse('elements', publishableKey, undefined, clientSecret);
-	}
-
-	static fromJSON(json: Record<string, unknown>): PaymentLinkDtoResponse {
-		return new PaymentLinkDtoResponse(
-			json.method as 'checkout' | 'elements',
-			json.publishableKey as string,
-			json.url as string | undefined,
-			json.clientSecret as string | undefined
+	static fromJSON(json: Record<string, unknown>): PaymentIntentDtoResponse {
+		return new PaymentIntentDtoResponse(
+			json.clientSecret as string,
+			json.publishableKey as string
 		);
 	}
 }
 
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse, PaymentLinkDtoResponse };
+/**
+ * DTO для ответа с Payment Link (Stripe Checkout)
+ */
+class PaymentLinkDtoResponse {
+	constructor(public paymentLink: string) { }
+
+	static fromData(paymentLink: string): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse(paymentLink);
+	}
+
+	static fromJSON(json: Record<string, unknown>): PaymentLinkDtoResponse {
+		return new PaymentLinkDtoResponse(json.paymentLink as string);
+	}
+}
+
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse };

@@ -78,8 +78,8 @@ export class WebSocketService {
 				this.notifyDisconnectListeners();
 				this.scheduleReconnect();
 			};
-		} catch (error) {
-			const wsError = error instanceof Error ? error : new Error('Failed to connect to WebSocket');
+		} catch (err) {
+			const wsError = err instanceof Error ? err : new Error('Failed to connect to WebSocket');
 			this.notifyErrorListeners(wsError);
 		}
 	}
@@ -207,8 +207,8 @@ export class WebSocketService {
 					}
 					break;
 			}
-		} catch (error) {
-			const parseError = error instanceof Error ? error : new Error('Failed to parse WebSocket message');
+		} catch (err) {
+			const parseError = err instanceof Error ? err : new Error('Failed to parse WebSocket message');
 			this.notifyErrorListeners(parseError);
 		}
 	}
@@ -231,8 +231,8 @@ export class WebSocketService {
 					const fn = listener as unknown as (event: GenerationRequestUpdateEvent) => void;
 					fn(event as unknown as GenerationRequestUpdateEvent);
 				}
-			} catch (error) {
-				console.error('Error in request update listener:', error);
+			} catch (err) {
+				console.error('Error in request update listener:', err);
 			}
 		});
 	}
@@ -241,8 +241,8 @@ export class WebSocketService {
 		this.connectListeners.forEach((listener) => {
 			try {
 				listener();
-			} catch (error) {
-				console.error('Error in connect listener:', error);
+			} catch (err) {
+				console.error('Error in connect listener:', err);
 			}
 		});
 	}
@@ -251,8 +251,8 @@ export class WebSocketService {
 		this.disconnectListeners.forEach((listener) => {
 			try {
 				listener();
-			} catch (error) {
-				console.error('Error in disconnect listener:', error);
+			} catch (err) {
+				console.error('Error in disconnect listener:', err);
 			}
 		});
 	}
