@@ -1,9 +1,9 @@
 import { ApiResponse } from '../../utils/response/api-response';
 import { CalculationsService } from '../calculations/calculations.service';
 import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest, CreatePaymentLinkDtoRequest, CreatePaymentIntentDtoRequest } from './dto/generation-request.dto';
+import { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest, CreatePaymentLinkDtoRequest, CreatePaymentIntentDtoRequest, RefundGenerationRequestDtoRequest } from './dto/generation-request.dto';
 import { GenerationRequestService } from './services/generation-request.service';
-import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse } from './dto/generation-response.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse, RefundDtoResponse } from './dto/generation-response.dto';
 import { MessageSuccess } from '../../utils/response/message-success';
 
 @Controller('api/generation-requests')
@@ -53,6 +53,13 @@ class GenerationRequestsController {
 	public async createPaymentIntent(@Param() params: CreatePaymentIntentDtoRequest): Promise<ApiResponse<MessageSuccess<PaymentIntentDtoResponse>>> {
 		const response = await this.generationRequestService.createPaymentIntent(params.requestId);
 		return this.apiResponse.success(response);
+	}
+
+	@Get(':requestId/refund')
+	@HttpCode(HttpStatus.OK)
+	public async refund(@Param() params: RefundGenerationRequestDtoRequest): Promise<ApiResponse<MessageSuccess<RefundDtoResponse>>> {
+		const refundData = await this.generationRequestService.refundGenerationRequest(params.requestId);
+		return this.apiResponse.success(refundData);
 	}
 }
 

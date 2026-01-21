@@ -186,4 +186,50 @@ class PaymentLinkDtoResponse {
 	}
 }
 
-export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse };
+/**
+ * DTO для ответа на возврат средств
+ */
+class RefundDtoResponse {
+	constructor(
+		public message: string,
+		public refundId: string,
+		public paymentIntentId: string,
+		public amount: number,
+		public currency: string,
+		public status: string,
+		public createdAt: string
+	) { }
+
+	static fromData(params: {
+		refundId: string;
+		paymentIntentId: string;
+		amount: number;
+		currency: string;
+		status: string;
+		createdAt: number;
+	}): RefundDtoResponse {
+		return new RefundDtoResponse(
+			'Refund processed successfully. Save this information for your bank if needed.',
+			params.refundId,
+			params.paymentIntentId,
+			params.amount / 100, // Convert from cents to currency units
+			params.currency.toUpperCase(),
+			params.status,
+			new Date(params.createdAt * 1000).toISOString()
+		);
+	}
+
+	static fromJSON(json: Record<string, unknown>): RefundDtoResponse {
+		return new RefundDtoResponse(
+			json.message as string,
+			json.refundId as string,
+			json.paymentIntentId as string,
+			json.amount as number,
+			json.currency as string,
+			json.status as string,
+			json.createdAt as string
+		);
+	}
+}
+
+export { GenerationDtoResponse, GenerationRequestDtoResponse, GenerationRequestsListDtoResponse, CalculateHostnamePriceDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse, RefundDtoResponse };

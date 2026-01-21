@@ -6,6 +6,10 @@ const GenerationRequestStatus = {
 	ACCEPTED: {
 		value: 20,
 		label: 'Accepted'
+	},
+	REFUNDED: {
+		value: 30,
+		label: 'Refunded'
 	}
 } as const;
 

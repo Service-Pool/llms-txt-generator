@@ -30,6 +30,7 @@ const stubServerImports = {
 			case id.includes('validators/calculation.validator'):
 			case id.includes('validators/generation-request.validator'):
 			case id.includes('validators/payment-method.validator'):
+			case id.includes('validators/refund.validator'):
 			case id.includes('config/config.service'):
 				return id;
 
@@ -65,13 +66,30 @@ const stubServerImports = {
 			}
 
 			case id.includes('validators/hostname.validator'):
-				return `export class HostnameValidator { static validateHostnameRobotsAndSitemap = () => () => {}; }`;
+				return `
+					export class RobotsAccessibleValidator { 
+						static validateRobotsAccessible = () => () => {}; 
+					}
+					export class RobotsSitemapExistsValidator { 
+						static validateSitemapExists = () => () => {}; 
+					}
+					export class SitemapAccessibleValidator { 
+						static validateSitemapAccessible = () => () => {}; 
+					}
+				`;
 
 			case id.includes('validators/calculation.validator'):
 				return `export class CalculationValidator { static validateCalculationExists = () => () => {}; }`;
 
 			case id.includes('validators/generation-request.validator'):
-				return `export class GenerationRequestValidator { static validateGenerationRequestExists = () => () => {}; }`;
+				return `
+					export class GenerationRequestValidator { 
+						static validateGenerationRequestExists = () => () => {}; 
+					}
+					export class GenerationRequestOwnershipValidator { 
+						static validateOwnership = () => () => {}; 
+					}
+				`;
 
 			case id.includes('validators/payment-method.validator'):
 				return `
@@ -80,6 +98,25 @@ const stubServerImports = {
 					}
 					export class NoPaymentIntentExistsValidator { 
 						static validateNoPaymentIntentExists = () => () => {}; 
+					}
+				`;
+
+			case id.includes('validators/refund.validator'):
+				return `
+					export class RefundOwnershipValidator { 
+						static validateOwnership = () => () => {}; 
+					}
+					export class RefundFailedStatusValidator { 
+						static validateFailedStatus = () => () => {}; 
+					}
+					export class RefundPaidValidator { 
+						static validatePaid = () => () => {}; 
+					}
+					export class RefundNotRefundedValidator { 
+						static validateNotRefunded = () => () => {}; 
+					}
+					export class RefundJobRemovedValidator { 
+						static validateJobRemoved = () => () => {}; 
 					}
 				`;
 			case id.includes('config/config.service'):

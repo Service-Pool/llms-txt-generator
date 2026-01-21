@@ -1,10 +1,11 @@
 import { HOSTNAME_VALIDATION } from '../../../config/config.service';
 import { IsString, IsNotEmpty, IsEnum, Matches, IsInt, Min } from 'class-validator';
 import { Provider } from '../../../enums/provider.enum';
-import { HostnameValidator } from '../../../validators/hostname.validator';
+import { RobotsAccessibleValidator, RobotsSitemapExistsValidator, SitemapAccessibleValidator } from '../../../validators/hostname.validator';
 import { CalculationValidator } from '../../../validators/calculation.validator';
-import { GenerationRequestValidator } from '../../../validators/generation-request.validator';
+import { GenerationRequestValidator, GenerationRequestOwnershipValidator } from '../../../validators/generation-request.validator';
 import { NoCheckoutSessionExistsValidator, NoPaymentIntentExistsValidator } from '../../../validators/payment-method.validator';
+import { RefundOwnershipValidator, RefundFailedStatusValidator, RefundPaidValidator, RefundNotRefundedValidator, RefundJobRemovedValidator } from '../../../validators/refund.validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -19,8 +20,14 @@ class CreateGenerationDtoRequest {
 	@Matches(HOSTNAME_VALIDATION.regex, {
 		message: HOSTNAME_VALIDATION.message
 	})
-	@HostnameValidator.validateHostnameRobotsAndSitemap({
-		message: 'Hostname must have accessible robots.txt with sitemap reference'
+	@RobotsAccessibleValidator.validateRobotsAccessible({
+		message: 'robots.txt is not accessible'
+	})
+	@RobotsSitemapExistsValidator.validateSitemapExists({
+		message: 'No sitemap found in robots.txt'
+	})
+	@SitemapAccessibleValidator.validateSitemapAccessible({
+		message: 'Sitemap is not accessible'
 	})
 	public hostname: string;
 
@@ -44,6 +51,9 @@ class GenerationRequestIdDtoRequest {
 	@GenerationRequestValidator.validateGenerationRequestExists({
 		message: 'Generation request not found'
 	})
+	@GenerationRequestOwnershipValidator.validateOwnership({
+		message: 'Generation request does not belong to you'
+	})
 	public requestId: number;
 
 	constructor(requestId: number) {
@@ -60,6 +70,9 @@ class CreatePaymentLinkDtoRequest {
 	@Min(1)
 	@GenerationRequestValidator.validateGenerationRequestExists({
 		message: 'Generation request not found'
+	})
+	@GenerationRequestOwnershipValidator.validateOwnership({
+		message: 'Generation request does not belong to you'
 	})
 	@NoPaymentIntentExistsValidator.validateNoPaymentIntentExists({
 		message: 'Payment Intent already exists for this request. Cannot create Checkout Session.'
@@ -81,6 +94,9 @@ class CreatePaymentIntentDtoRequest {
 	@GenerationRequestValidator.validateGenerationRequestExists({
 		message: 'Generation request not found'
 	})
+	@GenerationRequestOwnershipValidator.validateOwnership({
+		message: 'Generation request does not belong to you'
+	})
 	@NoCheckoutSessionExistsValidator.validateNoCheckoutSessionExists({
 		message: 'Checkout session already exists for this request. Cannot create Payment Intent.'
 	})
@@ -91,4 +107,36 @@ class CreatePaymentIntentDtoRequest {
 	}
 }
 
-export { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest, CreatePaymentLinkDtoRequest, CreatePaymentIntentDtoRequest };
+/**
+ * DTO для возврата средств (refund)
+ */
+class RefundGenerationRequestDtoRequest {
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@GenerationRequestValidator.validateGenerationRequestExists({
+		message: 'Generation request not found'
+	})
+	@RefundOwnershipValidator.validateOwnership({
+		message: 'Generation request does not belong to you'
+	})
+	@RefundFailedStatusValidator.validateFailedStatus({
+		message: 'Can only refund failed generations'
+	})
+	@RefundPaidValidator.validatePaid({
+		message: 'Generation request was not paid'
+	})
+	@RefundNotRefundedValidator.validateNotRefunded({
+		message: 'Generation request was already refunded'
+	})
+	@RefundJobRemovedValidator.validateJobRemoved({
+		message: 'Cannot refund: job is still in queue (retrying)'
+	})
+	public requestId: number;
+
+	constructor(requestId: number) {
+		this.requestId = requestId;
+	}
+}
+
+export { CreateGenerationDtoRequest, GenerationRequestIdDtoRequest, CreatePaymentLinkDtoRequest, CreatePaymentIntentDtoRequest, RefundGenerationRequestDtoRequest };

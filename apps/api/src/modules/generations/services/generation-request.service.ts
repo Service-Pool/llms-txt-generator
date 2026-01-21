@@ -4,7 +4,7 @@ import { ClsService } from 'nestjs-cls';
 import { Generation } from '../entities/generation.entity';
 import { GenerationJobMessage } from '../../queue/messages/generation-job.message';
 import { GenerationRequest } from '../entities/generation-request.entity';
-import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse } from '../dto/generation-response.dto';
+import { GenerationRequestsListDtoResponse, GenerationRequestDtoResponse, PaymentIntentDtoResponse, PaymentLinkDtoResponse, RefundDtoResponse } from '../dto/generation-response.dto';
 import { GenerationRequestStatus, PAID_THRESHOLD } from '../../../enums/generation-request-status.enum';
 import { GenerationsService } from './generations.service';
 import { GenerationStatus } from '../../../enums/generation-status.enum';
@@ -44,12 +44,6 @@ class GenerationRequestService {
 
 		if (!generationRequest) {
 			return; // Already deleted or not found
-		}
-
-		// Check ownership
-		const isOwner = this.user.userId ? generationRequest.userId === this.user.userId : generationRequest.sessionId === this.user.sessionId;
-		if (!isOwner) {
-			throw new ForbiddenException('Cannot delete request that does not belong to you');
 		}
 
 		await this.generationRequestRepository.delete(requestId);
@@ -195,12 +189,6 @@ class GenerationRequestService {
 			relations: ['generation', 'generation.calculation']
 		}))!;
 
-		// Проверка ownership
-		const isOwner = this.user.userId ? generationRequest.userId === this.user.userId : generationRequest.sessionId === this.user.sessionId;
-		if (!isOwner) {
-			throw new ForbiddenException('Generation request does not belong to you');
-		}
-
 		// Проверить что оплата еще не прошла
 		if (generationRequest.status >= PAID_THRESHOLD) {
 			throw new ForbiddenException('Generation request is already paid');
@@ -221,6 +209,66 @@ class GenerationRequestService {
 		}
 
 		return { calculation, providerPrice };
+	}
+
+	/**
+	 * Выполнить возврат средств за failed generation
+	 * Все проверки выполняются в RefundValidator
+	 */
+	public async refundGenerationRequest(requestId: number): Promise<RefundDtoResponse> {
+		const generationRequest = await this.generationRequestRepository.findOne({
+			where: { id: requestId },
+			relations: ['generation']
+		});
+
+		if (!generationRequest) {
+			throw new ForbiddenException('Generation request not found');
+		}
+
+		// Получить Payment Intent ID
+		let paymentIntentId: string | null = null;
+
+		switch (true) {
+			case generationRequest.paymentIntentClientSecret != null:
+				// Извлечь PI ID из client secret
+				paymentIntentId = this.stripeService.extractPaymentId(generationRequest.paymentIntentClientSecret);
+				break;
+
+			case generationRequest.checkoutSessionUrl != null: {
+				// Получить session и затем PI
+				const sessionId = this.stripeService.extractPaymentId(generationRequest.checkoutSessionUrl);
+				if (sessionId) {
+					const result = await this.stripeService.getGenerationRequestStatus(sessionId);
+					if (result.session?.payment_intent) {
+						paymentIntentId = result.session.payment_intent as string;
+					}
+				}
+				break;
+			}
+		}
+
+		if (!paymentIntentId) {
+			throw new ForbiddenException('Payment intent not found for this generation request');
+		}
+
+		// Создать возврат
+		const refund = await this.stripeService.createRefund(paymentIntentId);
+
+		// Обновить статус на REFUNDED
+		generationRequest.status = GenerationRequestStatus.REFUNDED.value;
+		await this.generationRequestRepository.save(generationRequest);
+
+		this.logger.log(`Refund created for GenerationRequest ${requestId}, PaymentIntent ${paymentIntentId}, Refund ID: ${refund.id}`);
+
+		// Вернуть данные о возврате
+		return RefundDtoResponse.fromData({
+			refundId: refund.id,
+			paymentIntentId,
+			amount: refund.amount,
+			currency: refund.currency,
+			status: refund.status!,
+			createdAt: refund.created
+		});
 	}
 
 	private async queueJob(generation: Generation, generationRequest: GenerationRequest, provider: Provider): Promise<string> {

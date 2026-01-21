@@ -1,14 +1,20 @@
 import { HOSTNAME_VALIDATION } from '../../../config/config.service';
 import { IsString, Matches } from 'class-validator';
-import { HostnameValidator } from '../../../validators/hostname.validator';
+import { RobotsAccessibleValidator, RobotsSitemapExistsValidator, SitemapAccessibleValidator } from '../../../validators/hostname.validator';
 
 class CreateCalculationDtoRequest {
 	@IsString()
 	@Matches(HOSTNAME_VALIDATION.regex, {
 		message: HOSTNAME_VALIDATION.message
 	})
-	@HostnameValidator.validateHostnameRobotsAndSitemap({
-		message: 'Hostname must have accessible robots.txt with sitemap reference'
+	@RobotsAccessibleValidator.validateRobotsAccessible({
+		message: 'robots.txt is not accessible'
+	})
+	@RobotsSitemapExistsValidator.validateSitemapExists({
+		message: 'No sitemap found in robots.txt'
+	})
+	@SitemapAccessibleValidator.validateSitemapAccessible({
+		message: 'Sitemap is not accessible'
 	})
 	public hostname: string;
 }

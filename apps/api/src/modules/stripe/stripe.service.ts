@@ -187,6 +187,20 @@ class StripeService {
 	private async retrieveSession(sessionId: string): Promise<Stripe.Checkout.Session> {
 		return this.stripe.checkout.sessions.retrieve(sessionId);
 	}
+
+	/**
+	 * Создать возврат средств
+	 */
+	public async createRefund(paymentIntentId: string): Promise<Stripe.Refund> {
+		this.logger.log(`Creating refund for payment intent: ${paymentIntentId}`);
+
+		const refund = await this.stripe.refunds.create({
+			payment_intent: paymentIntentId
+		});
+
+		this.logger.log(`Refund created: ${refund.id}, status: ${refund.status}`);
+		return refund;
+	}
 }
 
 export { StripeService };

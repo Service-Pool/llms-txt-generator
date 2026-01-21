@@ -39,7 +39,7 @@
 	>(null);
 	let paymentLinkLoaded = $state(false);
 	let showPaymentModal = $state(false);
-	let error = $state<string[] | null>(null);
+	let paymentError = $state<string[] | null>(null);
 
 	const isReady = $derived(
 		item.status !== GenerationRequestStatus.PENDING_PAYMENT.value ||
@@ -48,7 +48,7 @@
 
 	const loadPaymentData = async () => {
 		const paymentMethod = configService.stripe.paymentMethod;
-		error = null;
+		paymentError = null;
 
 		try {
 			switch (paymentMethod) {
@@ -84,7 +84,7 @@
 				err instanceof HttpClientError &&
 				err.code === ResponseCode.INVALID
 			) {
-				error = err.violations;
+				paymentError = err.violations;
 			}
 
 			throw err;
@@ -148,6 +148,11 @@
 				return {
 					text: GenerationRequestStatus.ACCEPTED.label,
 					class: "",
+				};
+			case GenerationRequestStatus.REFUNDED.value:
+				return {
+					text: GenerationRequestStatus.REFUNDED.label,
+					class: "text-purple-600 dark:text-purple-400",
 				};
 			default:
 				return {
@@ -251,13 +256,6 @@
 						{statusConfig.text}
 					</span>
 				</div>
-
-				<!-- Error Message -->
-				{#if status === GenerationStatus.FAILED && item.generation.errors}
-					<div class="text-xs text-red-600 dark:text-red-400 mt-1">
-						Error: {item.generation.errors}
-					</div>
-				{/if}
 			</div>
 
 			<!-- Action Buttons -->
@@ -314,15 +312,20 @@
 			{/if}
 		</div>
 
-		<!-- Payment Error Messages -->
-		{#if error}
+		<!-- Error Messages -->
+		{#if paymentError || (status === GenerationStatus.FAILED && item.generation.errors)}
 			<div
 				class="mt-3 pt-2 dark:bg-red-900/20 border-t border-t-red-200 dark:border-t-red-800">
 				<ul
 					class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-1">
-					{#each error as errMsg}
-						<li>{errMsg}</li>
-					{/each}
+					{#if paymentError}
+						{#each paymentError as errMsg}
+							<li>{errMsg}</li>
+						{/each}
+					{/if}
+					{#if status === GenerationStatus.FAILED && item.generation.errors}
+						<li>Error: {item.generation.errors}</li>
+					{/if}
 				</ul>
 			</div>
 		{/if}

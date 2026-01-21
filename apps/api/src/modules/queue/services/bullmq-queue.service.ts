@@ -149,6 +149,19 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
+	 * Проверить существует ли job в очереди
+	 */
+	public async jobExists(jobId: string): Promise<boolean> {
+		for (const queue of this.queues.values()) {
+			const job = await queue.getJob(jobId);
+			if (job) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Создать Worker для обработки jobs
 	 */
 	public createWorker(queueName: string, processor: (job: Job<GenerationJobMessage>) => Promise<void>): Worker<GenerationJobMessage> {

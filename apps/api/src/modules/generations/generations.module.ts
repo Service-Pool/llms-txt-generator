@@ -19,6 +19,8 @@ import { ApiResponse } from '../../utils/response/api-response';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../auth/entitites/user.entity';
 import { NoCheckoutSessionExistsValidator, NoPaymentIntentExistsValidator } from '../../validators/payment-method.validator';
+import { RefundOwnershipValidator, RefundFailedStatusValidator, RefundPaidValidator, RefundNotRefundedValidator, RefundJobRemovedValidator } from '../../validators/refund.validator';
+import { GenerationRequestValidator, GenerationRequestOwnershipValidator } from '../../validators/generation-request.validator';
 
 @Module({
 	imports: [
@@ -40,7 +42,14 @@ import { NoCheckoutSessionExistsValidator, NoPaymentIntentExistsValidator } from
 		GeminiService,
 		ApiResponse,
 		NoCheckoutSessionExistsValidator,
-		NoPaymentIntentExistsValidator
+		NoPaymentIntentExistsValidator,
+		GenerationRequestValidator,
+		GenerationRequestOwnershipValidator,
+		RefundOwnershipValidator,
+		RefundFailedStatusValidator,
+		RefundPaidValidator,
+		RefundNotRefundedValidator,
+		RefundJobRemovedValidator
 	],
 	exports: [GenerationsService, GenerationRequestService, GenerationJobHandler]
 })
