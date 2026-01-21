@@ -100,7 +100,10 @@ export class GeminiService implements AiServiceInterface {
 						type: 'object',
 						properties,
 						required: truncatedPages.map(p => p.url)
-					}
+					},
+					// Добавить:
+					candidateCount: 1,
+					stopSequences: ['}']
 				}
 			);
 
