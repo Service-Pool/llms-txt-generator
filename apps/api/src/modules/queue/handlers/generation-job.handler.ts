@@ -26,7 +26,7 @@ export class GenerationJobHandler {
 	private readonly logger = new Logger(GenerationJobHandler.name);
 	private readonly redis: Redis;
 	private readonly cacheTtl: number;
-	private readonly CRITICAL_FAILURE_THRESHOLD = 0.8;
+	private readonly CRITICAL_FAILURE_THRESHOLD = 0.95;
 	private context: {
 		job: Job<GenerationJobMessage>;
 		generationId: number;

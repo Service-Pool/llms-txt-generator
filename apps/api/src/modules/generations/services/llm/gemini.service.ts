@@ -122,7 +122,7 @@ export class GeminiService implements AiServiceInterface {
 		} catch (error) {
 			this.logger.error('Failed to parse AI response:', error);
 			if (response) {
-				this.logger.error(`Response that failed validation: ${response}`);
+				this.logger.error(`Response that failed validation (length: ${response.length} chars): ${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`);
 			}
 
 			for (const summary of summaries) {
