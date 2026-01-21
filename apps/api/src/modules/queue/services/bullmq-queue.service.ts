@@ -122,7 +122,7 @@ export class BullMqQueueService implements OnModuleInit, OnModuleDestroy {
 		this.logger.log('BullMQ queues stopped');
 	}
 
-	public async send(queueName: string, data: unknown, jobId: string): Promise<void> {
+	public async send(queueName: string, data: GenerationJobMessage, jobId: string): Promise<void> {
 		const queue = this.queues.get(queueName);
 
 		if (!queue) {

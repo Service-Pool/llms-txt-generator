@@ -26,6 +26,7 @@ export class GenerationJobHandler {
 	private readonly logger = new Logger(GenerationJobHandler.name);
 	private readonly redis: Redis;
 	private readonly cacheTtl: number;
+	private readonly CRITICAL_FAILURE_THRESHOLD = 0.8;
 	private context: {
 		job: Job<GenerationJobMessage>;
 		generationId: number;
@@ -79,7 +80,10 @@ export class GenerationJobHandler {
 
 		const hostname = generation.calculation.hostname;
 
-		await this.generationRepository.update(generationId, { status: GenerationStatus.ACTIVE });
+		await this.generationRepository.update(generationId, {
+			status: GenerationStatus.ACTIVE,
+			errors: null
+		});
 
 		try {
 			const sitemapUrls = await this.robotsService.getSitemaps(hostname);
@@ -179,15 +183,28 @@ export class GenerationJobHandler {
 	}
 
 	private async completeGeneration(websiteDescription: string, summaries: UrlSummary[], jobId: string | undefined): Promise<void> {
+		// Проверить сколько успешных summaries
+		const validSummaries = summaries.filter(s => s.isValid);
+		const failedSummaries = summaries.filter(s => !s.isValid);
+
+		// Если все или большинство (>80%) упали - это критическая ошибка
+		const failureRate = failedSummaries.length / summaries.length;
+
+		if (failureRate >= this.CRITICAL_FAILURE_THRESHOLD) {
+			const uniqueErrors = [...new Set(failedSummaries.map(s => s.error).filter(Boolean))];
+			throw new Error(`Critical failure: ${failedSummaries.length}/${summaries.length} pages failed to generate. Errors: ${uniqueErrors.join(', ')}`);
+		}
+
 		const llmsTxt = this.formatLlmsTxt(this.ctx.hostname, websiteDescription, summaries);
 
 		await this.generationRepository.update(this.ctx.generationId, {
 			status: GenerationStatus.COMPLETED,
 			output: llmsTxt,
-			llmsEntriesCount: summaries.length
+			llmsEntriesCount: summaries.length,
+			errors: null
 		});
 
-		this.logger.log(`Completed job ${jobId} for generation ${this.ctx.generationId}`);
+		this.logger.log(`Completed job ${jobId} for generation ${this.ctx.generationId} (${validSummaries.length}/${summaries.length} valid summaries)`);
 	}
 
 	private async handleJobError(job: Job, error: unknown): Promise<void> {
