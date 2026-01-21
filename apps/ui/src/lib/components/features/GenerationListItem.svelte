@@ -292,7 +292,7 @@
 			</div>
 
 			<!-- Action Buttons -->
-			<div class="shrink-0 flex items-center gap-1">
+			<div class="shrink-0 grid grid-flow-col auto-cols-fr gap-1 w-fit items-center">
 				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentData}
 					{#if paymentData.method === "checkout" && paymentData.url}
 						<a
