@@ -201,6 +201,23 @@ class StripeService {
 		this.logger.log(`Refund created: ${refund.id}, status: ${refund.status}`);
 		return refund;
 	}
+
+	/**
+	 * Проверить наличие успешных возвратов для Payment Intent
+	 */
+	public async hasSuccessfulRefund(paymentIntentId: string): Promise<boolean> {
+		try {
+			const refunds = await this.stripe.refunds.list({
+				payment_intent: paymentIntentId,
+				limit: 100
+			});
+
+			return refunds.data.some(refund => refund.status === 'succeeded');
+		} catch (error) {
+			this.logger.error(`Failed to check refunds for payment intent ${paymentIntentId}`, error);
+			return false;
+		}
+	}
 }
 
 export { StripeService };

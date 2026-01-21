@@ -27,7 +27,8 @@ class AppConfigService {
 			base: '/api/generation-requests',
 			byId: (id: number) => `/api/generation-requests/${id}`,
 			paymentLink: (id: number) => `/api/generation-requests/${id}/payment-link`,
-			paymentIntent: (id: number) => `/api/generation-requests/${id}/payment-intent`
+			paymentIntent: (id: number) => `/api/generation-requests/${id}/payment-intent`,
+			refund: (id: number) => `/api/generation-requests/${id}/refund`
 		},
 		calculate: {
 			host: (hostname: string) => `/api/calculations?hostname=${encodeURIComponent(hostname)}`

@@ -65,10 +65,11 @@ class GenerationRequestDtoResponse {
 		public sessionId: string | null,
 		public status: number,
 		public createdAt: string,
-		public generation: GenerationDtoResponse
+		public generation: GenerationDtoResponse,
+		public refundable: boolean = false
 	) { }
 
-	static fromEntity(entity: GenerationRequest): GenerationRequestDtoResponse {
+	static fromEntity(entity: GenerationRequest, refundable: boolean = false): GenerationRequestDtoResponse {
 		if (!entity.generation) {
 			throw new Error('GenerationRequest must have a related Generation loaded');
 		}
@@ -79,7 +80,8 @@ class GenerationRequestDtoResponse {
 			entity.sessionId,
 			entity.status,
 			entity.createdAt.toISOString(),
-			GenerationDtoResponse.fromEntity(entity.generation)
+			GenerationDtoResponse.fromEntity(entity.generation),
+			refundable
 		);
 	}
 
@@ -90,7 +92,8 @@ class GenerationRequestDtoResponse {
 			json.sessionId as string | null,
 			json.status as number,
 			json.createdAt as string,
-			GenerationDtoResponse.fromJSON(json.generation as Record<string, unknown>)
+			GenerationDtoResponse.fromJSON(json.generation as Record<string, unknown>),
+			json.refundable as boolean
 		);
 	}
 }
@@ -106,9 +109,12 @@ class GenerationRequestsListDtoResponse {
 		public limit: number
 	) { }
 
-	static fromEntities(entities: GenerationRequest[], total: number, page: number, limit: number): GenerationRequestsListDtoResponse {
+	static fromEntities(entities: GenerationRequest[], total: number, page: number, limit: number, refundableMap?: Map<number, boolean>): GenerationRequestsListDtoResponse {
 		return new GenerationRequestsListDtoResponse(
-			entities.map(entity => GenerationRequestDtoResponse.fromEntity(entity)),
+			entities.map(entity => GenerationRequestDtoResponse.fromEntity(
+				entity,
+				refundableMap?.get(entity.id) ?? false
+			)),
 			total,
 			page,
 			limit

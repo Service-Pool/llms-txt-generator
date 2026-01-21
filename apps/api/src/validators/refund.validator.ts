@@ -4,10 +4,11 @@ import { GenerationStatus } from '../enums/generation-status.enum';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobUtils } from '../utils/job.utils';
-import { PAID_THRESHOLD, GenerationRequestStatus } from '../enums/generation-request-status.enum';
+import { GenerationRequestStatus } from '../enums/generation-request-status.enum';
 import { QueueService } from '../modules/queue/queue.service';
 import { registerDecorator, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
 import { Repository } from 'typeorm';
+import { StripeService } from '../modules/stripe/stripe.service';
 import { type UserClsStore } from '../modules/auth/models/user-context.model';
 
 /**
@@ -89,7 +90,10 @@ class RefundFailedStatusValidator implements ValidatorConstraintInterface {
 @ValidatorConstraint({ async: true })
 @Injectable()
 class RefundPaidValidator implements ValidatorConstraintInterface {
-	constructor(@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>) { }
+	constructor(
+		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>,
+		private readonly stripeService: StripeService
+	) { }
 
 	public static validatePaid(validationOptions?: ValidationOptions) {
 		return function (object: object, propertyName: string) {
@@ -109,11 +113,28 @@ class RefundPaidValidator implements ValidatorConstraintInterface {
 			return true; // Пропускаем проверку, за существование отвечает другой валидатор
 		}
 
-		// Проверяем что был платеж (существует Payment Intent или Checkout Session)
-		const hasPaymentIntent = Boolean(generationRequest.checkoutSessionUrl || generationRequest.paymentIntentClientSecret);
-		const hasPaidStatus = generationRequest.status >= PAID_THRESHOLD;
+		// Проверяем что есть payment link или client secret
+		const paymentLinkOrSecret = generationRequest.checkoutSessionUrl || generationRequest.paymentIntentClientSecret;
+		if (!paymentLinkOrSecret) {
+			return false; // Нет платежа вообще
+		}
 
-		return hasPaidStatus && hasPaymentIntent;
+		// Получить Payment ID и проверить реальный статус в Stripe
+		const paymentId = this.stripeService.extractPaymentId(paymentLinkOrSecret);
+		if (!paymentId) {
+			return false;
+		}
+
+		const { status, paymentIntent } = await this.stripeService.getGenerationRequestStatus(paymentId);
+
+		// Проверяем что платёж успешно проведён в Stripe
+		// Для Checkout Session проверяем через paymentIntent, для Payment Intent - напрямую
+		if (paymentIntent) {
+			return paymentIntent.status === 'succeeded' && paymentIntent.amount > 0;
+		}
+
+		// Если status вернулся как ACCEPTED - значит платёж успешен
+		return status === GenerationRequestStatus.ACCEPTED.value;
 	}
 }
 
@@ -123,7 +144,10 @@ class RefundPaidValidator implements ValidatorConstraintInterface {
 @ValidatorConstraint({ async: true })
 @Injectable()
 class RefundNotRefundedValidator implements ValidatorConstraintInterface {
-	constructor(@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>) { }
+	constructor(
+		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>,
+		private readonly stripeService: StripeService
+	) { }
 
 	public static validateNotRefunded(validationOptions?: ValidationOptions) {
 		return function (object: object, propertyName: string) {
@@ -143,7 +167,35 @@ class RefundNotRefundedValidator implements ValidatorConstraintInterface {
 			return true; // Пропускаем проверку, за существование отвечает другой валидатор
 		}
 
-		return generationRequest.status !== GenerationRequestStatus.REFUNDED.value;
+		// Проверяем статус в базе
+		if (generationRequest.status === GenerationRequestStatus.REFUNDED.value) {
+			return false;
+		}
+
+		// Проверяем в Stripe - может возврат был сделан, но статус в базе не обновился
+		const paymentLinkOrSecret = generationRequest.checkoutSessionUrl || generationRequest.paymentIntentClientSecret;
+		if (!paymentLinkOrSecret) {
+			return true; // Нет платежа - нет и возврата
+		}
+
+		const paymentId = this.stripeService.extractPaymentId(paymentLinkOrSecret);
+		if (!paymentId) {
+			return true;
+		}
+
+		// Для Checkout Session нужно сначала получить Payment Intent ID
+		let paymentIntentId = paymentId;
+		if (paymentId.startsWith('cs_')) {
+			const { paymentIntent } = await this.stripeService.getGenerationRequestStatus(paymentId);
+			if (!paymentIntent) {
+				return true;
+			}
+			paymentIntentId = paymentIntent.id;
+		}
+
+		// Проверяем наличие успешных refunds в Stripe
+		const hasRefund = await this.stripeService.hasSuccessfulRefund(paymentIntentId);
+		return !hasRefund;
 	}
 }
 

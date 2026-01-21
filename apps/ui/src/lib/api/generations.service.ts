@@ -8,6 +8,7 @@ import {
 	CreateGenerationDtoRequest,
 	PaymentLinkDtoResponse,
 	PaymentIntentDtoResponse,
+	RefundDtoResponse,
 	MessageSuccess
 } from '@api/shared';
 
@@ -52,6 +53,10 @@ class GenerationsService extends HttpClient {
 
 	public async getPaymentIntent(requestId: number): Promise<ApiResponse<MessageSuccess<PaymentIntentDtoResponse>>> {
 		return this.fetch(configService.endpoints.generationRequests.paymentIntent(requestId), PaymentIntentDtoResponse);
+	}
+
+	public async refund(requestId: number): Promise<ApiResponse<MessageSuccess<RefundDtoResponse>>> {
+		return this.fetch(configService.endpoints.generationRequests.refund(requestId), RefundDtoResponse);
 	}
 }
 

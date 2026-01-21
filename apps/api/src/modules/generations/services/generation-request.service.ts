@@ -77,7 +77,10 @@ class GenerationRequestService {
 			}
 		});
 
-		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit);
+		// Проверить какие запросы можно вернуть
+		const refundableMap = await this.checkRefundable(items);
+
+		return GenerationRequestsListDtoResponse.fromEntities(items, total, page, limit, refundableMap);
 	}
 
 	public async findOrCreateGenerationRequest(calculationId: number, provider: Provider): Promise<GenerationRequestDtoResponse> {
@@ -395,6 +398,49 @@ class GenerationRequestService {
 			await queryRunner.release();
 			this.generationsService.setQueryRunner(null);
 		}
+	}
+
+	/**
+	 * Проверить какие GenerationRequest можно вернуть
+	 * Возвращает Map<requestId, refundable>
+	 */
+	private async checkRefundable(items: GenerationRequest[]): Promise<Map<number, boolean>> {
+		const refundableMap = new Map<number, boolean>();
+
+		for (const item of items) {
+			// Быстрые проверки без обращения к Stripe
+			// 1. Generation должна быть FAILED
+			if (item.generation.status !== GenerationStatus.FAILED) {
+				refundableMap.set(item.id, false);
+				continue;
+			}
+
+			// 2. Не должна быть уже возвращена
+			if (item.status === GenerationRequestStatus.REFUNDED.value) {
+				refundableMap.set(item.id, false);
+				continue;
+			}
+
+			// 3. Должен существовать payment link или client secret
+			const paymentLinkOrSecret = item.checkoutSessionUrl || item.paymentIntentClientSecret;
+			if (!paymentLinkOrSecret) {
+				refundableMap.set(item.id, false);
+				continue;
+			}
+
+			// 4. Проверяем что job удалён из очереди
+			const jobId = JobUtils.generateId(item.generation.id);
+			const jobExists = await this.queueService.jobExists(jobId);
+			if (jobExists) {
+				refundableMap.set(item.id, false);
+				continue;
+			}
+
+			// Все базовые проверки пройдены - можно вернуть
+			refundableMap.set(item.id, true);
+		}
+
+		return refundableMap;
 	}
 }
 

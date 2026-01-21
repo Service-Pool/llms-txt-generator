@@ -39,8 +39,8 @@
 	>(null);
 	let paymentLinkLoaded = $state(false);
 	let showPaymentModal = $state(false);
-	let paymentError = $state<string[] | null>(null);
-
+	let errors = $state<string[] | null>(null);
+	let isRefunding = $state(false);
 	const isReady = $derived(
 		item.status !== GenerationRequestStatus.PENDING_PAYMENT.value ||
 			paymentLinkLoaded,
@@ -48,7 +48,7 @@
 
 	const loadPaymentData = async () => {
 		const paymentMethod = configService.stripe.paymentMethod;
-		paymentError = null;
+		errors = null;
 
 		try {
 			switch (paymentMethod) {
@@ -84,7 +84,7 @@
 				err instanceof HttpClientError &&
 				err.code === ResponseCode.INVALID
 			) {
-				paymentError = err.violations;
+				errors = err.violations;
 			}
 
 			throw err;
@@ -232,6 +232,39 @@
 	const handleClosePaymentModal = () => {
 		showPaymentModal = false;
 	};
+
+	const handleRefund = async () => {
+		if (!confirm("Request refund for this failed generation?")) {
+			return;
+		}
+
+		isRefunding = true;
+		errors = null;
+
+		try {
+			const response = await generationsService.refund(item.id);
+			const refundData = response.getMessage().data;
+			alert(
+				`Refund processed successfully!\n\nRefund ID: ${refundData.refundId}\nAmount: ${refundData.amount} ${refundData.currency}\nStatus: ${refundData.status}\n\nSave this information for your bank if needed.`,
+			);
+
+			// Refresh item to update status
+			if (onPaymentSuccess) {
+				onPaymentSuccess(item.id);
+			}
+		} catch (err) {
+			if (
+				err instanceof HttpClientError &&
+				err.code === ResponseCode.INVALID
+			) {
+				errors = err.violations;
+			} else {
+				alert("Failed to process refund. Please try again.");
+			}
+		} finally {
+			isRefunding = false;
+		}
+	};
 </script>
 
 {#if !isReady}
@@ -284,7 +317,14 @@
 						<span>{showContent ? "Hide" : "Show"}</span>
 					</button>
 				{/if}
-
+				{#if item.refundable}
+					<button
+						onclick={handleRefund}
+						disabled={isRefunding}
+						class="px-2 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+						{isRefunding ? "Processing..." : "Refund"}
+					</button>
+				{/if}
 				<button
 					onclick={handleDelete}
 					class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
@@ -313,13 +353,13 @@
 		</div>
 
 		<!-- Error Messages -->
-		{#if paymentError || (status === GenerationStatus.FAILED && item.generation.errors)}
+		{#if errors || (status === GenerationStatus.FAILED && item.generation.errors)}
 			<div
 				class="mt-3 pt-2 dark:bg-red-900/20 border-t border-t-red-200 dark:border-t-red-800">
 				<ul
 					class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-1">
-					{#if paymentError}
-						{#each paymentError as errMsg}
+					{#if errors}
+						{#each errors as errMsg}
 							<li>{errMsg}</li>
 						{/each}
 					{/if}
