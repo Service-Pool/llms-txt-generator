@@ -292,18 +292,19 @@
 			</div>
 
 			<!-- Action Buttons -->
-			<div class="shrink-0 grid grid-flow-col auto-cols-fr gap-1 w-fit items-center">
+			<div
+				class="shrink-0 grid grid-flow-col auto-cols-fr gap-1 w-fit items-center">
 				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentData}
 					{#if paymentData.method === "checkout" && paymentData.url}
 						<a
 							href={paymentData.url}
-							class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+							class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors text-center">
 							Pay Now
 						</a>
 					{:else if paymentData.method === "elements" && paymentData.clientSecret}
 						<button
 							onclick={handleOpenPaymentModal}
-							class="px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
+							class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
 							Pay Now
 						</button>
 					{/if}
@@ -313,7 +314,7 @@
 					<button
 						onclick={handleShowContent}
 						disabled={false}
-						class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+						class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
 						<span>{showContent ? "Hide" : "Show"}</span>
 					</button>
 				{/if}
@@ -321,13 +322,13 @@
 					<button
 						onclick={handleRefund}
 						disabled={isRefunding}
-						class="px-2 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+						class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
 						{isRefunding ? "Processing..." : "Refund"}
 					</button>
 				{/if}
 				<button
 					onclick={handleDelete}
-					class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
+					class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
 					aria-label="Delete generation">
 					Delete
 				</button>
@@ -428,3 +429,9 @@
 		onSuccess={handlePaymentSuccess}
 		onClose={handleClosePaymentModal} />
 {/if}
+
+<style>
+	div {
+		--action-btn-width: 4.5rem;
+	}
+</style>
