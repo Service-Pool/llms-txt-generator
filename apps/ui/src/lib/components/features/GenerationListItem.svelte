@@ -382,7 +382,7 @@
 		<!-- Content Section -->
 		{#if showContent || isLoading}
 			<div
-				class="mt-2 p-2 max-h-96 overflow-y-auto overflow-x-hidden rounded border">
+				class="mt-2 p-2 max-h-96 overflow-y-auto overflow-x-hidden rounded border bg-gray-50 dark:bg-gray-600 border-gray-200 dark:border-gray-700">
 				{#if isLoading}
 					<div class="flex justify-center items-center py-6">
 						<Spinner size="8" delay={1000} />

@@ -15,6 +15,7 @@
 		Button,
 		Dropdown,
 		DropdownItem,
+		DarkMode,
 	} from "flowbite-svelte";
 
 	const navItems = [
@@ -60,6 +61,7 @@
 	</NavBrand>
 
 	<div class="flex items-center gap-2 md:order-2">
+		<DarkMode class="text-lg" />
 		{#if isLoading}
 			<Spinner size="6" />
 		{:else if user}

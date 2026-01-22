@@ -100,7 +100,7 @@
 			{/if}
 		</button>
 
-		<p class="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+		<p class="mt-4 text-sm text-center">
 			We'll send you an email with a sign-in link. No password needed!
 		</p>
 	</form>

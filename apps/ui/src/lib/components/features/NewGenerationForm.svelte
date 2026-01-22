@@ -143,11 +143,7 @@
 	<div class="flex justify-between items-center mb-4">
 		<h2 class="text-2xl font-bold">Create New Generation</h2>
 		{#if step === "calc"}
-			<Button
-				onclick={handleBack}
-				disabled={submitting}
-				color="dark"
-				size="xs">
+			<Button onclick={handleBack} disabled={submitting} size="xs">
 				Back
 			</Button>
 		{/if}
@@ -230,7 +226,7 @@
 						<Card
 							class="shadow-none max-w-none p-4 h-full flex flex-col relative overflow-hidden">
 							<div
-								class="absolute inset-0 opacity-10"
+								class="absolute inset-0 opacity-10 dark:invert"
 								style="background-image: url('/pattern.svg'); background-size: cover; background-repeat: repeat;">
 							</div>
 
