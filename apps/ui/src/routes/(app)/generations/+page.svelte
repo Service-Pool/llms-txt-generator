@@ -176,7 +176,7 @@
 	<!-- List -->
 	{#if showLoadingSpinner}
 		<div class="flex justify-center py-12">
-			<Spinner size="12" delay={1000} />
+			<Spinner size="12" delay={300} />
 		</div>
 	{:else if error}
 		<Alert color="red">

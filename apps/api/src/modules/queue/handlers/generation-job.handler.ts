@@ -64,6 +64,10 @@ export class GenerationJobHandler {
 	public async handle(job: Job<GenerationJobMessage>): Promise<void> {
 		const { generationId, provider } = job.data;
 
+		if (!generationId) {
+			throw new Error(`Job ${job.id} has no generationId in data: ${JSON.stringify(job.data)}`);
+		}
+
 		// Загрузить Generation с Calculation для получения hostname
 		const generation = await this.generationRepository.findOne({
 			where: { id: generationId },
