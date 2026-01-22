@@ -12,6 +12,9 @@
 	import ProgressBar from "../common/ProgressBar.svelte";
 	import Spinner from "../common/Spinner.svelte";
 	import StripeElementsModal from "../common/StripeElementsModal.svelte";
+	import { Card, Badge, Button, Alert, P } from "flowbite-svelte";
+
+	const ACTION_BTN_MIN_WIDTH = "5rem";
 
 	interface Props {
 		item: GenerationRequestDtoResponse;
@@ -110,30 +113,15 @@
 	const statusConfig = $derived.by(() => {
 		switch (status) {
 			case GenerationStatus.WAITING:
-				return {
-					text: "Waiting",
-					class: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-				};
+				return { text: "Waiting", color: "yellow" as const };
 			case GenerationStatus.ACTIVE:
-				return {
-					text: "Processing",
-					class: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-				};
+				return { text: "Processing", color: "blue" as const };
 			case GenerationStatus.COMPLETED:
-				return {
-					text: "Completed",
-					class: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-				};
+				return { text: "Completed", color: "green" as const };
 			case GenerationStatus.FAILED:
-				return {
-					text: "Failed",
-					class: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-				};
+				return { text: "Failed", color: "red" as const };
 			default:
-				return {
-					text: "Unknown",
-					class: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-				};
+				return { text: "Unknown", color: undefined };
 		}
 	});
 
@@ -268,76 +256,84 @@
 </script>
 
 {#if !isReady}
-	<div
-		class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 animate-pulse">
+	<Card class="max-w-none p-4 shadow-sm">
 		<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
 		<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-	</div>
+	</Card>
 {:else}
-	<div
-		class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+	<Card class="max-w-none p-4 shadow-sm">
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div class="flex-1">
 				<!-- Hostname with Status -->
 				<div class="flex items-baseline gap-2 mb-2 flex-wrap">
-					<h3
-						class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+					<h3 class="text-sm font-semibold truncate">
 						{item.generation.hostname}
 					</h3>
-					<span
-						class="px-2 py-0.5 rounded text-xs font-medium {statusConfig.class}">
-						{statusConfig.text}
-					</span>
+					<Badge color={statusConfig.color}
+						>{statusConfig.text}</Badge>
 				</div>
 			</div>
 
 			<!-- Action Buttons -->
-			<div
-				class="shrink-0 grid grid-flow-col auto-cols-fr gap-1 w-fit items-center">
+			<div class="shrink-0 grid grid-flow-col auto-cols-fr gap-1">
 				{#if item.status === GenerationRequestStatus.PENDING_PAYMENT.value && paymentData}
 					{#if paymentData.method === "checkout" && paymentData.url}
-						<a
+						<Button
 							href={paymentData.url}
-							class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors text-center">
-							Pay Now
-						</a>
+							color="orange"
+							size="xs"
+							class="border-2"
+							style="min-width: {ACTION_BTN_MIN_WIDTH}"
+							>Pay</Button>
 					{:else if paymentData.method === "elements" && paymentData.clientSecret}
-						<button
+						<Button
 							onclick={handleOpenPaymentModal}
-							class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-orange-100 hover:bg-orange-200 dark:bg-orange-900 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-200 rounded transition-colors">
-							Pay Now
-						</button>
+							outline
+							color="orange"
+							size="xs"
+							class="border-2"
+							style="min-width: {ACTION_BTN_MIN_WIDTH}"
+							>Pay</Button>
 					{/if}
 				{/if}
 
 				{#if status === GenerationStatus.COMPLETED}
-					<button
+					<Button
 						onclick={handleShowContent}
-						disabled={false}
-						class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-						<span>{showContent ? "Hide" : "Show"}</span>
-					</button>
+						outline
+						color="blue"
+						size="xs"
+						class="border-2"
+						style="min-width: {ACTION_BTN_MIN_WIDTH}">
+						{showContent ? "Hide" : "Show"}
+					</Button>
 				{/if}
 				{#if item.refundable}
-					<button
+					<Button
 						onclick={handleRefund}
 						disabled={isRefunding}
-						class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-purple-100 hover:bg-purple-200 dark:bg-purple-900 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+						outline
+						color="purple"
+						size="xs"
+						class="border-2"
+						style="min-width: {ACTION_BTN_MIN_WIDTH}">
 						{isRefunding ? "Processing..." : "Refund"}
-					</button>
+					</Button>
 				{/if}
-				<button
+				<Button
 					onclick={handleDelete}
-					class="min-w-(--action-btn-width) px-2 py-1 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-200 rounded transition-colors"
-					aria-label="Delete generation">
-					Delete
-				</button>
+					color="red"
+					outline
+					size="xs"
+					class="border-2"
+					style="min-width: {ACTION_BTN_MIN_WIDTH}">
+					Delete</Button>
 			</div>
 		</div>
 
 		<!-- Provider & Metadata in one line -->
 		<div
-			class="w-full flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs text-gray-500 dark:text-gray-400">
+			class="flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs opacity-75">
 			<span>{item.generation.provider}</span>
 			<span>•</span>
 			<span>{formattedDate}</span>
@@ -355,19 +351,19 @@
 
 		<!-- Error Messages -->
 		{#if errors || (status === GenerationStatus.FAILED && item.generation.errors)}
-			<div
-				class="mt-3 pt-2 dark:bg-red-900/20 border-t border-t-red-200 dark:border-t-red-800">
-				<ul
-					class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-1">
-					{#if errors}
-						{#each errors as errMsg}
-							<li>{errMsg}</li>
-						{/each}
-					{/if}
-					{#if status === GenerationStatus.FAILED && item.generation.errors}
-						<li>Error: {item.generation.errors}</li>
-					{/if}
-				</ul>
+			<div class="mt-3">
+				<Alert color="red" class="text-xs">
+					<ul class="list-disc list-inside space-y-1">
+						{#if errors}
+							{#each errors as errMsg}
+								<li>{errMsg}</li>
+							{/each}
+						{/if}
+						{#if status === GenerationStatus.FAILED && item.generation.errors}
+							<li>Error: {item.generation.errors}</li>
+						{/if}
+					</ul>
+				</Alert>
 			</div>
 		{/if}
 
@@ -377,7 +373,7 @@
 				<ProgressBar
 					current={progress.processedUrls}
 					total={progress.totalUrls}
-					size="sm"
+					size="h-1.5"
 					showPercentage={true}
 					showNumbers={true} />
 			</div>
@@ -386,19 +382,16 @@
 		<!-- Content Section -->
 		{#if showContent || isLoading}
 			<div
-				class="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto overflow-x-hidden">
+				class="mt-2 p-2 max-h-96 overflow-y-auto overflow-x-hidden rounded border">
 				{#if isLoading}
 					<div class="flex justify-center items-center py-6">
-						<Spinner
-							size="md"
-							color="var(--spinner-color)"
-							delay={1000} />
+						<Spinner size="8" delay={1000} />
 					</div>
 				{:else}
-					<p
-						class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
+					<P
+						class="text-xs leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
 						{fullContent}
-					</p>
+					</P>
 				{/if}
 			</div>
 		{/if}
@@ -406,19 +399,21 @@
 		<!-- Action Buttons for Content -->
 		{#if showContent && fullContent && !isLoading}
 			<div class="flex gap-1 justify-end mt-2">
-				<button
+				<Button
 					onclick={handleCopy}
-					class="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-200 rounded transition-colors">
-					Copy
-				</button>
-				<button
+					outline
+					color="blue"
+					size="xs"
+					class="border-2">Copy</Button>
+				<Button
 					onclick={handleDownload}
-					class="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-700 dark:text-green-200 rounded transition-colors">
-					Download
-				</button>
+					outline
+					color="green"
+					size="xs"
+					class="border-2">Download</Button>
 			</div>
 		{/if}
-	</div>
+	</Card>
 {/if}
 
 <!-- Stripe Elements Payment Modal -->
@@ -429,9 +424,3 @@
 		onSuccess={handlePaymentSuccess}
 		onClose={handleClosePaymentModal} />
 {/if}
-
-<style>
-	div {
-		--action-btn-width: 4.5rem;
-	}
-</style>

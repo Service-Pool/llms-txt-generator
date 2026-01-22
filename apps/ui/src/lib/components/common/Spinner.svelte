@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { Spinner as FlowbiteSpinner } from "flowbite-svelte";
+	import { type SpinnerProps } from "flowbite-svelte";
 
 	interface Props {
-		size?: "sm" | "md" | "lg";
-		color?: string;
+		size?: SpinnerProps["size"];
+		color?: SpinnerProps["color"];
 		delay?: number;
 	}
 
-	let { size = "md", color = "#3b82f6", delay = 0 }: Props = $props();
+	let { size = "6", color = "primary", delay = 0 }: Props = $props();
 
 	let isVisible = $state(false);
 
@@ -24,38 +25,8 @@
 
 		return;
 	});
-
-	onMount(() => {
-		// onMount cleanup handled by $effect
-	});
-
-	const sizeMap = {
-		sm: "h-5 w-5",
-		md: "h-8 w-8",
-		lg: "h-12 w-12",
-	};
-
-	const sizeClass = $derived(sizeMap[size]);
 </script>
 
 {#if isVisible}
-	<div
-		class="animate-spin rounded-full border-2 {sizeClass}"
-		style="border-color: {color}; border-top-color: transparent;">
-	</div>
+	<FlowbiteSpinner {size} type="orbit" {color} />
 {/if}
-
-<style>
-	:global(.animate-spin) {
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-</style>

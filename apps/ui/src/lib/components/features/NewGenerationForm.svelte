@@ -13,6 +13,8 @@
 	} from "@api/shared";
 	import { formatNumber } from "$lib/utils/number-format";
 	import { authStore } from "$lib/stores/auth.store";
+	import { Button, Input, Label, Card, Alert, Helper } from "flowbite-svelte";
+	import { CheckCircleSolid } from "flowbite-svelte-icons";
 
 	interface Props {
 		onCreate: (generation: GenerationRequestDtoResponse) => void;
@@ -137,158 +139,163 @@
 	};
 </script>
 
-<div
-	class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-	<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-		Create New Generation
-	</h2>
+<Card size="xl" class="shadow-sm p-4 sm:p-6 md:p-8">
+	<div class="flex justify-between items-center mb-4">
+		<h2 class="text-2xl font-bold">Create New Generation</h2>
+		{#if step === "calc"}
+			<Button
+				onclick={handleBack}
+				disabled={submitting}
+				color="dark"
+				size="xs">
+				Back
+			</Button>
+		{/if}
+	</div>
 
 	{#if step === "input"}
 		<!-- Step 1: URL Input & Calculate -->
 		<form onsubmit={handleCalculate} class="space-y-4">
 			<div>
-				<label
-					for="url"
-					class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-					Website URL
-				</label>
-				<input
+				<Label for="url" class="mb-2">Website URL</Label>
+				<Input
 					id="url"
 					type="text"
 					bind:value={websiteUrl}
 					disabled={submitting}
 					placeholder="https://example.com"
-					class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 {!isUrlValid &&
-					websiteUrl
-						? 'border-red-500'
-						: 'border-gray-300 dark:border-gray-600'}" />
+					color={!isUrlValid && websiteUrl ? "red" : undefined} />
 				{#if !isUrlValid && websiteUrl}
-					<p class="mt-1 text-sm text-red-600 dark:text-red-400">
+					<Helper color="red">
 						Please enter a valid URL (must start with http:// or
 						https://)
-					</p>
+					</Helper>
 				{/if}
 			</div>
 
 			{#if error}
-				<div
-					class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-					<ul
-						class="list-disc list-inside text-sm text-red-800 dark:text-red-200 space-y-1">
+				<Alert color="red">
+					<ul class="list-disc list-inside space-y-1">
 						{#each error as errMsg}
 							<li>{errMsg}</li>
 						{/each}
 					</ul>
-				</div>
+				</Alert>
 			{/if}
 
-			<button
-				type="submit"
-				disabled={!canCalculate}
-				class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium">
+			<Button type="submit" disabled={!canCalculate} class="w-full">
 				{#if showSpinner}
 					<span class="flex items-center justify-center gap-2">
-						<Spinner
-							size="sm"
-							color="var(--spinner-color)"
-							delay={1000} />
+						<Spinner size="6" color="yellow" delay={1000} />
 						Analyzing...
 					</span>
 				{:else}
 					Analyze
 				{/if}
-			</button>
+			</Button>
 		</form>
 	{:else if step === "calc" && calc}
 		<!-- Step 2: Calc Display & Provider Selection -->
 		<div class="space-y-6">
 			<!-- Calc Display -->
-			<div
-				class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-				<h3
-					class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-					Analysis Results
-				</h3>
-
-				<div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-					<div class="flex justify-between">
-						<span>Hostname:</span>
-						<span
-							class="font-mono text-gray-900 dark:text-white whitespace-nowrap"
-							>{calc.hostname}</span>
-					</div>
-					<div class="flex justify-between">
-						<span>URLs found:</span>
-						<span
-							class="font-semibold text-gray-900 dark:text-white"
-							>{formatNumber(
-								calc.urlsCount,
-							)}{!calc.urlsCountPrecise ? "+" : ""}</span>
+			<Alert border color="secondary">
+				<div class="space-y-3">
+					<h3 class="text-sm font-semibold">Analysis Results</h3>
+					<div class="space-y-2 text-sm">
+						<div class="flex justify-between">
+							<span>Hostname:</span>
+							<span class="font-mono whitespace-nowrap"
+								>{calc.hostname}</span>
+						</div>
+						<div class="flex justify-between">
+							<span>URLs found:</span>
+							<span class="font-semibold">
+								{formatNumber(
+									calc.urlsCount,
+								)}{!calc.urlsCountPrecise ? "+" : ""}
+							</span>
+						</div>
 					</div>
 				</div>
-			</div>
+			</Alert>
 
 			<!-- Provider Selection -->
 			<div>
-				<h3
-					class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+				<h3 class="text-sm font-semibold mb-3">
 					Select Generation Method
 				</h3>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					{#each providers as provider}
 						{@const price = getPriceForProvider(provider.value)}
-						<button
-							type="button"
-							onclick={() => handleProviderSelect(provider.value)}
-							disabled={submitting}
-							class="p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left">
+						<Card
+							class="shadow-none max-w-none p-4 h-full flex flex-col relative overflow-hidden">
 							<div
-								class="font-semibold text-gray-900 dark:text-white">
+								class="absolute inset-0 opacity-10"
+								style="background-image: url('/pattern.svg'); background-size: cover; background-repeat: repeat;">
+							</div>
+
+							<h5 class="mb-2 text-lg font-medium relative z-10">
 								{provider.name}
-							</div>
-							<div
-								class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-								{provider.description}
-							</div>
-							{#if price}
+							</h5>
+
+							{#if price && price.total > 0}
 								<div
-									class="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2">
-									{price.currencySymbol}{price.total.toFixed(
-										2,
-									)}
+									class="flex items-baseline mb-4 relative z-10">
+									<span class="text-2xl font-semibold">
+										{price.currencySymbol}
+									</span>
+									<span
+										class="text-4xl font-extrabold tracking-tight">
+										{price.total.toFixed(2)}
+									</span>
+								</div>
+							{:else}
+								<div
+									class="mb-4 text-3xl font-bold relative z-10">
+									Free
 								</div>
 							{/if}
-							{#if requiresLogin(provider.value)}
-								<div
-									class="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1">
-									Login required
-								</div>
-							{/if}
-						</button>
+
+							<ul class="mb-4 space-y-2 relative z-10">
+								<li class="flex items-center space-x-2">
+									<CheckCircleSolid
+										class="text-primary-600 h-4 w-4 shrink-0" />
+									<span class="text-sm opacity-75">
+										{provider.description}
+									</span>
+								</li>
+								{#if requiresLogin(provider.value)}
+									<li class="flex items-center space-x-2">
+										<CheckCircleSolid
+											class="text-amber-600 h-4 w-4 shrink-0" />
+										<span class="text-sm text-amber-600">
+											Login required
+										</span>
+									</li>
+								{/if}
+							</ul>
+
+							<Button
+								onclick={() =>
+									handleProviderSelect(provider.value)}
+								disabled={submitting}
+								class="mt-auto self-start relative z-10">
+								Queue
+							</Button>
+						</Card>
 					{/each}
 				</div>
 			</div>
 
 			{#if error}
-				<div
-					class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-					<ul
-						class="list-disc list-inside text-sm text-red-800 dark:text-red-200 space-y-1">
+				<Alert color="red">
+					<ul class="list-disc list-inside space-y-1">
 						{#each error as errMsg}
 							<li>{errMsg}</li>
 						{/each}
 					</ul>
-				</div>
+				</Alert>
 			{/if}
-
-			<!-- Back Button -->
-			<button
-				type="button"
-				onclick={handleBack}
-				disabled={submitting}
-				class="w-full px-4 py-2.5 bg-gray-400 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-500 dark:hover:bg-gray-700 focus:ring-4 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium">
-				Back
-			</button>
 		</div>
 	{/if}
-</div>
+</Card>

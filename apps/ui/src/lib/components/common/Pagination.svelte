@@ -1,4 +1,10 @@
 <script lang="ts">
+	import { PaginationNav, Select, Label, Hr } from "flowbite-svelte";
+	import {
+		ChevronLeftOutline,
+		ChevronRightOutline,
+	} from "flowbite-svelte-icons";
+
 	interface Props {
 		page: number;
 		limit: number;
@@ -10,20 +16,15 @@
 	let { page, limit, total, onPageChange, onLimitChange }: Props = $props();
 
 	const totalPages = $derived(Math.ceil(total / limit) || 1);
-	const hasNextPage = $derived(page < totalPages);
-	const hasPrevPage = $derived(page > 1);
-	const limitOptions = [5, 10, 20, 50];
+	const limitOptions = [
+		{ value: 5, name: "5" },
+		{ value: 10, name: "10" },
+		{ value: 20, name: "20" },
+		{ value: 50, name: "50" },
+	];
 
-	const handlePrevPage = () => {
-		if (hasPrevPage) {
-			onPageChange(page - 1);
-		}
-	};
-
-	const handleNextPage = () => {
-		if (hasNextPage) {
-			onPageChange(page + 1);
-		}
+	const handlePageChange = (newPage: number) => {
+		onPageChange(newPage);
 	};
 
 	const handleLimitChange = (e: Event) => {
@@ -32,44 +33,41 @@
 	};
 </script>
 
-<div
-	class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-	<div class="text-sm text-gray-600 dark:text-gray-400">
+<Hr divClass="my-8" />
+
+<div class="flex items-center justify-between">
+	<div class="text-sm opacity-75">
 		Page {page} of {totalPages} ({total} total)
 	</div>
 
 	<div class="flex items-center gap-4">
 		<!-- Items per page select -->
 		<div class="flex items-center gap-2">
-			<label for="limit" class="text-sm text-gray-600 dark:text-gray-400">
-				Per page:
-			</label>
-			<select
+			<Label for="limit" class="text-sm opacity-75 whitespace-nowrap"
+				>Per page:</Label>
+			<Select
 				id="limit"
-				value={limit}
-				onchange={handleLimitChange}
-				class="px-2 py-1 text-sm min-w-16 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-				{#each limitOptions as option}
-					<option value={option}>{option}</option>
-				{/each}
-			</select>
+				size="sm"
+				class="min-w-16"
+				items={limitOptions}
+				bind:value={limit}
+				onchange={handleLimitChange} />
 		</div>
 
-		<!-- Navigation buttons -->
-		<div class="flex gap-2">
-			<button
-				onclick={handlePrevPage}
-				disabled={!hasPrevPage}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-				Previous
-			</button>
-
-			<button
-				onclick={handleNextPage}
-				disabled={!hasNextPage}
-				class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-				Next
-			</button>
-		</div>
+		<!-- Navigation -->
+		<PaginationNav
+			currentPage={page}
+			{totalPages}
+			onPageChange={handlePageChange}
+			size="default">
+			{#snippet prevContent()}
+				<span class="sr-only">Previous</span>
+				<ChevronLeftOutline class="h-5 w-5" />
+			{/snippet}
+			{#snippet nextContent()}
+				<span class="sr-only">Next</span>
+				<ChevronRightOutline class="h-5 w-5" />
+			{/snippet}
+		</PaginationNav>
 	</div>
 </div>

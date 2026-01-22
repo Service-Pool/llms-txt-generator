@@ -9,6 +9,7 @@
 	import GenerationsList from "$lib/components/features/GenerationsList.svelte";
 	import NewGenerationForm from "$lib/components/features/NewGenerationForm.svelte";
 	import Spinner from "$lib/components/common/Spinner.svelte";
+	import { Alert, Button } from "flowbite-svelte";
 
 	let items = $state<GenerationRequestDtoResponse[]>([]);
 	let total = $state(0);
@@ -175,18 +176,19 @@
 	<!-- List -->
 	{#if showLoadingSpinner}
 		<div class="flex justify-center py-12">
-			<Spinner size="lg" color="#3b82f6" delay={1000} />
+			<Spinner size="12" delay={1000} />
 		</div>
 	{:else if error}
-		<div
-			class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-			<p class="text-red-800 dark:text-red-200">{error}</p>
-			<button
+		<Alert color="red">
+			<p>{error}</p>
+			<Button
 				onclick={() => loadGenerations()}
-				class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline">
+				size="xs"
+				color="red"
+				class="mt-2">
 				Try again
-			</button>
-		</div>
+			</Button>
+		</Alert>
 	{:else}
 		<GenerationsList
 			{items}

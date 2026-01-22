@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { Modal, Button } from "flowbite-svelte";
+	import { slide } from "svelte/transition";
+	import Spinner from "./Spinner.svelte";
 	import {
 		loadStripe,
 		type Stripe,
@@ -15,6 +18,7 @@
 
 	let { clientSecret, publishableKey, onSuccess, onClose }: Props = $props();
 
+	let isOpen = $state(true);
 	let stripe: Stripe | null = $state(null);
 	let elements: StripeElements | null = $state(null);
 	let isLoading = $state(true);
@@ -67,80 +71,43 @@
 		onSuccess();
 	};
 
-	const handleBackdropClick = (e: MouseEvent) => {
-		if (e.target === e.currentTarget && !isProcessing) {
+	const handleClose = () => {
+		if (!isProcessing) {
+			isOpen = false;
 			onClose();
 		}
 	};
-
-	// Блокируем скролл основной страницы при открытии модалки
-	$effect(() => {
-		document.body.style.overflow = "hidden";
-
-		return () => {
-			document.body.style.overflow = "";
-		};
-	});
 </script>
 
-<!-- Modal Backdrop -->
-<div
-	class="fixed inset-0 m-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50"
-	onclick={handleBackdropClick}
-	onkeydown={(e) => e.key === "Escape" && !isProcessing && onClose()}
-	role="dialog"
-	aria-modal="true"
-	tabindex="-1">
-	<!-- Modal Content -->
-	<div
-		class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto m-4">
-		<div class="p-6">
-			<!-- Header -->
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-					Complete Payment
-				</h2>
-				<button
-					onclick={onClose}
-					disabled={isProcessing}
-					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-					aria-label="Close">
-					<svg
-						class="w-6 h-6"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"></path>
-					</svg>
-				</button>
-			</div>
-
-			<!-- Loading State -->
-			{#if isLoading}
-				<div class="flex justify-center items-center py-12">
-					<div
-						class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600">
-					</div>
-				</div>
-			{:else}
-				<!-- Payment Form -->
-				<form onsubmit={handleSubmit}>
-					<!-- Stripe Payment Element -->
-					<div bind:this={paymentElementContainer} class="mb-4"></div>
-
-					<!-- Submit Button -->
-					<button
-						type="submit"
-						disabled={isProcessing}
-						class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors disabled:cursor-not-allowed">
-						{isProcessing ? "Processing..." : "Pay Now"}
-					</button>
-				</form>
-			{/if}
+<Modal
+	bind:open={isOpen}
+	size="md"
+	permanent={isProcessing}
+	transition={slide}
+	dismissable={!isProcessing}
+	outsideclose={!isProcessing}
+	onclose={handleClose}
+	title="Complete Payment"
+	class="backdrop:backdrop-blur-sm">
+	<!-- Loading State -->
+	{#if isLoading}
+		<div class="flex justify-center items-center py-12">
+			<Spinner size="12" />
 		</div>
-	</div>
-</div>
+	{:else}
+		<!-- Payment Form -->
+		<form onsubmit={handleSubmit}>
+			<!-- Stripe Payment Element -->
+			<div bind:this={paymentElementContainer} class="mb-4"></div>
+
+			<!-- Submit Button -->
+			<Button
+				type="submit"
+				disabled={isProcessing}
+				color="blue"
+				class="w-full">
+				{isProcessing ? "Processing..." : "Pay Now"}
+			</Button>
+		</form>
+	{/if}
+</Modal>
