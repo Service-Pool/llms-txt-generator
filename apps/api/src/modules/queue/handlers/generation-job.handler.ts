@@ -94,10 +94,11 @@ export class GenerationJobHandler {
 			const totalUrls = await this.countTotalUrls(sitemapUrls);
 
 			// Set context for the job
+			// +1 for website description generation (final step)
 			this.context = {
 				job,
 				generationId,
-				totalUrls,
+				totalUrls: totalUrls + 1,
 				provider,
 				hostname,
 				cleanHostname: this.cleanHostname(hostname),
@@ -107,6 +108,12 @@ export class GenerationJobHandler {
 
 			const allSummaries = await this.processUrlsInBatches(sitemapUrls);
 			const websiteDescription = await this.getWebsiteDescription(allSummaries);
+
+			// Update progress after website description generation (final step)
+			await this.ctx.job.updateProgress({
+				processedUrls: allSummaries.length + 1,
+				totalUrls: this.ctx.totalUrls
+			});
 
 			await this.completeGeneration(websiteDescription, allSummaries, job.id);
 		} catch (error) {

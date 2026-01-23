@@ -90,6 +90,9 @@
 			ws.subscribe([newGeneration.generation.id]);
 		}
 
+		// Remove existing item with same ID if it exists (shouldn't happen, but defensive)
+		items = items.filter((item) => item.id !== newGeneration.id);
+
 		// Add new generation to the top of the list
 		items = [newGeneration, ...items];
 

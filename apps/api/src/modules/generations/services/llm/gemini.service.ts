@@ -102,8 +102,7 @@ export class GeminiService implements AiServiceInterface {
 						required: truncatedPages.map(p => p.url)
 					},
 					// Добавить:
-					candidateCount: 1,
-					stopSequences: ['}']
+					candidateCount: 1
 				}
 			);
 
@@ -125,7 +124,7 @@ export class GeminiService implements AiServiceInterface {
 		} catch (error) {
 			this.logger.error('Failed to parse AI response:', error);
 			if (response) {
-				this.logger.error(`Response that failed validation (length: ${response.length} chars): ${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`);
+				this.logger.error(`Response that failed validation: ${response}`);
 			}
 
 			for (const summary of summaries) {

@@ -148,7 +148,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
 		currencySymbol: CURRENCY_SYMBOLS[env.PRICING_CURRENCY_CODE],
 		minPayment: env.PRICING_MIN_PAYMENT,
 		enabled: true,
-		batchSize: 25
+		batchSize: 20
 	},
 	[Provider.OLLAMA]: {
 		queueName: 'ollama-queue',
