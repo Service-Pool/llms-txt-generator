@@ -1,16 +1,18 @@
 FROM mysql:8.0
 
+# Install gettext for envsubst command
+RUN microdnf install -y gettext && \
+    microdnf clean all
+
 # Set default character set and collation
 ENV MYSQL_CHARSET=utf8mb4
 ENV MYSQL_COLLATION=utf8mb4_unicode_ci
-
-# Copy custom MySQL configuration if needed
-COPY _configs/my.cnf /etc/mysql/conf.d/
 
 # The official MySQL image will automatically run any .sql files
 # in /docker-entrypoint-initdb.d/ on first startup
 # Our migrations are mounted there via docker-compose volumes
 
-EXPOSE 3306
+# Port will be configured dynamically via DB_PORT environment variable
+EXPOSE ${DB_PORT}
 
 CMD ["bash", "/tmp/app/cmd-mysql.sh"]

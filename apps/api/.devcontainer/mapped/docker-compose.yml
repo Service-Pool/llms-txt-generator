@@ -112,10 +112,11 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+      - ../_configs/my.cnf:/tmp/my.cnf
       - ./cmd-mysql.sh:/tmp/app/cmd-mysql.sh
       - ../_configs/init-database.sql:/docker-entrypoint-initdb.d/01-init-database.sql
     ports:
-      - ${DB_PORT}:3306
+      - ${DB_PORT}:${DB_PORT}
     healthcheck:
       test:
         [
