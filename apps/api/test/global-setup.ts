@@ -13,7 +13,7 @@ export default async function globalSetup() {
 	// Create test database if it doesn't exist
 	const connection = await mysql.createConnection({
 		host: process.env.DB_HOST,
-		port: parseInt(process.env.DB_PORT || '3306'),
+		port: parseInt(process.env.DB_PORT as string),
 		user: process.env.DB_USER,
 		password: process.env.DB_PASSWORD
 	});

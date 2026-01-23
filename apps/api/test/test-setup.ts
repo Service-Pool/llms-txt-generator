@@ -23,7 +23,7 @@ async function initTestDatabase(): Promise<DataSource> {
 	const dataSource = new DataSource({
 		type: 'mysql',
 		host: process.env.DB_HOST,
-		port: parseInt(process.env.DB_PORT || '3306'),
+		port: parseInt(process.env.DB_PORT as string),
 		username: process.env.DB_USER,
 		password: process.env.DB_PASSWORD,
 		database: TEST_DB_NAME,

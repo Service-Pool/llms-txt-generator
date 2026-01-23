@@ -115,7 +115,7 @@ services:
       - ./cmd-mysql.sh:/tmp/app/cmd-mysql.sh
       - ../_configs/init-database.sql:/docker-entrypoint-initdb.d/01-init-database.sql
     ports:
-      - ${DB_PORT}:${DB_PORT}
+      - ${DB_PORT}:3306
     healthcheck:
       test:
         [
