@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MySQL startup script
-# The official MySQL image handles most initialization automatically
+# Database initialization handled by SQL file in /docker-entrypoint-initdb.d/
 
 echo "Starting MySQL server..."
 
