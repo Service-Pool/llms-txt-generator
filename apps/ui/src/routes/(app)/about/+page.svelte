@@ -1,12 +1,12 @@
 <script lang="ts">
-	// About page
+	import { Button } from "flowbite-svelte";
 </script>
 
 <div class="max-w-4xl mx-auto">
 	<h1 class="text-3xl font-bold mb-6">About LLMs.txt Generator</h1>
 
 	<div class="prose dark:prose-invert max-w-none">
-		<p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
+		<p class="text-lg mb-4">
 			This tool automatically generates llms.txt files for your website,
 			making your content more accessible to AI language models.
 		</p>
@@ -20,11 +20,7 @@
 		</ul>
 
 		<div class="mt-8">
-			<a
-				href="/generator"
-				class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-				Try Generator
-			</a>
+			<Button href="/generator" size="lg">Try Generator</Button>
 		</div>
 	</div>
 </div>

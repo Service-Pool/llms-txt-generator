@@ -140,7 +140,7 @@
 			case GenerationRequestStatus.REFUNDED.value:
 				return {
 					text: GenerationRequestStatus.REFUNDED.label,
-					class: "text-purple-600 dark:text-purple-400",
+					class: "",
 				};
 			default:
 				return {

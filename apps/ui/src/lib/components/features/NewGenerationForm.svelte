@@ -194,7 +194,7 @@
 		<!-- Step 2: Calc Display & Provider Selection -->
 		<div class="space-y-6">
 			<!-- Calc Display -->
-			<Alert border color="secondary">
+			<Alert color="secondary">
 				<div class="space-y-3">
 					<h3 class="text-sm font-semibold">Analysis Results</h3>
 					<div class="space-y-2 text-sm">
@@ -247,8 +247,8 @@
 								</div>
 							{:else}
 								<div
-									class="mb-4 text-3xl font-bold relative z-10">
-									Free
+									class="flex items-baseline mb-4 relative z-10">
+									<span>Free</span>
 								</div>
 							{/if}
 
@@ -256,7 +256,7 @@
 								<li class="flex items-center space-x-2">
 									<CheckCircleSolid
 										class="text-primary-600 h-4 w-4 shrink-0" />
-									<span class="text-sm opacity-75">
+									<span class="text-sm">
 										{provider.description}
 									</span>
 								</li>

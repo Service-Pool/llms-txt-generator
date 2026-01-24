@@ -50,8 +50,7 @@
 
 {#if checkingAuth}
 	<div class="max-w-sm mx-auto mt-16 p-8 text-center">
-		<p class="text-gray-600 dark:text-gray-400">
-			Checking authentication...
+		<p>Checking authentication...</p>
 		</p>
 	</div>
 {:else}

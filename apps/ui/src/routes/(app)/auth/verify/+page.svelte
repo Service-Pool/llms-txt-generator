@@ -5,6 +5,7 @@
 	import { authService } from "$lib/api/auth.service";
 	import { authStore } from "$lib/stores/auth.store";
 	import { HttpClientError } from "../../../../lib/api/http.client";
+	import { Button } from "flowbite-svelte";
 
 	let loading = true;
 	let error: string[] | null = null;
@@ -103,11 +104,7 @@
 					<li>{errMsg}</li>
 				{/each}
 			</ul>
-			<a
-				href="/login"
-				class="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-				Request New Link
-			</a>
+			<Button href="/login">Request New Link</Button>
 		</div>
 	{/if}
 </div>
