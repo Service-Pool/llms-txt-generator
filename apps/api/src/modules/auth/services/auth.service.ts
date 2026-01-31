@@ -1,20 +1,125 @@
-import { AppConfigService } from '../../../config/config.service';
-import { GenerationRequest } from '../../generations/entities/generation-request.entity';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { ClsService } from 'nestjs-cls';
+import { Session } from 'fastify';
+import { AppConfigService } from '../../../config/config.service';
 import { MailService } from './mail.service';
-import { MoreThan, Repository, IsNull } from 'typeorm';
-import { User } from '../entitites/user.entity';
+import { UsersService } from '../../users/services/users.service';
+import { User } from '../../users/entities/user.entity';
+import { Order } from '../../orders/entities/order.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
 class AuthService {
+	private readonly logger = new Logger(AuthService.name);
+
 	constructor(
-		@InjectRepository(User) private readonly userRepository: Repository<User>,
-		@InjectRepository(GenerationRequest) private readonly generationRequestRepository: Repository<GenerationRequest>,
+		@InjectRepository(Order)
+		private readonly orderRepository: Repository<Order>,
+		private readonly usersService: UsersService,
 		private readonly mailService: MailService,
-		private readonly configService: AppConfigService
+		private readonly configService: AppConfigService,
+		private readonly clsService: ClsService
 	) { }
+
+	/**
+	 * Отправить Magic Link на email
+	 */
+	public async requestLoginLink(email: string, redirectUrl: string): Promise<void> {
+		// Валидация redirectUrl
+		this.validateRedirectUrl(redirectUrl);
+
+		// Получить или создать пользователя
+		const user = await this.usersService.getOrCreate(email);
+
+		// Сгенерировать токен
+		const token = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date();
+		expiresAt.setMinutes(expiresAt.getMinutes() + this.configService.loginLink.expiryMinutes);
+
+		// Сохранить токен в базе
+		await this.usersService.saveLoginToken(user.id, token, expiresAt);
+
+		// Зашифровать query для безопасности
+		const queryStr = JSON.stringify({ token, redirectUrl });
+		const encryptedQuery = this.encryptAES(queryStr);
+
+		// Отправить письмо
+		await this.mailService.sendLoginLink(email, redirectUrl, encryptedQuery);
+
+		this.logger.log(`Login link requested for ${email}`);
+	}
+
+	/**
+	 * Авторизация пользователя по зашифрованным credentials
+	 * @param encryptedCrd Зашифрованная строка с token и redirectUrl
+	 * @param session Session объект для сохранения userId
+	 * @returns Объект с user и redirectUrl
+	 * @throws UnauthorizedException если токен невалиден или истек
+	 */
+	public async login(encryptedCrd: string, session: Session): Promise<{ user: User; redirectUrl: string }> {
+		// Расшифровать credentials
+		const decrypted = this.decryptAES(encryptedCrd);
+		const { token, redirectUrl } = JSON.parse(decrypted) as { token: string; redirectUrl: string };
+
+		// Проверить токен
+		const user = await this.verifyUserToken(token);
+
+		if (!user) {
+			throw new UnauthorizedException('Invalid login link');
+		}
+
+		// Очистить токен после использования
+		await this.usersService.clearLoginToken(user.id);
+
+		// Сохранить userId в сессию
+		session.userId = user.id;
+
+		// Перенести заказы из текущей сессии
+		const sessionId = this.clsService.get<string>('sessionId');
+
+		if (sessionId) {
+			await this.transferSessionOrders(sessionId, user.id);
+		}
+
+		this.logger.log(`User ${user.email} successfully logged in`);
+		return { user, redirectUrl };
+	}
+
+	/**
+	 * Выход из системы
+	 * @param session Session объект для очистки userId
+	 * @throws Error если пользователь не авторизован
+	 */
+	public logout(session: Session): void {
+		const userId = this.clsService.get<number | null>('userId');
+
+		if (!userId) {
+			throw new UnauthorizedException('Not authorized');
+		}
+
+		// Удалить userId из сессии
+		session.userId = null;
+
+		// Очистить userId из CLS
+		this.clsService.set('userId', null);
+
+		this.logger.log(`User ${userId} logged out`);
+	}
+
+	/**
+	 * Получить текущего пользователя по userId из CLS
+	 */
+	public async status(): Promise<User> {
+		const userId = this.clsService.get<number | null>('userId');
+
+		if (!userId) {
+			throw new UnauthorizedException('Only logged in user may check the status');
+		}
+
+		return this.usersService.findById(userId);
+	}
 
 	/**
 	 * Шифрует строку с помощью AES-256-CBC
@@ -33,7 +138,7 @@ class AuthService {
 	/**
 	 * Дешифрует строку с помощью AES-256-CBC
 	 */
-	public decryptAES(data: string): string {
+	private decryptAES(data: string): string {
 		const decipher = crypto.createDecipheriv(
 			'aes-256-cbc',
 			Buffer.from(this.configService.security.aesKey, 'base64'),
@@ -44,73 +149,67 @@ class AuthService {
 		return decrypted;
 	}
 
-	async findByEmail(email: string): Promise<User | null> {
-		return this.userRepository.findOne({ where: { email } });
-	}
-
-	async findById(id: number): Promise<User | null> {
-		return this.userRepository.findOne({ where: { id } });
-	}
-
 	/**
-	 * Request login link for email
+	 * Проверить валидность токена без его использования
 	 */
-	async requestLoginLink(email: string, redirectUrl?: string): Promise<void> {
-		// Find or create user
-		let user = await this.findByEmail(email);
-		if (!user) {
-			user = this.userRepository.create({ email });
-		}
-
-		// Generate login token
-		const token = crypto.randomBytes(32).toString('hex');
-		const expiresAt = new Date();
-		expiresAt.setMinutes(expiresAt.getMinutes() + this.configService.loginLink.expiryMinutes);
-
-		// Save token
-		user.loginToken = token;
-		user.loginTokenExpiresAt = expiresAt;
-		await this.userRepository.save(user);
-
-		// Формируем query-объект и шифруем
-		const queryStr = JSON.stringify({ token, redirectUrl });
-		const encryptedQuery = this.encryptAES(queryStr);
-		await this.mailService.sendLoginLink(email, encryptedQuery);
-	}
-
-	/**
-	 * Verify login link token
-	 */
-	async verifyLoginLink(token: string): Promise<User | null> {
-		const user = await this.userRepository.findOne({
-			where: {
-				loginToken: token,
-				loginTokenExpiresAt: MoreThan(new Date())
-			}
-		});
+	private async verifyUserToken(token: string): Promise<User | false> {
+		const user = await this.usersService.findByLoginToken(token);
 
 		if (!user) {
-			return null;
+			return false;
 		}
 
-		// Clear token after use
-		user.loginToken = null;
-		user.loginTokenExpiresAt = null;
-		await this.userRepository.save(user);
+		// Проверить срок действия токена
+		if (!user.loginTokenExpiresAt || user.loginTokenExpiresAt < new Date()) {
+			return false;
+		}
 
 		return user;
 	}
 
 	/**
-	 * Migrate anonymous GenerationRequests from session to user
+	 * Перенести Orders из session в user account
 	 */
-	async migrateSessionToUser(sessionId: string, userId: number): Promise<number> {
-		const result = await this.generationRequestRepository.update(
-			{ sessionId, userId: IsNull() }, // anonymous requests from this session
-			{ userId, sessionId: null } // assign to user, clear sessionId
+	private async transferSessionOrders(sessionId: string, userId: number): Promise<number> {
+		const result = await this.orderRepository.update(
+			{ sessionId, userId: IsNull() }, // анонимные Orders из этой сессии
+			{ userId, sessionId: null } // привязать к пользователю, очистить sessionId
 		);
 
-		return result.affected || 0;
+		const transferred = result.affected || 0;
+
+		if (transferred > 0) {
+			this.logger.log(`Transferred ${transferred} orders from session ${sessionId} to user ${userId}`);
+		}
+
+		return transferred;
+	}
+
+	/**
+	 * Валидирует redirect URL против whitelist доменов
+	 * Если allowedDomains содержит '*', разрешает любые HTTPS URL
+	 */
+	private validateRedirectUrl(url: string): void {
+		const allowedDomains = this.configService.allowedDomains;
+
+		// Если в whitelist есть '*', разрешаем любые HTTPS URLs
+		if (allowedDomains.includes('*')) {
+			try {
+				const urlObj = new URL(url);
+				if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
+					throw new Error('Only HTTP(S) URLs are allowed');
+				}
+				return;
+			} catch (error) {
+				throw new Error(`Invalid redirect URL: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		}
+
+		// Проверка против whitelist
+		const isAllowed = allowedDomains.some(domain => url.startsWith(domain));
+		if (!isAllowed) {
+			throw new Error(`Redirect URL ${url} is not allowed. Allowed domains: ${allowedDomains.join(', ')}`);
+		}
 	}
 }
 

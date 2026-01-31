@@ -2,24 +2,19 @@ import { ApiResponse } from '../utils/response/api-response';
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
 import { AuthModule } from '../modules/auth/auth.module';
-import { CalculationsModule } from '../modules/calculations/calculations.module';
-import { CalculationValidator } from '../validators/calculation.validator';
 import { ClsModule } from 'nestjs-cls';
 import { ConfigModule } from '@nestjs/config';
+import { ContentModule } from '../modules/content/content.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { GenerationRequest } from '../modules/generations/entities/generation-request.entity';
-import { GenerationRequestValidator } from '../validators/generation-request.validator';
-import { GenerationsModule } from '../modules/generations/generations.module';
-import { HttpModule } from '../modules/http/http.module';
 import { Module } from '@nestjs/common';
-import { QueueModule } from '../modules/queue/queue.module';
-import { RobotsModule } from '../modules/robots/robots.module';
+import { ModelsModule } from '../modules/models/models.module';
+import { OrdersModule } from '../modules/orders/orders.module';
+import { PaymentsModule } from '../modules/payments/payments.module';
+import { CrawlersModule } from '../modules/crawlers/crawlers.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SitemapModule } from '../modules/sitemap/sitemap.module';
-import { StripeModule } from '../modules/stripe/stripe.module';
-import { type FastifyRequest } from 'fastify';
+import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WebSocketModule } from '../modules/websocket/websocket.module';
+import { UsersModule } from '../modules/users/users.module';
 
 @Module({
 	imports: [
@@ -33,8 +28,21 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 				mount: true,
 				setup: (cls, context) => {
 					const req = context.switchToHttp().getRequest<FastifyRequest>();
+					const res = context.switchToHttp().getResponse<FastifyReply>();
+
+					// Создаем контроллер отмены
+					const abortController = new AbortController();
+
+					// Fastify: если клиент ушел, отменяем сигнал
+					req.raw.on('close', () => {
+						if (!res.raw.writableEnded) {
+							abortController.abort();
+						}
+					});
+
 					cls.set('userId', req.session.userId || null);
 					cls.set('sessionId', req.session.sessionId);
+					cls.set('abortSignal', abortController.signal);
 				}
 			}
 		}),
@@ -43,22 +51,20 @@ import { WebSocketModule } from '../modules/websocket/websocket.module';
 		}),
 		ScheduleModule.forRoot(),
 		AppConfigModule,
-		HttpModule,
-		RobotsModule,
-		SitemapModule,
-		TypeOrmModule.forFeature([GenerationRequest]),
+		UsersModule,
+		AuthModule,
+		ModelsModule,
+		OrdersModule,
+		PaymentsModule,
+		CrawlersModule,
+		ContentModule,
 		TypeOrmModule.forRootAsync({
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm
-		}),
-		QueueModule,
-		AuthModule,
-		CalculationsModule,
-		GenerationsModule,
-		StripeModule,
-		WebSocketModule
+		})
 	],
-	providers: [ApiResponse, CalculationValidator, GenerationRequestValidator],
+	providers: [ApiResponse],
 	exports: [ApiResponse]
 })
+
 export class AppModule { }

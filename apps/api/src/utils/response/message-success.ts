@@ -1,10 +1,10 @@
-import { type Deserializable } from './types';
+import { Deserializable } from './types';
 
 /**
  * Success response message
  */
 class MessageSuccess<T = unknown> {
-	constructor(public readonly data: T) {}
+	constructor(public readonly data: T) { }
 
 	public toJSON(): T {
 		return this.data;

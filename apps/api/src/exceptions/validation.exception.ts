@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
 
-export class ValidationException extends HttpException {
+class ValidationException extends HttpException {
 	constructor(public readonly validationErrors: ValidationError[], message = 'Validation failed') {
 		super(message, HttpStatus.BAD_REQUEST);
 	}
@@ -11,3 +11,5 @@ export class ValidationException extends HttpException {
 			Object.values(error.constraints || {})).filter(msg => msg.length > 0);
 	}
 }
+
+export { ValidationException };

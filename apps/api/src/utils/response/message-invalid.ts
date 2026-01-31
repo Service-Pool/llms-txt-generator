@@ -2,7 +2,7 @@
  * Validation error response message
  */
 class MessageInvalid {
-	constructor(public readonly violations: string[]) {}
+	constructor(public readonly violations: string[]) { }
 
 	public toJSON(): string[] {
 		return this.violations;

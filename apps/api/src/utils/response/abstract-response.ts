@@ -8,35 +8,32 @@ import { MessageError } from './message-error';
  * Abstract Response Builder
  */
 abstract class AbstractResponse {
-	protected apiResponse: ApiResponse<unknown>;
-
 	/**
 	 * Send a successful response
 	 */
-	public success<T>(data: T): ApiResponse<MessageSuccess<T>> {
+	public static success<T>(data: T): ApiResponse<MessageSuccess<T>> {
 		return this.withMessage(ResponseCode.SUCCESS, new MessageSuccess(data));
 	}
 
 	/**
 	 * Send a validation error (400) response
 	 */
-	public invalid(errors: string[]): ApiResponse<MessageInvalid> {
+	public static invalid(errors: string[]): ApiResponse<MessageInvalid> {
 		return this.withMessage(ResponseCode.INVALID, new MessageInvalid(errors));
 	}
 
 	/**
 	 * Send a generic error response
 	 */
-	public error(code: ResponseCode, error: string = 'Internal server error'): ApiResponse<MessageError> {
+	public static error(code: ResponseCode, error: string = 'Internal server error'): ApiResponse<MessageError> {
 		return this.withMessage(code, new MessageError(error));
 	}
 
 	/**
 	 * Help to standardize response structure
 	 */
-	private withMessage<T>(code: ResponseCode, message: T): ApiResponse<T> {
-		this.apiResponse = new ApiResponse().setCode(code).setMessage(message);
-		return this.apiResponse as ApiResponse<T>;
+	private static withMessage<T>(code: ResponseCode, message: T): ApiResponse<T> {
+		return new ApiResponse().setCode(code).setMessage(message) as ApiResponse<T>;
 	}
 }
 

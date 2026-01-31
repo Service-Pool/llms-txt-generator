@@ -10,7 +10,7 @@ import { type Deserializable } from './types';
  * API Response class
  * Used on both backend (with DI) and frontend (for deserialization)
  *
- * All syntax must be compartible with ES6
+ * All syntax must be compatible with ES6
  */
 @Injectable()
 class ApiResponse<T = unknown> extends AbstractResponse {

@@ -1,20 +1,19 @@
 import { AppConfigService } from '../config/config.service';
 import { AppModule } from './app.module';
 import { createWinstonLogger } from '../config/config.logger';
-import { DataSource } from 'typeorm';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { fastifyCookie } from '@fastify/cookie';
-import { fastifySession } from '@fastify/session';
-import { fastifyWebsocket } from '@fastify/websocket';
+import fastifyCookie from '@fastify/cookie';
+import fastifyCors from '@fastify/cors';
+import fastifySession from '@fastify/session';
+import fastifyWebsocket from '@fastify/websocket';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { ApiResponse } from '../utils/response/api-response';
-import { Session } from '../modules/auth/entitites/session.entity';
-import { TypeORMSessionStore } from '../modules/auth/typeorm-session.store';
 import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from '../filters/global-exception.filter';
 import { ValidationException } from '../exceptions/validation.exception';
 import { ValidationError, useContainer } from 'class-validator';
+import { SessionService } from '../modules/auth/services/session.service';
+import { TypeOrmSessionStore } from '../modules/auth/stores/typeorm-session.store';
 
 /**
  * Create and configure the NestJS application
@@ -35,29 +34,59 @@ export async function createApp(): Promise<NestFastifyApplication> {
 	// Enable DI for class-validator
 	useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
+	// Configure CORS
+	await app.register(fastifyCors, {
+		origin: (origin, callback) => {
+			const allowedDomains = configService.allowedDomains;
+
+			// Разрешить запросы без origin (например, Postman, curl)
+			if (!origin) {
+				callback(null, true);
+				return;
+			}
+
+			// Если allowedDomains содержит '*', разрешить любой origin
+			if (allowedDomains.includes('*')) {
+				callback(null, true);
+				return;
+			}
+
+			// Проверить origin против whitelist
+			const isAllowed = allowedDomains.some(domain => origin.startsWith(domain));
+
+			if (isAllowed) {
+				callback(null, true);
+			} else {
+				callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+			}
+		},
+		credentials: true,
+		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+		exposedHeaders: ['Set-Cookie']
+	});
+
 	// Register WebSocket plugin
 	await app.register(fastifyWebsocket);
 
 	// Register cookie plugin
 	await app.register(fastifyCookie);
 
-	// Get TypeORM DataSource for sessions
-	const dataSource = app.get(DataSource);
-	const sessionRepository = dataSource.getRepository(Session);
-	const sessionStore = new TypeORMSessionStore(sessionRepository, configService.session.maxAge);
+	// Get SessionService from DI container
+	const sessionService = app.get(SessionService);
 
 	// Register session plugin with TypeORM store
 	await app.register(fastifySession, {
 		secret: configService.session.secret,
 		cookieName: configService.session.cookieName,
-		store: sessionStore,
 		saveUninitialized: true,
 		rolling: true,
+		store: new TypeOrmSessionStore(sessionService),
 		cookie: {
 			maxAge: configService.session.maxAge,
 			httpOnly: true,
-			secure: false,
-			sameSite: 'lax'
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict'
 		}
 	});
 
@@ -72,8 +101,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
 	}));
 
 	// Global exception filter
-	const responseFactory = app.get(ApiResponse);
-	app.useGlobalFilters(new GlobalExceptionFilter(responseFactory));
+	app.useGlobalFilters(new GlobalExceptionFilter());
 
 	// Health check endpoint
 	app.getHttpAdapter().get('/health', (req, res) => {

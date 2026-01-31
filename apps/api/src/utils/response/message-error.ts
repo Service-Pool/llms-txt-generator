@@ -2,7 +2,7 @@
  * Error response message
  */
 class MessageError {
-	constructor(public readonly error: string) {}
+	constructor(public readonly error: string) { }
 
 	public toJSON(): string {
 		return this.error;

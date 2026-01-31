@@ -1,6 +1,6 @@
 export enum GenerationStatus {
-	ACTIVE = 'active',
+	PENDING = 'pending',
+	IN_PROGRESS = 'in_progress',
 	COMPLETED = 'completed',
-	FAILED = 'failed',
-	WAITING = 'waiting'
+	FAILED = 'failed'
 }

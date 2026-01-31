@@ -6,4 +6,4 @@ import { Global, Module } from '@nestjs/common';
 	providers: [AppConfigService],
 	exports: [AppConfigService]
 })
-export class AppConfigModule {}
+export class AppConfigModule { }
