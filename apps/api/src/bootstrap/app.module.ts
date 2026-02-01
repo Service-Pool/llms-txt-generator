@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ContentModule } from '../modules/content/content.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Module } from '@nestjs/common';
-import { ModelsModule } from '../modules/models/models.module';
+import { AiModelsModule } from '../modules/ai-models/ai-models.module';
 import { OrdersModule } from '../modules/orders/orders.module';
 import { PaymentsModule } from '../modules/payments/payments.module';
 import { CrawlersModule } from '../modules/crawlers/crawlers.module';
@@ -53,7 +53,7 @@ import { UsersModule } from '../modules/users/users.module';
 		AppConfigModule,
 		UsersModule,
 		AuthModule,
-		ModelsModule,
+		AiModelsModule,
 		OrdersModule,
 		PaymentsModule,
 		CrawlersModule,

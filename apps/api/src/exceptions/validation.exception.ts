@@ -6,7 +6,7 @@ class ValidationException extends HttpException {
 		super(message, HttpStatus.BAD_REQUEST);
 	}
 
-	getErrors(): string[] {
+	public getErrors(): string[] {
 		return this.validationErrors.flatMap(error =>
 			Object.values(error.constraints || {})).filter(msg => msg.length > 0);
 	}

@@ -22,32 +22,6 @@ class LoggerFactory {
 		);
 	}
 
-	private fileFormatter = (info: winston.Logform.TransformableInfo): string => {
-		const ctx = Reflect.get(info, 'context');
-		const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
-
-		const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
-		const message = typeof info.message === 'string' ? info.message : '';
-		const stack = info.stack
-			? `\n${typeof info.stack === 'string' ? info.stack : inspect(info.stack, { depth: null })}`
-			: '';
-
-		return `${timestamp} ${info.level} ${context}${message}${stack}`;
-	};
-
-	private consoleFormatter = (info: winston.Logform.TransformableInfo): string => {
-		const ctx = Reflect.get(info, 'context');
-		const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
-
-		const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
-		const message = typeof info.message === 'string' ? info.message : '';
-		const stack = info.stack
-			? `\n${typeof info.stack === 'string' ? info.stack : inspect(info.stack, { depth: null })}`
-			: '';
-
-		return `${timestamp} ${info.level} ${context}${message}${stack}`;
-	};
-
 	public create() {
 		const mode = process.env.APP_MODE;
 		const transports: winston.transport[] = [];
@@ -83,6 +57,32 @@ class LoggerFactory {
 			level: mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
 		});
 	}
+
+	private fileFormatter = (info: winston.Logform.TransformableInfo): string => {
+		const ctx = Reflect.get(info, 'context');
+		const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+
+		const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+		const message = typeof info.message === 'string' ? info.message : '';
+		const stack = info.stack
+			? `\n${typeof info.stack === 'string' ? info.stack : inspect(info.stack, { depth: null })}`
+			: '';
+
+		return `${timestamp} ${info.level} ${context}${message}${stack}`;
+	};
+
+	private consoleFormatter = (info: winston.Logform.TransformableInfo): string => {
+		const ctx = Reflect.get(info, 'context');
+		const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+
+		const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+		const message = typeof info.message === 'string' ? info.message : '';
+		const stack = info.stack
+			? `\n${typeof info.stack === 'string' ? info.stack : inspect(info.stack, { depth: null })}`
+			: '';
+
+		return `${timestamp} ${info.level} ${context}${message}${stack}`;
+	};
 }
 
 export const createWinstonLogger = () => new LoggerFactory().create();

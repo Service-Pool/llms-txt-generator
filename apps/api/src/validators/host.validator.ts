@@ -11,11 +11,11 @@ import { CrawlersService } from '../modules/crawlers/services/crawlers.service';
 class RobotsAccessibleValidator implements ValidatorConstraintInterface {
 	constructor(private readonly crawlersService: CrawlersService) { }
 
-	async validate(hostname: string): Promise<boolean> {
+	public async validate(hostname: string): Promise<boolean> {
 		return this.crawlersService.checkRobotsTxt(hostname);
 	}
 
-	defaultMessage(args: ValidationArguments): string {
+	public defaultMessage(args: ValidationArguments): string {
 		return `No accessible robots.txt at ${args.value}`;
 	}
 }
@@ -25,11 +25,11 @@ class RobotsAccessibleValidator implements ValidatorConstraintInterface {
 class SitemapAccessibleValidator implements ValidatorConstraintInterface {
 	constructor(private readonly crawlersService: CrawlersService) { }
 
-	async validate(hostname: string): Promise<boolean> {
+	public async validate(hostname: string): Promise<boolean> {
 		return this.crawlersService.checkSitemapXml(hostname);
 	}
 
-	defaultMessage(args: ValidationArguments): string {
+	public defaultMessage(args: ValidationArguments): string {
 		return `No accessible sitemap found in robots.txt at ${args.value}`;
 	}
 }

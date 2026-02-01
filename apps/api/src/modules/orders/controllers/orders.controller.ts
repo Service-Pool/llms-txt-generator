@@ -5,6 +5,7 @@ import { CreateOrderRequestDto, StartOrderRequestDto } from '../dto/order-reques
 import { Currency } from '../../../enums/currency.enum';
 import { FastifyReply } from 'fastify';
 import { MessageSuccess } from '../../../utils/response/message-success';
+import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { Order } from '../entities/order.entity';
 import { OrderResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
@@ -13,6 +14,7 @@ import { OrdersService } from '../services/orders.service';
 class OrdersController {
 	constructor(
 		private readonly ordersService: OrdersService,
+		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly cls: ClsService
 	) { }
 
@@ -22,18 +24,24 @@ class OrdersController {
 	 */
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
-	async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
 		const sessionId = this.cls.get('sessionId');
 		const userId = this.cls.get('userId');
 
-		// Создать заказ и сразу создать снапшоты для всех URL
+		// Create order (counts URLs only, no snapshot creation)
 		const order = await this.ordersService.createOrder(
 			dto.hostname,
 			sessionId,
 			userId
 		);
 
-		return ApiResponse.success(OrderResponseDto.fromEntity(order));
+		// Calculate available models based on totalUrls
+		const availableModels = this.aiModelsConfigService.getAvailableModels(
+			order.totalUrls,
+			!!userId
+		);
+
+		return ApiResponse.success(OrderResponseDto.fromEntity(order, availableModels));
 	}
 
 	/**
@@ -42,7 +50,7 @@ class OrdersController {
 	 */
 	@Post(':id/start')
 	@HttpCode(HttpStatus.OK)
-	async startOrder(
+	public async startOrder(
 		@Param('id') id: number,
 		@Body() dto: StartOrderRequestDto
 	): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
@@ -52,12 +60,12 @@ class OrdersController {
 		// Validate ownership
 		const order = await this.ordersService.getOrderById(id, sessionId, userId);
 
-		// TODO: Calculate pricing based on model and snapshot URLs count
-		// TODO: Get model pricing from ModelsConfigService
-		const pricePerUrl = 0; // Temporary - will be calculated
-		const priceTotal = 0; // Temporary - will be calculated
-		const priceCurrency = Currency.EUR; // Temporary
-		const totalUrls = order.snapshotUrls?.length || 0;
+		// Get model config and calculate pricing
+		const modelConfig = this.aiModelsConfigService.getModelById(dto.modelId);
+		const totalUrls = order.totalUrls;
+		const pricePerUrl = modelConfig.baseRate;
+		const priceTotal = this.aiModelsConfigService.calculatePrice(dto.modelId, totalUrls);
+		const priceCurrency = Currency.EUR;
 
 		const updatedOrder = await this.ordersService.startOrder(
 			id,
@@ -77,7 +85,7 @@ class OrdersController {
 	 */
 	@Get()
 	@HttpCode(HttpStatus.OK)
-	async getOrders(): Promise<ApiResponse<MessageSuccess<OrderResponseDto[]>>> {
+	public async getOrders(): Promise<ApiResponse<MessageSuccess<OrderResponseDto[]>>> {
 		const sessionId = this.cls.get('sessionId');
 		const userId = this.cls.get('userId');
 
@@ -94,7 +102,7 @@ class OrdersController {
 	 */
 	@Get(':id')
 	@HttpCode(HttpStatus.OK)
-	async getOrder(@Param('id') id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	public async getOrder(@Param('id') id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
 		const sessionId = this.cls.get('sessionId');
 		const userId = this.cls.get('userId');
 
@@ -108,7 +116,7 @@ class OrdersController {
 	 * GET /api/orders/:id/download
 	 */
 	@Get(':id/download')
-	async downloadLlmsTxt(
+	public async downloadLlmsTxt(
 		@Param('id') id: number,
 		@Res() res: FastifyReply
 	): Promise<void> {

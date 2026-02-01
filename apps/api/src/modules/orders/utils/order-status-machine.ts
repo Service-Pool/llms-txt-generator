@@ -26,8 +26,14 @@ class OrderStatusMachine {
 
 	/**
 	 * Check if transition from one status to another is allowed
+	 * Idempotent: same status transition is always allowed
 	 */
-	static canTransition(from: OrderStatus, to: OrderStatus): boolean {
+	public static canTransition(from: OrderStatus, to: OrderStatus): boolean {
+		// Allow same status (idempotent operation)
+		if (from === to) {
+			return true;
+		}
+
 		const allowedStatuses = this.ALLOWED_TRANSITIONS[from];
 		return allowedStatuses ? allowedStatuses.includes(to) : false;
 	}
@@ -36,24 +42,23 @@ class OrderStatusMachine {
 	 * Validate status transition and throw error if invalid
 	 * @throws BadRequestException if transition is not allowed
 	 */
-	static validateTransition(from: OrderStatus, to: OrderStatus): void {
+	public static validateTransition(from: OrderStatus, to: OrderStatus): void {
 		if (!this.canTransition(from, to)) {
-			throw new BadRequestException(`Invalid status transition: ${from} → ${to}. `
-				+ `Allowed transitions from ${from}: ${this.ALLOWED_TRANSITIONS[from].join(', ') || 'none (terminal status)'}`);
+			throw new BadRequestException(`Invalid status transition: ${from} → ${to}. Allowed transitions from ${from}: ${this.ALLOWED_TRANSITIONS[from].join(', ') || 'none (terminal status)'}`);
 		}
 	}
 
 	/**
 	 * Get all allowed transitions from current status
 	 */
-	static getAllowedTransitions(from: OrderStatus): OrderStatus[] {
+	public static getAllowedTransitions(from: OrderStatus): OrderStatus[] {
 		return this.ALLOWED_TRANSITIONS[from] || [];
 	}
 
 	/**
 	 * Check if status is terminal (no further transitions allowed)
 	 */
-	static isTerminalStatus(status: OrderStatus): boolean {
+	public static isTerminalStatus(status: OrderStatus): boolean {
 		return this.ALLOWED_TRANSITIONS[status].length === 0;
 	}
 }

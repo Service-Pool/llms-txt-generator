@@ -2,7 +2,7 @@ class RequestUtils {
 	/**
 	 * HEAD-запрос с таймаутом для проверки доступности ресурса
 	 */
-	static async exists(url: string, timeoutMs: number | null = 2000): Promise<boolean> {
+	public static async exists(url: string, timeoutMs: number | null = 2000): Promise<boolean> {
 		const res = await RequestUtils.fetch(url, timeoutMs, { method: 'HEAD' });
 		return !!res && res.ok;
 	}
@@ -10,7 +10,7 @@ class RequestUtils {
 	/**
 	 * Получить текст ответа с таймаутом
 	 */
-	static async text(url: string, timeoutMs: number | null = 2000, options: RequestInit = {}): Promise<string | null> {
+	public static async text(url: string, timeoutMs: number | null = 2000, options: RequestInit = {}): Promise<string | null> {
 		const res = await RequestUtils.fetch(url, timeoutMs, options);
 		if (!res || !res.ok) return null;
 		return await res.text();

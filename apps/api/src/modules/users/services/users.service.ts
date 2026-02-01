@@ -11,21 +11,21 @@ class UsersService {
 	/**
 	 * Получить пользователя по email
 	 */
-	async findByEmail(email: string): Promise<User | null> {
+	public async findByEmail(email: string): Promise<User | null> {
 		return this.userRepository.findOne({ where: { email } });
 	}
 
 	/**
 	 * Получить пользователя по ID
 	 */
-	async findById(id: number): Promise<User | null> {
+	public async findById(id: number): Promise<User | null> {
 		return this.userRepository.findOne({ where: { id } });
 	}
 
 	/**
 	 * Создать нового пользователя
 	 */
-	async create(email: string): Promise<User> {
+	public async create(email: string): Promise<User> {
 		const user = this.userRepository.create({ email });
 		return this.userRepository.save(user);
 	}
@@ -33,7 +33,7 @@ class UsersService {
 	/**
 	 * Получить или создать пользователя по email
 	 */
-	async getOrCreate(email: string): Promise<User> {
+	public async getOrCreate(email: string): Promise<User> {
 		let user = await this.findByEmail(email);
 
 		if (!user) {
@@ -46,7 +46,7 @@ class UsersService {
 	/**
 	 * Сохранить loginToken для пользователя
 	 */
-	async saveLoginToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+	public async saveLoginToken(userId: number, token: string, expiresAt: Date): Promise<void> {
 		await this.userRepository.update(userId, {
 			loginToken: token,
 			loginTokenExpiresAt: expiresAt
@@ -56,7 +56,7 @@ class UsersService {
 	/**
 	 * Очистить loginToken после использования
 	 */
-	async clearLoginToken(userId: number): Promise<void> {
+	public async clearLoginToken(userId: number): Promise<void> {
 		await this.userRepository.update(userId, {
 			loginToken: null,
 			loginTokenExpiresAt: null
@@ -66,7 +66,7 @@ class UsersService {
 	/**
 	 * Найти пользователя по loginToken
 	 */
-	async findByLoginToken(token: string): Promise<User | null> {
+	public async findByLoginToken(token: string): Promise<User | null> {
 		return this.userRepository.findOne({
 			where: { loginToken: token }
 		});

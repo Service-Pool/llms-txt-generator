@@ -1,10 +1,12 @@
 import { config as dotenvConfig } from 'dotenv';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { Currency } from '../enums/currency.enum';
 import { DataSource } from 'typeorm';
-import { ModelConfigDto } from '../modules/models/dto/model-config.dto';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ModelConfigDto } from '../modules/ai-models/dto/ai-model-config.dto';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 
+// Load .env
 dotenvConfig();
 
 interface ValidatedEnv {
@@ -74,24 +76,17 @@ function validateEnv(): ValidatedEnv {
 
 const env = validateEnv();
 
-function interpolateEnvVariables<T>(value: T): T {
+function interpolateEnvVariables(value: string): string {
 	if (typeof value === 'string') {
-		return value.replace(/\$\{([^}]+)\}/g, (_, varName: string) => {
-			return process.env[varName] || '';
-		}) as T;
-	}
-
-	if (Array.isArray(value)) {
-		return (value as unknown[]).map(item => interpolateEnvVariables(item)) as unknown as T;
-	}
-
-	if (value && typeof value === 'object') {
-		const result: Record<string, unknown> = {};
-		for (const key in value) {
-			result[key] = interpolateEnvVariables((value as Record<string, unknown>)[key]);
+		let result: string = value;
+		for (const [key, val] of Object.entries(process.env)) {
+			if (val) {
+				result = result.replaceAll(new RegExp(`\\b${key}\\b`, 'g'), val);
+			}
 		}
-		return result as T;
+		return result;
 	}
+
 	return value;
 }
 
@@ -138,26 +133,29 @@ class AppConfigService {
 
 	public readonly modelsConfig = ((): ModelConfigDto[] => {
 		try {
-			const parsed = JSON.parse(env.MODELS_CONFIG) as unknown[];
+			const interpolated = interpolateEnvVariables(env.MODELS_CONFIG);
+			const parsed = JSON.parse(interpolated) as unknown[];
+
 			if (!Array.isArray(parsed)) {
 				throw new Error('MODELS_CONFIG must be an array');
 			}
+
 			return parsed.map((item: ModelConfigDto) => {
-				const interpolated = interpolateEnvVariables(item);
 				return new ModelConfigDto(
-					interpolated.id,
-					interpolated.category,
-					interpolated.displayName,
-					interpolated.description,
-					interpolated.serviceClass,
-					interpolated.modelName,
-					interpolated.baseRate,
-					interpolated.pageLimit,
-					interpolated.queueName,
-					interpolated.queueType,
-					interpolated.batchSize,
-					interpolated.options,
-					interpolated.enabled
+					item.id,
+					item.category,
+					Currency.EUR,
+					item.displayName,
+					item.description,
+					item.serviceClass,
+					item.modelName,
+					item.baseRate,
+					item.pageLimit,
+					item.queueName,
+					item.queueType,
+					item.batchSize,
+					item.options,
+					item.enabled
 				);
 			});
 		} catch (error) {

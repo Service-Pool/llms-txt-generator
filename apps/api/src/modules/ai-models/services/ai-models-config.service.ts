@@ -1,54 +1,43 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../../config/config.service';
-import { ModelConfigDto } from '../dto/model-config.dto';
-import { AvailableModelDto } from '../dto/available-model.dto';
+import { ModelConfigDto } from '../dto/ai-model-config.dto';
+import { AvailableAiModelDto } from '../dto/available-ai-model.dto';
 
 @Injectable()
-export class ModelsConfigService {
+class AiModelsConfigService {
 	constructor(private readonly configService: AppConfigService) { }
 
 	/**
 	 * Get all available model configurations from MODELS_CONFIG
 	 */
-	getAllModels(): ModelConfigDto[] {
+	public getAllModels(): ModelConfigDto[] {
 		return this.configService.modelsConfig;
 	}
 
 	/**
 	 * Get model configuration by ID
 	 */
-	getModelById(id: string): ModelConfigDto | null {
+	public getModelById(id: string): ModelConfigDto | null {
 		const models = this.getAllModels();
 		return models.find(m => m.id === id) || null;
 	}
 
 	/**
 	 * Get available models for specific order parameters
+	 * Paid models (baseRate > 0) are available to all, but require authentication at startOrder
 	 */
-	getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableModelDto[] {
+	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableAiModelDto[] {
 		const models = this.getAllModels();
 
 		return models.map((model) => {
-			const totalPrice = this.calculatePrice(model.id, totalUrls);
-			const available = model.pageLimit === false || totalUrls <= model.pageLimit;
-			const unavailableReason = available
-				? null
-				: `Exceeds page limit of ${model.pageLimit}`;
-
-			return {
-				...model,
-				price: model.baseRate.toFixed(4),
-				totalPrice: totalPrice.toFixed(2),
-				available,
-				unavailableReason
-			};
+			return AvailableAiModelDto.fromModelConfig(model, totalUrls);
 		});
 	}
 
 	/**
 	 * Calculate total price for a model and number of URLs
 	 */
-	calculatePrice(modelId: string, totalUrls: number): number {
+	public calculatePrice(modelId: string, totalUrls: number): number {
 		const model = this.getModelById(modelId);
 		if (!model) {
 			throw new Error(`Model ${modelId} not found`);
@@ -60,9 +49,11 @@ export class ModelsConfigService {
 	/**
 	 * Get unique queue names from all models
 	 */
-	getUniqueQueueNames(): string[] {
+	public getUniqueQueueNames(): string[] {
 		const models = this.getAllModels();
 		const queueNames = models.map(m => m.queueName);
 		return [...new Set(queueNames)];
 	}
 }
+
+export { AiModelsConfigService };

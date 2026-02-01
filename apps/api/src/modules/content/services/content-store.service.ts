@@ -16,7 +16,7 @@ class ContentStoreService {
 	 * - Если новый: создаёт запись с refCount=1
 	 * Возвращает hash
 	 */
-	async storeContent(contentHash: string, rawContent: string): Promise<string> {
+	public async storeContent(contentHash: string, rawContent: string): Promise<string> {
 		const existing = await this.contentStoreRepository.findOne({
 			where: { contentHash }
 		});
@@ -48,7 +48,7 @@ class ContentStoreService {
 	 * Получает контент по хешу
 	 * Обновляет lastAccessedAt при каждом доступе
 	 */
-	async getContent(contentHash: string): Promise<string> {
+	public async getContent(contentHash: string): Promise<string> {
 		const content = await this.contentStoreRepository.findOne({
 			where: { contentHash }
 		});
@@ -71,7 +71,7 @@ class ContentStoreService {
 	 * Если refCount становится 0 - запись остаётся для потенциального переиспользования
 	 * (удаляется только cron-задачей по расписанию)
 	 */
-	async decrementRefCount(hashes: string[]): Promise<void> {
+	public async decrementRefCount(hashes: string[]): Promise<void> {
 		if (hashes.length === 0) {
 			return;
 		}
@@ -95,7 +95,7 @@ class ContentStoreService {
 	 * Получает количество записей с нулевым refCount
 	 * Используется для статистики и мониторинга
 	 */
-	async getUnusedContentCount(): Promise<number> {
+	public async getUnusedContentCount(): Promise<number> {
 		return this.contentStoreRepository.count({
 			where: { refCount: 0 }
 		});
@@ -105,7 +105,7 @@ class ContentStoreService {
 	 * Удаляет неиспользуемый контент старше указанного количества дней
 	 * Используется в cron-задаче для очистки
 	 */
-	async cleanupOldContent(daysOld: number = 30): Promise<number> {
+	public async cleanupOldContent(daysOld: number = 30): Promise<number> {
 		const cutoffDate = new Date();
 		cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 

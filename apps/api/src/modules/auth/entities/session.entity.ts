@@ -1,9 +1,24 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { type Session as SessionType } from 'fastify';
 import { User } from '../../users/entities/user.entity';
 
+// Тип для данных сессии, хранимых в БД (без методов FastifySessionObject)
+interface SessionData {
+	userId?: number;
+	sessionId: string;
+	cookie: {
+		originalMaxAge: number | null;
+		maxAge?: number | null;
+		expires?: Date | null;
+		secure?: boolean;
+		httpOnly?: boolean;
+		domain?: string;
+		path?: string;
+		sameSite?: boolean | 'lax' | 'strict' | 'none';
+	};
+}
+
 @Entity('sessions')
-export class Session {
+class Session {
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -18,7 +33,7 @@ export class Session {
 	user: User | null;
 
 	@Column({ type: 'json' })
-	data: SessionType;
+	data: SessionData;
 
 	@Column({ type: 'datetime', utc: true })
 	expiresAt: Date;
@@ -29,3 +44,5 @@ export class Session {
 	@Column({ utc: true })
 	updatedAt: Date;
 }
+
+export { Session, SessionData };

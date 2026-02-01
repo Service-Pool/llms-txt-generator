@@ -1,5 +1,6 @@
 import 'fastify';
 import 'nestjs-cls';
+import '@fastify/session';
 
 interface SessionInterface {
 	userId?: number;

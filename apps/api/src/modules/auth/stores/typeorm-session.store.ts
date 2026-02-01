@@ -1,6 +1,6 @@
 import { SessionStore } from '@fastify/session';
 import { SessionService } from '../services/session.service';
-import { type Session as SessionType } from 'fastify';
+import { SessionData } from '../entities/session.entity';
 
 /**
  * TypeORM Session Store for @fastify/session
@@ -12,7 +12,7 @@ class TypeOrmSessionStore implements SessionStore {
 	/**
 	 * Set session data
 	 */
-	set(sessionId: string, session: SessionType, callback?: (err?: unknown) => void): void {
+	public set(sessionId: string, session: SessionData, callback?: (err?: unknown) => void): void {
 		const maxAge = session.cookie?.maxAge || 86400000; // 24 hours in ms
 		const expiresAt = new Date(Date.now() + maxAge);
 		const userId = session.userId || null;
@@ -29,7 +29,7 @@ class TypeOrmSessionStore implements SessionStore {
 	/**
 	 * Get session data
 	 */
-	get(sessionId: string, callback?: (err: unknown, result?: SessionType) => void): void {
+	public get(sessionId: string, callback?: (err: unknown, result?: SessionData) => void): void {
 		this.sessionService.getSession(sessionId)
 			.then(async (sessionEntity) => {
 				if (!sessionEntity) {
@@ -52,7 +52,7 @@ class TypeOrmSessionStore implements SessionStore {
 	/**
 	 * Destroy session
 	 */
-	destroy(sessionId: string, callback?: (err?: unknown) => void): void {
+	public destroy(sessionId: string, callback?: (err?: unknown) => void): void {
 		this.sessionService.destroySession(sessionId)
 			.then(() => {
 				if (callback) callback();

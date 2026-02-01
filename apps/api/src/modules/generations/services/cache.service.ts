@@ -37,120 +37,61 @@ class CacheService implements OnModuleInit {
 	}
 
 	/**
-	 * Получить кэшированное саммари
-	 * @param modelId ID модели (для изоляции кэша разных моделей)
-	 * @param contentHash Hash контента
-	 * @returns Кэшированное саммари или null
+	 * Построить ключ для HASH в Redis
 	 */
-	async getCachedSummary(
-		modelId: number,
-		contentHash: string
-	): Promise<string | null> {
+	public buildHashKey(modelId: string, hostname: string): string {
+		return `summary:${modelId}:${hostname}`;
+	}
+
+	/**
+	 * Паттерн "get or compute and cache" (Symfony-like)
+	 * Пытается получить значение из кэша, если нет - вызывает callback и кэширует результат
+	 *
+	 * @param hashKey Ключ HASH в Redis
+	 * @param field Поле в HASH (путь или '__description__')
+	 * @param callback Функция для вычисления значения при cache miss
+	 * @returns Закэшированное или вычисленное значение
+	 */
+	public async getWithCache(hashKey: string, field: string, callback: () => Promise<string>): Promise<string> {
 		try {
-			const key = this.buildCacheKey(modelId, contentHash);
-			const cached = await this.redis.get(key);
+			const cached = await this.redis.hget(hashKey, field);
 
 			if (cached) {
-				this.logger.debug(`Cache HIT for model=${modelId}, hash=${contentHash.substring(0, 8)}...`);
-			} else {
-				this.logger.debug(`Cache MISS for model=${modelId}, hash=${contentHash.substring(0, 8)}...`);
+				this.logger.debug(`Cache HIT for key=${hashKey}, field=${field}`);
+				return cached;
 			}
 
-			return cached;
+			this.logger.debug(`Cache MISS for key=${hashKey}, field=${field} - computing...`);
+			const computed = await callback();
+
+			await this.redis.hset(hashKey, field, computed);
+			await this.redis.expire(hashKey, this.TTL_SECONDS);
+
+			this.logger.debug(`Cached computed value for key=${hashKey}, field=${field}`);
+
+			return computed;
 		} catch (error) {
-			this.logger.error('Error getting cached summary:', error);
-			return null; // Не бросаем ошибку, просто возвращаем null (кэш - это не критично)
+			this.logger.error(`Error in getWithCache for key=${hashKey}, field=${field}:`, error);
+			// При ошибке кэша всё равно вычисляем значение
+			return callback();
 		}
 	}
 
 	/**
-	 * Сохранить саммари в кэш
-	 * @param modelId ID модели
-	 * @param contentHash Hash контента
-	 * @param summary Сгенерированное саммари
+	 * Парсинг URL на hostname и path
 	 */
-	async setCachedSummary(
-		modelId: number,
-		contentHash: string,
-		summary: string
-	): Promise<void> {
-		try {
-			const key = this.buildCacheKey(modelId, contentHash);
-			await this.redis.setex(key, this.TTL_SECONDS, summary);
-
-			this.logger.debug(`Cached summary for model=${modelId}, hash=${contentHash.substring(0, 8)}... (TTL: ${this.TTL_SECONDS}s)`);
-		} catch (error) {
-			this.logger.error('Error setting cached summary:', error);
-			// Не бросаем ошибку - кэш не критичен
-		}
-	}
-
-	/**
-	 * Получить кэшированное описание сайта
-	 * @param modelId ID модели
-	 * @param orderHash Hash заказа (для изоляции)
-	 * @returns Кэшированное описание или null
-	 */
-	async getCachedDescription(
-		modelId: number,
-		orderHash: string
-	): Promise<string | null> {
-		try {
-			const key = this.buildDescriptionCacheKey(modelId, orderHash);
-			const cached = await this.redis.get(key);
-
-			if (cached) {
-				this.logger.debug(`Description cache HIT for model=${modelId}, order=${orderHash.substring(0, 8)}...`);
-			} else {
-				this.logger.debug(`Description cache MISS for model=${modelId}, order=${orderHash.substring(0, 8)}...`);
-			}
-
-			return cached;
-		} catch (error) {
-			this.logger.error('Error getting cached description:', error);
-			return null;
-		}
-	}
-
-	/**
-	 * Сохранить описание сайта в кэш
-	 * @param modelId ID модели
-	 * @param orderHash Hash заказа
-	 * @param description Сгенерированное описание
-	 */
-	async setCachedDescription(
-		modelId: number,
-		orderHash: string,
-		description: string
-	): Promise<void> {
-		try {
-			const key = this.buildDescriptionCacheKey(modelId, orderHash);
-			await this.redis.setex(key, this.TTL_SECONDS, description);
-
-			this.logger.debug(`Cached description for model=${modelId}, order=${orderHash.substring(0, 8)}... (TTL: ${this.TTL_SECONDS}s)`);
-		} catch (error) {
-			this.logger.error('Error setting cached description:', error);
-		}
-	}
-
-	/**
-	 * Построить ключ кэша для саммари
-	 */
-	private buildCacheKey(modelId: number, contentHash: string): string {
-		return `summary:model:${modelId}:content:${contentHash}`;
-	}
-
-	/**
-	 * Построить ключ кэша для описания
-	 */
-	private buildDescriptionCacheKey(modelId: number, orderHash: string): string {
-		return `description:model:${modelId}:order:${orderHash}`;
+	public parseUrl(url: string): { hostname: string; path: string } {
+		const urlObj = new URL(url);
+		return {
+			hostname: urlObj.hostname,
+			path: urlObj.pathname
+		};
 	}
 
 	/**
 	 * Очистить весь кэш (для тестирования)
 	 */
-	async flushAll(): Promise<void> {
+	public async flushAll(): Promise<void> {
 		await this.redis.flushdb();
 		this.logger.warn('Cache flushed');
 	}

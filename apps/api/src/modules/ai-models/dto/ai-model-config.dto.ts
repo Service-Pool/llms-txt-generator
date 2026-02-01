@@ -1,4 +1,6 @@
-interface ModelOptions {
+import { Currency } from '../../../enums/currency.enum';
+
+interface AiModelOptions {
 	apiKey?: string;
 	baseUrl?: string;
 	temperature: number;
@@ -9,6 +11,7 @@ class ModelConfigDto {
 	constructor(
 		public id: string,
 		public category: string,
+		public currency: Currency,
 		public displayName: string,
 		public description: string,
 		public serviceClass: string,
@@ -18,7 +21,7 @@ class ModelConfigDto {
 		public queueName: string,
 		public queueType: 'local' | 'cloud',
 		public batchSize: number,
-		public options: ModelOptions,
+		public options: AiModelOptions,
 		public enabled: boolean = true
 	) { }
 }

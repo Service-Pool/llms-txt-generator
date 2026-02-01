@@ -1,8 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Currency } from '../../../enums/currency.enum';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { User } from '../../users/entities/user.entity';
-import { SnapshotUrl } from '../../content/entities/snapshot-url.entity';
 
 interface OrderError {
 	message: string;
@@ -61,18 +60,12 @@ class Order {
 	@Column({ type: 'text', nullable: true })
 	output: string | null;
 
-	@Column({ type: 'int', nullable: true })
-	llmsEntriesCount: number | null;
-
 	@Column({ type: 'json', nullable: true })
 	errors: OrderError[] | null;
 
 	@ManyToOne(() => User, user => user.orders)
 	@JoinColumn({ name: 'userId' })
 	user: User;
-
-	@OneToMany(() => SnapshotUrl, snapshot => snapshot.order)
-	snapshotUrls: SnapshotUrl[];
 
 	@CreateDateColumn({ utc: true })
 	createdAt: Date;

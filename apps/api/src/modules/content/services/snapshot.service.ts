@@ -17,10 +17,11 @@ class SnapshotService {
 	) { }
 
 	/**
-	 * Создаёт снапшот для заказа с параллельным извлечением контента (batchSize)
+	 * Создаёт снапшоты для URLs (глобально, без привязки к orderId)
+	 * Использует upsert: если snapshot с таким url+contentHash уже есть — пропускает
 	 */
-	async createSnapshot(orderId: number, urls: string[], batchSize: number): Promise<number> {
-		this.logger.log(`Creating snapshot for order ${orderId} with ${urls.length} URLs (batch size: ${batchSize})`);
+	public async createSnapshot(urls: string[], batchSize: number): Promise<number> {
+		this.logger.log(`Creating snapshots for ${urls.length} URLs (batch size: ${batchSize})`);
 
 		let successCount = 0;
 		const errors: string[] = [];
@@ -31,10 +32,21 @@ class SnapshotService {
 				try {
 					const { title, content } = await this.contentExtractionService.extractContent(url);
 					const contentHash = this.contentExtractionService.calculateHash(content);
-					await this.contentStoreService.storeContent(contentHash, content);
-					await this.snapshotUrlRepository.save({ orderId, url, title, contentHash });
+
+					// Проверка существования snapshot
+					const existing = await this.snapshotUrlRepository.findOne({
+						where: { url, contentHash }
+					});
+
+					if (!existing) {
+						await this.contentStoreService.storeContent(contentHash, content);
+						await this.snapshotUrlRepository.save({ url, title, contentHash });
+						this.logger.debug(`Created snapshot for: ${url}`);
+					} else {
+						this.logger.debug(`Snapshot already exists for: ${url}`);
+					}
+
 					successCount++;
-					this.logger.debug(`Processed URL ${successCount}/${urls.length}: ${url}`);
 				} catch (error) {
 					const errorMessage = `Failed to process ${url}: ${error instanceof Error ? error.message : String(error)}`;
 					errors.push(errorMessage);
@@ -44,59 +56,35 @@ class SnapshotService {
 		}
 
 		if (errors.length > 0) {
-			this.logger.warn(`Snapshot for order ${orderId} completed with ${errors.length} errors`);
+			this.logger.warn(`Snapshot creation completed with ${errors.length} errors`);
 		}
 
-		this.logger.log(`Snapshot created for order ${orderId}: ${successCount}/${urls.length} URLs processed`);
+		this.logger.log(`Snapshots created: ${successCount}/${urls.length} URLs processed`);
 
 		return successCount;
 	}
 
 	/**
-	 * Получает все URLs снапшота для заказа
+	 * Получает snapshots по списку URLs
+	 * Возвращает Map: url -> SnapshotUrl
 	 */
-	async getSnapshotUrls(orderId: number): Promise<SnapshotUrl[]> {
-		return this.snapshotUrlRepository.find({
-			where: { orderId },
-			order: { createdAt: 'ASC' }
-		});
-	}
-
-	/**
-	 * Удаляет снапшот и уменьшает refCount в ContentStore
-	 * Используется при отмене/удалении заказа
-	 */
-	async deleteSnapshot(orderId: number): Promise<void> {
-		const snapshotUrls = await this.getSnapshotUrls(orderId);
-
-		if (snapshotUrls.length === 0) {
-			return;
+	public async getSnapshotsByUrls(urls: string[]): Promise<Map<string, SnapshotUrl>> {
+		if (urls.length === 0) {
+			return new Map();
 		}
 
-		// Извлекаем хеши для уменьшения refCount
-		const hashes = snapshotUrls.map(snapshot => snapshot.contentHash);
-
-		// Удаляем SnapshotUrls
-		await this.snapshotUrlRepository.delete({ orderId });
-
-		// Уменьшаем refCount в ContentStore
-		await this.contentStoreService.decrementRefCount(hashes);
-
-		this.logger.log(`Deleted snapshot for order ${orderId} (${snapshotUrls.length} URLs)`);
-	}
-
-	/**
-	 * Получает общее количество уникального контента в снапшоте
-	 * (по количеству уникальных хешей)
-	 */
-	async getUniqueContentCount(orderId: number): Promise<number> {
-		const result: { count: string } = await this.snapshotUrlRepository
+		const snapshots = await this.snapshotUrlRepository
 			.createQueryBuilder('snapshot')
-			.select('COUNT(DISTINCT snapshot.contentHash)', 'count')
-			.where('snapshot.orderId = :orderId', { orderId })
-			.getRawOne();
+			.where('snapshot.url IN (:...urls)', { urls })
+			.getMany();
 
-		return parseInt(result.count, 10);
+		// Возвращаем Map для быстрого lookup
+		const result = new Map<string, SnapshotUrl>();
+		for (const snapshot of snapshots) {
+			result.set(snapshot.url, snapshot);
+		}
+
+		return result;
 	}
 }
 

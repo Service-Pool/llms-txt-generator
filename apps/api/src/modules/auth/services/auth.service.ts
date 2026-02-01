@@ -1,13 +1,11 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
 import { ClsService } from 'nestjs-cls';
 import { Session } from 'fastify';
 import { AppConfigService } from '../../../config/config.service';
 import { MailService } from './mail.service';
 import { UsersService } from '../../users/services/users.service';
+import { OrdersService } from '../../orders/services/orders.service';
 import { User } from '../../users/entities/user.entity';
-import { Order } from '../../orders/entities/order.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -15,9 +13,8 @@ class AuthService {
 	private readonly logger = new Logger(AuthService.name);
 
 	constructor(
-		@InjectRepository(Order)
-		private readonly orderRepository: Repository<Order>,
 		private readonly usersService: UsersService,
+		private readonly ordersService: OrdersService,
 		private readonly mailService: MailService,
 		private readonly configService: AppConfigService,
 		private readonly clsService: ClsService
@@ -171,12 +168,7 @@ class AuthService {
 	 * Перенести Orders из session в user account
 	 */
 	private async transferSessionOrders(sessionId: string, userId: number): Promise<number> {
-		const result = await this.orderRepository.update(
-			{ sessionId, userId: IsNull() }, // анонимные Orders из этой сессии
-			{ userId, sessionId: null } // привязать к пользователю, очистить sessionId
-		);
-
-		const transferred = result.affected || 0;
+		const transferred = await this.ordersService.transferSessionOrders(sessionId, userId);
 
 		if (transferred > 0) {
 			this.logger.log(`Transferred ${transferred} orders from session ${sessionId} to user ${userId}`);

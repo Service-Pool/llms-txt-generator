@@ -19,7 +19,7 @@ class StripeService {
 	 * Создаёт Stripe Checkout Session для оплаты
 	 * Используется для редиректа пользователя на страницу оплаты Stripe
 	 */
-	async createCheckoutSession(orderId: number, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<string> {
+	public async createCheckoutSession(orderId: number, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<string> {
 		try {
 			// Валидация redirect URLs
 			this.validateRedirectUrl(successUrl);
@@ -64,7 +64,7 @@ class StripeService {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 * Возвращает client_secret для инициализации Stripe Elements
 	 */
-	async createPaymentIntent(
+	public async createPaymentIntent(
 		orderId: number,
 		amount: number,
 		currency: string = 'usd'
@@ -97,7 +97,7 @@ class StripeService {
 	 * Проверяет статус Checkout Session
 	 * Используется для polling состояния оплаты
 	 */
-	async checkSessionStatus(sessionId: string): Promise<'complete' | 'open' | 'expired'> {
+	public async checkSessionStatus(sessionId: string): Promise<'complete' | 'open' | 'expired'> {
 		try {
 			const session = await this.stripe.checkout.sessions.retrieve(sessionId);
 
@@ -121,7 +121,7 @@ class StripeService {
 	 * Создаёт возврат средств (refund)
 	 * Используется при FAILED или по запросу пользователя
 	 */
-	async createRefund(paymentIntentId: string): Promise<void> {
+	public async createRefund(paymentIntentId: string): Promise<void> {
 		try {
 			const refund = await this.stripe.refunds.create({
 				payment_intent: paymentIntentId
@@ -134,6 +134,28 @@ class StripeService {
 				error
 			);
 			throw new Error(`Stripe Refund creation failed: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
+
+	/**
+	 * Верифицирует webhook signature от Stripe
+	 * Используется для безопасной обработки webhook событий
+	 */
+	public constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
+		const webhookSecret = this.configService.stripe.webhookSecret;
+		if (!webhookSecret) {
+			throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
+		}
+
+		try {
+			return this.stripe.webhooks.constructEvent(
+				payload,
+				signature,
+				webhookSecret
+			);
+		} catch (error) {
+			this.logger.error('Webhook signature verification failed:', error);
+			throw new Error(`Webhook verification failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 
@@ -161,28 +183,6 @@ class StripeService {
 		const isAllowed = allowedDomains.some((domain: string) => url.startsWith(domain));
 		if (!isAllowed) {
 			throw new Error(`Redirect URL ${url} is not allowed. Allowed domains: ${allowedDomains.join(', ')}`);
-		}
-	}
-
-	/**
-	 * Верифицирует webhook signature от Stripe
-	 * Используется для безопасной обработки webhook событий
-	 */
-	constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
-		const webhookSecret = this.configService.stripe.webhookSecret;
-		if (!webhookSecret) {
-			throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
-		}
-
-		try {
-			return this.stripe.webhooks.constructEvent(
-				payload,
-				signature,
-				webhookSecret
-			);
-		} catch (error) {
-			this.logger.error('Webhook signature verification failed:', error);
-			throw new Error(`Webhook verification failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 }

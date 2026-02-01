@@ -1,19 +1,19 @@
-import { ModelConfigDto } from './model-config.dto';
+import { ModelConfigDto } from './ai-model-config.dto';
 
-class AvailableModelDto extends ModelConfigDto {
-	public price: string;
-	public totalPrice: string;
+class AvailableAiModelDto extends ModelConfigDto {
+	public price: number;
+	public totalPrice: number;
 	public available: boolean;
 	public unavailableReason: string | null;
 
 	constructor(
 		config: ModelConfigDto,
-		totalUrls: number,
-		currencySymbol: string
+		totalUrls: number
 	) {
 		super(
 			config.id,
 			config.category,
+			config.currency,
 			config.displayName,
 			config.description,
 			config.serviceClass,
@@ -27,9 +27,8 @@ class AvailableModelDto extends ModelConfigDto {
 			config.enabled
 		);
 
-		const totalPrice = config.baseRate * totalUrls;
-		this.price = `${currencySymbol}${config.baseRate.toFixed(4)}`;
-		this.totalPrice = `${currencySymbol}${totalPrice.toFixed(2)}`;
+		this.price = config.baseRate;
+		this.totalPrice = config.baseRate * totalUrls;
 		this.available = config.enabled && (config.pageLimit === false || totalUrls <= config.pageLimit);
 		this.unavailableReason = !config.enabled
 			? 'Model is disabled'
@@ -38,9 +37,9 @@ class AvailableModelDto extends ModelConfigDto {
 				: null;
 	}
 
-	static fromModelConfig(config: ModelConfigDto, totalUrls: number, currencySymbol: string): AvailableModelDto {
-		return new AvailableModelDto(config, totalUrls, currencySymbol);
+	public static fromModelConfig(config: ModelConfigDto, totalUrls: number): AvailableAiModelDto {
+		return new AvailableAiModelDto(config, totalUrls);
 	}
 }
 
-export { AvailableModelDto };
+export { AvailableAiModelDto };

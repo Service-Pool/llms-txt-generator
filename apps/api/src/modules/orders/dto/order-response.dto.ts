@@ -1,6 +1,41 @@
+import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { Order, OrderError } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
-import { Currency } from '../../../enums/currency.enum';
+import { Currency, CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
+
+/**
+ * Public DTO for available models (excludes internal configuration)
+ */
+class OrderAvailableAiModelDto {
+	id: string;
+	category: string;
+	currencySymbol: string;
+	displayName: string;
+	description: string;
+	baseRate: number;
+	pageLimit: number | false;
+	price: number;
+	totalPrice: number;
+	available: boolean;
+	unavailableReason: string | null;
+
+	public static fromAvailableModel(model: AvailableAiModelDto): OrderAvailableAiModelDto {
+		const dto = new OrderAvailableAiModelDto();
+		dto.id = model.id;
+		dto.category = model.category;
+		dto.currencySymbol = CURRENCY_SYMBOLS[Currency.EUR];
+		dto.category = model.category;
+		dto.displayName = model.displayName;
+		dto.description = model.description;
+		dto.baseRate = model.baseRate;
+		dto.pageLimit = model.pageLimit;
+		dto.price = model.price;
+		dto.totalPrice = model.totalPrice;
+		dto.available = model.available;
+		dto.unavailableReason = model.unavailableReason;
+		return dto;
+	}
+}
 
 class OrderResponseDto {
 	id: number;
@@ -18,14 +53,14 @@ class OrderResponseDto {
 	startedAt: Date | null;
 	completedAt: Date | null;
 	output: string | null;
-	llmsEntriesCount: number | null;
 	errors: OrderError[] | null;
 	totalUrls: number | null;
 	processedUrls: number;
 	createdAt: Date;
 	updatedAt: Date;
+	availableModels: OrderAvailableAiModelDto[];
 
-	static fromEntity(entity: Order): OrderResponseDto {
+	public static fromEntity(entity: Order, availableModels: AvailableAiModelDto[] = []): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.id = entity.id;
 		dto.userId = entity.userId;
@@ -42,12 +77,12 @@ class OrderResponseDto {
 		dto.startedAt = entity.startedAt;
 		dto.completedAt = entity.completedAt;
 		dto.output = entity.output;
-		dto.llmsEntriesCount = entity.llmsEntriesCount;
 		dto.errors = entity.errors;
 		dto.totalUrls = entity.totalUrls;
 		dto.processedUrls = entity.processedUrls;
 		dto.createdAt = entity.createdAt;
 		dto.updatedAt = entity.updatedAt;
+		dto.availableModels = availableModels.map(m => OrderAvailableAiModelDto.fromAvailableModel(m));
 		return dto;
 	}
 }

@@ -9,7 +9,7 @@ import { ClsService } from 'nestjs-cls';
 class SessionGuard implements CanActivate {
 	constructor(private readonly clsService: ClsService) { }
 
-	canActivate(_context: ExecutionContext): boolean {
+	public canActivate(_context: ExecutionContext): boolean {
 		const userId = this.clsService.get<number | null>('userId');
 
 		if (!userId) {

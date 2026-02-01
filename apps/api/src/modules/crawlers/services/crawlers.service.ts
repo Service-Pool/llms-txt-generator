@@ -4,7 +4,7 @@ import robotsParser from 'robots-parser';
 import Sitemapper, { SitemapperSiteData } from 'sitemapper';
 
 @Injectable()
-export class CrawlersService {
+class CrawlersService {
 	private readonly logger = new Logger(CrawlersService.name);
 	private readonly FETCH_TIMEOUT = 2000;
 	private readonly sitemapper: Sitemapper;
@@ -142,3 +142,5 @@ export class CrawlersService {
 		});
 	}
 }
+
+export { CrawlersService };

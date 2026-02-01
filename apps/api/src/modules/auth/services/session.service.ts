@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
-import { Session } from '../entities/session.entity';
-import { type Session as SessionType } from 'fastify';
+import { Session, SessionData } from '../entities/session.entity';
 
 @Injectable()
 class SessionService {
@@ -14,7 +13,7 @@ class SessionService {
 	/**
 	 * Get session by sessionId
 	 */
-	async getSession(sessionId: string): Promise<Session | null> {
+	public async getSession(sessionId: string): Promise<Session | null> {
 		return this.sessionRepository.findOne({
 			where: { sessionId }
 		});
@@ -23,7 +22,7 @@ class SessionService {
 	/**
 	 * Save or update session
 	 */
-	async saveSession(sessionId: string, data: SessionType, expiresAt: Date, userId?: number): Promise<Session> {
+	public async saveSession(sessionId: string, data: SessionData, expiresAt: Date, userId?: number): Promise<Session> {
 		const existingSession = await this.sessionRepository.findOne({
 			where: { sessionId }
 		});
@@ -52,14 +51,14 @@ class SessionService {
 	/**
 	 * Destroy session by sessionId
 	 */
-	async destroySession(sessionId: string): Promise<void> {
+	public async destroySession(sessionId: string): Promise<void> {
 		await this.sessionRepository.delete({ sessionId });
 	}
 
 	/**
 	 * Clean up expired sessions
 	 */
-	async cleanupExpiredSessions(): Promise<number> {
+	public async cleanupExpiredSessions(): Promise<number> {
 		const result = await this.sessionRepository.delete({
 			expiresAt: LessThan(new Date())
 		});
@@ -75,7 +74,7 @@ class SessionService {
 	/**
 	 * Get all sessions for a user
 	 */
-	async getUserSessions(userId: number): Promise<Session[]> {
+	public async getUserSessions(userId: number): Promise<Session[]> {
 		return this.sessionRepository.find({
 			where: { userId },
 			order: { createdAt: 'DESC' }
@@ -85,7 +84,7 @@ class SessionService {
 	/**
 	 * Destroy all sessions for a user
 	 */
-	async destroyUserSessions(userId: number): Promise<void> {
+	public async destroyUserSessions(userId: number): Promise<void> {
 		await this.sessionRepository.delete({ userId });
 	}
 }

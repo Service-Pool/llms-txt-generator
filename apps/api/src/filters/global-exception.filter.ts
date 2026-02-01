@@ -17,7 +17,7 @@ class GlobalExceptionFilter implements ExceptionFilter {
 
 	constructor() { }
 
-	catch(exception: unknown, host: ArgumentsHost): void {
+	public catch(exception: unknown, host: ArgumentsHost): void {
 		const response = host.switchToHttp().getResponse<FastifyReply>();
 
 		if (exception instanceof ValidationException) {

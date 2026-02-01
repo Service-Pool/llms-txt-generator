@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Ollama, GenerateRequest } from 'ollama';
-import { ModelConfigDto } from '../../models/dto/model-config.dto';
+import { ModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
 import { BaseLLMProviderService, PageSummary } from './base-llm-provider.service';
 
 class OllamaService extends BaseLLMProviderService {
@@ -24,7 +24,7 @@ class OllamaService extends BaseLLMProviderService {
 	/**
 	 * Генерирует краткое саммари для одной страницы через Ollama (локальный LLM)
 	 */
-	async generateSummary(content: string, title: string): Promise<string> {
+	public async generateSummary(content: string, title: string): Promise<string> {
 		try {
 			const prompt = `You are a technical documentation summarizer. Your task is to create a concise summary of a web page.
 
@@ -71,7 +71,7 @@ Summary:`;
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
-	async generateDescription(summaries: PageSummary[]): Promise<string> {
+	public async generateDescription(summaries: PageSummary[]): Promise<string> {
 		try {
 			const summariesText = summaries
 				.map((s, idx) => `${idx + 1}. ${s.title}: ${s.summary}`)

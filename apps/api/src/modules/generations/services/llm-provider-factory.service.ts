@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseLLMProviderService } from './base-llm-provider.service';
-import { ModelsConfigService } from '../../models/services/models-config.service';
+import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import * as path from 'path';
 
 /**
@@ -10,17 +10,17 @@ import * as path from 'path';
 class LLMProviderFactory {
 	private readonly logger = new Logger(LLMProviderFactory.name);
 
-	constructor(private readonly modelsConfigService: ModelsConfigService) { }
+	constructor(private readonly aiModelsConfigService: AiModelsConfigService) { }
 
 	/**
 	 * Получить провайдера LLM на основе modelId
 	 * @param modelId ID модели из MODELS_CONFIG
 	 * @returns Экземпляр соответствующего провайдера
 	 */
-	async getProvider(modelId: string): Promise<BaseLLMProviderService> {
+	public async getProvider(modelId: string): Promise<BaseLLMProviderService> {
 		this.logger.debug(`Getting LLM provider for model: ${modelId}`);
 
-		const modelConfig = this.modelsConfigService.getModelById(modelId);
+		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
 		if (!modelConfig) {
 			throw new Error(`Model configuration not found: ${modelId}`);
 		}
@@ -34,16 +34,19 @@ class LLMProviderFactory {
 				throw new Error(`Failed to import module at path: ${servicePath}`);
 			}
 
-			// Convention: service file exports class with same name as filename
-			const className = path.basename(modelConfig.serviceClass, '.ts').split('.')[0]
-				.split('-')
+			// Извлечь имя класса из filename: "ollama.service" -> "OllamaService"
+			const filename = path.basename(modelConfig.serviceClass, '.ts');
+			const className = filename
+				.split(/[.-]/)
 				.map(part => part.charAt(0).toUpperCase() + part.slice(1))
 				.join('');
+
+			this.logger.debug(`Looking for class: ${className} in module`);
 
 			const ServiceClass = (module as Record<string, unknown>)[className];
 
 			if (!ServiceClass) {
-				throw new Error(`Service class ${className} not found in ${modelConfig.serviceClass}`);
+				throw new Error(`Service class ${className} not found in ${modelConfig.serviceClass}. Available exports: ${Object.keys(module).join(', ')}`);
 			}
 
 			return new (ServiceClass as new (...args: unknown[]) => BaseLLMProviderService)(modelConfig);

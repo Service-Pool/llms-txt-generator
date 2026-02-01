@@ -21,7 +21,7 @@ import type { FastifyRequest } from 'fastify';
 import { type Session as SessionType } from 'fastify';
 
 @Controller('api/orders/:orderId/payment')
-export class PaymentsController {
+class PaymentsController {
 	constructor(
 		private readonly stripeService: StripeService,
 		private readonly ordersService: OrdersService
@@ -32,7 +32,7 @@ export class PaymentsController {
 	 * Создаёт Stripe Checkout Session и возвращает sessionId
 	 */
 	@Post('checkout')
-	async createCheckoutSession(
+	public async createCheckoutSession(
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Body() dto: CreateCheckoutRequestDto,
 		@Session() session: SessionType
@@ -78,7 +78,7 @@ export class PaymentsController {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
 	@Post('intent')
-	async createPaymentIntent(
+	public async createPaymentIntent(
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Session() session: SessionType
 	): Promise<ApiResponse<MessageSuccess<{ clientSecret: string }>>> {
@@ -121,7 +121,7 @@ export class PaymentsController {
 	 * Запрашивает возврат средств за заказ
 	 */
 	@Post('refund')
-	async requestRefund(
+	public async requestRefund(
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Session() session: SessionType
 	): Promise<ApiResponse<MessageSuccess>> {
@@ -163,7 +163,7 @@ export class PaymentsController {
 	 * Обработчик Stripe webhooks
 	 */
 	@Post('/webhook')
-	async handleWebhook(
+	public async handleWebhook(
 		@Req() req: RawBodyRequest<FastifyRequest>,
 		@Headers('stripe-signature') signature: string
 	): Promise<{ received: boolean }> {
@@ -226,3 +226,5 @@ export class PaymentsController {
 		return { received: true };
 	}
 }
+
+export { PaymentsController };

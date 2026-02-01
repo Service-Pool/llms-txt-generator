@@ -18,7 +18,7 @@ class AuthController {
 	 */
 	@Post('request-login-link')
 	@HttpCode(200)
-	async requestLoginLink(@Body() dto: RequestLoginLinkRequestDto): Promise<ApiResponse<MessageSuccess>> {
+	public async requestLoginLink(@Body() dto: RequestLoginLinkRequestDto): Promise<ApiResponse<MessageSuccess>> {
 		await this.authService.requestLoginLink(dto.email, dto.redirectUrl);
 
 		return ApiResponse.success(`Login link been sent to ${dto.email}. Please check the email.`);
@@ -29,7 +29,7 @@ class AuthController {
 	 * Проверить Magic Link и авторизовать пользователя
 	 */
 	@Get('login')
-	async login(@Query() query: LoginRequestDto, @Session() session: SessionType): Promise<ApiResponse<MessageSuccess<VerifyLoginLinkResponseDto>>> {
+	public async login(@Query() query: LoginRequestDto, @Session() session: SessionType): Promise<ApiResponse<MessageSuccess<VerifyLoginLinkResponseDto>>> {
 		// Вся логика проверки в authService.login
 		const { user, redirectUrl } = await this.authService.login(query.crd, session);
 
@@ -49,7 +49,7 @@ class AuthController {
 	 */
 	@Post('logout')
 	@HttpCode(200)
-	logout(@Session() session: SessionType): ApiResponse<MessageSuccess> {
+	public logout(@Session() session: SessionType): ApiResponse<MessageSuccess> {
 		this.authService.logout(session);
 
 		return ApiResponse.success('Successfully logged out');
@@ -60,7 +60,7 @@ class AuthController {
 	 * Получить текущего пользователя
 	 */
 	@Get('me')
-	async getCurrentUser(): Promise<ApiResponse<MessageSuccess<StatusResponseDto | null>>> {
+	public async getCurrentUser(): Promise<ApiResponse<MessageSuccess<StatusResponseDto | null>>> {
 		const user = await this.authService.status();
 
 		if (!user) {

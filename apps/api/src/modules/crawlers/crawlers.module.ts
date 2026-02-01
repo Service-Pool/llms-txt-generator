@@ -5,4 +5,5 @@ import { CrawlersService } from './services/crawlers.service';
 	providers: [CrawlersService],
 	exports: [CrawlersService]
 })
+
 export class CrawlersModule { }

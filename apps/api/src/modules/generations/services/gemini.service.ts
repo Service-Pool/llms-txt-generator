@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { GoogleGenAI } from '@google/genai';
-import { ModelConfigDto } from '../../models/dto/model-config.dto';
+import { ModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
 import { BaseLLMProviderService, PageSummary } from './base-llm-provider.service';
 
 class GeminiService extends BaseLLMProviderService {
@@ -22,7 +22,7 @@ class GeminiService extends BaseLLMProviderService {
 	/**
 	 * Генерирует краткое саммари для одной страницы через Gemini API
 	 */
-	async generateSummary(content: string, title: string): Promise<string> {
+	public async generateSummary(content: string, title: string): Promise<string> {
 		try {
 			const prompt = `You are a technical documentation summarizer. Your task is to create a concise summary of a web page.
 
@@ -66,7 +66,7 @@ Summary:`;
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
-	async generateDescription(summaries: PageSummary[]): Promise<string> {
+	public async generateDescription(summaries: PageSummary[]): Promise<string> {
 		try {
 			const summariesText = summaries
 				.map((s, idx) => `${idx + 1}. ${s.title}: ${s.summary}`)
