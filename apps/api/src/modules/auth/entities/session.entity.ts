@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { type Session as SessionType } from 'fastify';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('sessions')
@@ -16,8 +17,8 @@ export class Session {
 	@JoinColumn({ name: 'userId' })
 	user: User | null;
 
-	@Column({ type: 'text' })
-	data: string;
+	@Column({ type: 'json' })
+	data: SessionType;
 
 	@Column({ type: 'datetime', utc: true })
 	expiresAt: Date;

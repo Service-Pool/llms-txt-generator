@@ -5,10 +5,8 @@ import { User } from '../entities/user.entity';
 
 @Injectable()
 class UsersService {
-	constructor(
-		@InjectRepository(User)
-		private readonly userRepository: Repository<User>
-	) { }
+	constructor(@InjectRepository(User)
+	private readonly userRepository: Repository<User>) { }
 
 	/**
 	 * Получить пользователя по email
@@ -75,4 +73,4 @@ class UsersService {
 	}
 }
 
-export { UsersService }
+export { UsersService };

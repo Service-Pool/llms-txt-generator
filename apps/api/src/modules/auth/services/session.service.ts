@@ -2,15 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Session } from '../entities/session.entity';
+import { type Session as SessionType } from 'fastify';
 
 @Injectable()
 class SessionService {
 	private readonly logger = new Logger(SessionService.name);
 
-	constructor(
-		@InjectRepository(Session)
-		private readonly sessionRepository: Repository<Session>
-	) { }
+	constructor(@InjectRepository(Session)
+	private readonly sessionRepository: Repository<Session>) { }
 
 	/**
 	 * Get session by sessionId
@@ -24,18 +23,13 @@ class SessionService {
 	/**
 	 * Save or update session
 	 */
-	async saveSession(
-		sessionId: string,
-		data: Record<string, any>,
-		expiresAt: Date,
-		userId?: number
-	): Promise<Session> {
+	async saveSession(sessionId: string, data: SessionType, expiresAt: Date, userId?: number): Promise<Session> {
 		const existingSession = await this.sessionRepository.findOne({
 			where: { sessionId }
 		});
 
 		if (existingSession) {
-			existingSession.data = JSON.stringify(data);
+			existingSession.data = data;
 			existingSession.expiresAt = expiresAt;
 			existingSession.updatedAt = new Date();
 			if (userId !== undefined) {
@@ -46,7 +40,7 @@ class SessionService {
 
 		const newSession = this.sessionRepository.create({
 			sessionId,
-			data: JSON.stringify(data),
+			data,
 			expiresAt,
 			userId,
 			updatedAt: new Date()
@@ -96,4 +90,4 @@ class SessionService {
 	}
 }
 
-export { SessionService }
+export { SessionService };

@@ -28,7 +28,11 @@ class LLMProviderFactory {
 		try {
 			// Dynamic import based on serviceClass path
 			const servicePath = path.join(__dirname, modelConfig.serviceClass);
-			const module = await import(servicePath);
+			const module: unknown = await import(servicePath);
+
+			if (!module || typeof module !== 'object') {
+				throw new Error(`Failed to import module at path: ${servicePath}`);
+			}
 
 			// Convention: service file exports class with same name as filename
 			const className = path.basename(modelConfig.serviceClass, '.ts').split('.')[0]
@@ -36,13 +40,13 @@ class LLMProviderFactory {
 				.map(part => part.charAt(0).toUpperCase() + part.slice(1))
 				.join('');
 
-			const ServiceClass = module[className];
+			const ServiceClass = (module as Record<string, unknown>)[className];
 
 			if (!ServiceClass) {
 				throw new Error(`Service class ${className} not found in ${modelConfig.serviceClass}`);
 			}
 
-			return new ServiceClass(modelConfig);
+			return new (ServiceClass as new (...args: unknown[]) => BaseLLMProviderService)(modelConfig);
 		} catch (error) {
 			this.logger.error(`Failed to load service: ${modelConfig.serviceClass}`, error);
 			throw new Error(`Failed to load LLM provider: ${error instanceof Error ? error.message : String(error)}`);

@@ -1,5 +1,6 @@
 import { SessionStore } from '@fastify/session';
 import { SessionService } from '../services/session.service';
+import { type Session as SessionType } from 'fastify';
 
 /**
  * TypeORM Session Store for @fastify/session
@@ -11,93 +12,54 @@ class TypeOrmSessionStore implements SessionStore {
 	/**
 	 * Set session data
 	 */
-	async set(sessionId: string, session: any, callback?: (err?: any) => void): void {
-		try {
-			// Calculate expiration based on cookie.maxAge or default 24 hours
-			const maxAge = session.cookie?.maxAge || 86400000; // 24 hours in ms
-			const expiresAt = new Date(Date.now() + maxAge);
+	set(sessionId: string, session: SessionType, callback?: (err?: unknown) => void): void {
+		const maxAge = session.cookie?.maxAge || 86400000; // 24 hours in ms
+		const expiresAt = new Date(Date.now() + maxAge);
+		const userId = session.userId || null;
 
-			// Extract userId from session data if present
-			const userId = session.userId || null;
-
-			// Save session
-			await this.sessionService.saveSession(
-				sessionId,
-				session,
-				expiresAt,
-				userId
-			);
-
-			if (callback) {
-				callback();
-			}
-		} catch (error) {
-			if (callback) {
-				callback(error);
-			} else {
-				throw error;
-			}
-		}
+		this.sessionService.saveSession(sessionId, session, expiresAt, userId)
+			.then(() => {
+				if (callback) callback();
+			})
+			.catch((error) => {
+				if (callback) callback(error);
+			});
 	}
 
 	/**
 	 * Get session data
 	 */
-	async get(sessionId: string, callback?: (err: any, result?: any) => void): Promise<any> {
-		try {
-			const sessionEntity = await this.sessionService.getSession(sessionId);
-
-			if (!sessionEntity) {
-				if (callback) {
-					callback(null, null);
+	get(sessionId: string, callback?: (err: unknown, result?: SessionType) => void): void {
+		this.sessionService.getSession(sessionId)
+			.then(async (sessionEntity) => {
+				if (!sessionEntity) {
+					if (callback) callback(null, null);
+					return;
 				}
-				return null;
-			}
-
-			// Check if session is expired
-			if (sessionEntity.expiresAt < new Date()) {
-				// Clean up expired session
-				await this.sessionService.destroySession(sessionId);
-				if (callback) {
-					callback(null, null);
+				if (sessionEntity.expiresAt < new Date()) {
+					await this.sessionService.destroySession(sessionId);
+					if (callback) callback(null, null);
+					return;
 				}
-				return null;
-			}
-
-			// Parse session data
-			const sessionData = JSON.parse(sessionEntity.data);
-
-			if (callback) {
-				callback(null, sessionData);
-			}
-			return sessionData;
-		} catch (error) {
-			if (callback) {
-				callback(error);
-			} else {
-				throw error;
-			}
-			return null;
-		}
+				const sessionData = sessionEntity.data;
+				if (callback) callback(null, sessionData);
+			})
+			.catch((error) => {
+				if (callback) callback(error);
+			});
 	}
 
 	/**
 	 * Destroy session
 	 */
-	async destroy(sessionId: string, callback?: (err?: any) => void): Promise<void> {
-		try {
-			await this.sessionService.destroySession(sessionId);
-
-			if (callback) {
-				callback();
-			}
-		} catch (error) {
-			if (callback) {
-				callback(error);
-			} else {
-				throw error;
-			}
-		}
+	destroy(sessionId: string, callback?: (err?: unknown) => void): void {
+		this.sessionService.destroySession(sessionId)
+			.then(() => {
+				if (callback) callback();
+			})
+			.catch((error) => {
+				if (callback) callback(error);
+			});
 	}
 }
 

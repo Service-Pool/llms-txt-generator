@@ -69,26 +69,28 @@ function validateEnv(): ValidatedEnv {
 		throw new InternalServerErrorException(`Config validation error (Joi): ${result.error.message}`);
 	}
 
-	return result.value;
+	return result.value as ValidatedEnv;
 }
 
 const env = validateEnv();
 
-function interpolateEnvVariables(value: any): any {
+function interpolateEnvVariables<T>(value: T): T {
 	if (typeof value === 'string') {
-		return value.replace(/\$\{([^}]+)\}/g, (_, varName) => {
+		return value.replace(/\$\{([^}]+)\}/g, (_, varName: string) => {
 			return process.env[varName] || '';
-		});
+		}) as T;
 	}
+
 	if (Array.isArray(value)) {
-		return value.map(item => interpolateEnvVariables(item));
+		return (value as unknown[]).map(item => interpolateEnvVariables(item)) as unknown as T;
 	}
+
 	if (value && typeof value === 'object') {
-		const result: any = {};
+		const result: Record<string, unknown> = {};
 		for (const key in value) {
-			result[key] = interpolateEnvVariables(value[key]);
+			result[key] = interpolateEnvVariables((value as Record<string, unknown>)[key]);
 		}
-		return result;
+		return result as T;
 	}
 	return value;
 }
@@ -136,11 +138,11 @@ class AppConfigService {
 
 	public readonly modelsConfig = ((): ModelConfigDto[] => {
 		try {
-			const parsed = JSON.parse(env.MODELS_CONFIG);
+			const parsed = JSON.parse(env.MODELS_CONFIG) as unknown[];
 			if (!Array.isArray(parsed)) {
 				throw new Error('MODELS_CONFIG must be an array');
 			}
-			return parsed.map((item) => {
+			return parsed.map((item: ModelConfigDto) => {
 				const interpolated = interpolateEnvVariables(item);
 				return new ModelConfigDto(
 					interpolated.id,
