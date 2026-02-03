@@ -4,9 +4,7 @@ import {
 	Param,
 	Body,
 	ParseIntPipe,
-	Session,
 	BadRequestException,
-	NotFoundException,
 	RawBodyRequest,
 	Req,
 	Headers
@@ -14,17 +12,18 @@ import {
 import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
 import { StripeService } from '../services/stripe.service';
 import { OrdersService } from '../../orders/services/orders.service';
+import { UsersService } from '../../users/services/users.service';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { ApiResponse } from '../../../utils/response/api-response';
 import { MessageSuccess } from '../../../utils/response/message-success';
 import type { FastifyRequest } from 'fastify';
-import { type Session as SessionType } from 'fastify';
 
 @Controller('api/orders/:orderId/payment')
 class PaymentsController {
 	constructor(
 		private readonly stripeService: StripeService,
-		private readonly ordersService: OrdersService
+		private readonly ordersService: OrdersService,
+		private readonly usersService: UsersService
 	) { }
 
 	/**
@@ -34,19 +33,10 @@ class PaymentsController {
 	@Post('checkout')
 	public async createCheckoutSession(
 		@Param('orderId', ParseIntPipe) orderId: number,
-		@Body() dto: CreateCheckoutRequestDto,
-		@Session() session: SessionType
+		@Body() dto: CreateCheckoutRequestDto
 	): Promise<ApiResponse<MessageSuccess<{ sessionId: string }>>> {
 		// 1. Проверить владение заказом
-		const order = await this.ordersService.getOrderById(
-			orderId,
-			session.sessionId,
-			session.userId
-		);
-
-		if (!order) {
-			throw new NotFoundException(`Order ${orderId} not found`);
-		}
+		const order = await this.ordersService.getUserOrders(orderId);
 
 		// 2. Проверить статус (должен быть PENDING_PAYMENT)
 		if (order.status !== OrderStatus.PENDING_PAYMENT) {
@@ -78,20 +68,9 @@ class PaymentsController {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
 	@Post('intent')
-	public async createPaymentIntent(
-		@Param('orderId', ParseIntPipe) orderId: number,
-		@Session() session: SessionType
-	): Promise<ApiResponse<MessageSuccess<{ clientSecret: string }>>> {
+	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess<{ clientSecret: string }>>> {
 		// 1. Проверить владение заказом
-		const order = await this.ordersService.getOrderById(
-			orderId,
-			session.sessionId,
-			session.userId
-		);
-
-		if (!order) {
-			throw new NotFoundException(`Order ${orderId} not found`);
-		}
+		const order = await this.ordersService.getUserOrders(orderId);
 
 		// 2. Проверить статус (должен быть PENDING_PAYMENT)
 		if (order.status !== OrderStatus.PENDING_PAYMENT) {
@@ -121,20 +100,9 @@ class PaymentsController {
 	 * Запрашивает возврат средств за заказ
 	 */
 	@Post('refund')
-	public async requestRefund(
-		@Param('orderId', ParseIntPipe) orderId: number,
-		@Session() session: SessionType
-	): Promise<ApiResponse<MessageSuccess>> {
+	public async requestRefund(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess>> {
 		// 1. Проверить владение заказом
-		const order = await this.ordersService.getOrderById(
-			orderId,
-			session.sessionId,
-			session.userId
-		);
-
-		if (!order) {
-			throw new NotFoundException(`Order ${orderId} not found`);
-		}
+		const order = await this.ordersService.getUserOrders(orderId);
 
 		// 2. Проверить что заказ может быть возвращён (FAILED или COMPLETED с ошибками)
 		if (order.status !== OrderStatus.FAILED) {
@@ -183,11 +151,22 @@ class PaymentsController {
 				const session = event.data.object;
 				const orderId = parseInt(session.metadata.orderId, 10);
 
-				// Обновить статус Order на PAID
+				// Get order and update status to PAID
+				const order = await this.ordersService.findById(orderId);
+				if (!order.userId) {
+					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
+				}
+
 				await this.ordersService.updateOrderStatus(orderId, OrderStatus.PAID);
 
-				// TODO: Добавить Order в очередь генерации (будет реализовано в Этап 8)
-				// await this.queueService.addOrderToQueue(orderId, queueName);
+				// Create temporary session and run order
+				this.usersService.setTemporarySessionData(order.userId);
+				try {
+					// runOrder will use saved modelId and queue the order
+					await this.ordersService.runOrder(orderId);
+				} finally {
+					this.usersService.clearSessionData();
+				}
 
 				break;
 			}
@@ -196,11 +175,22 @@ class PaymentsController {
 				const paymentIntent = event.data.object;
 				const orderId = parseInt(paymentIntent.metadata.orderId, 10);
 
-				// Обновить статус Order на PAID
+				// Get order and update status to PAID
+				const order = await this.ordersService.findById(orderId);
+				if (!order.userId) {
+					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
+				}
+
 				await this.ordersService.updateOrderStatus(orderId, OrderStatus.PAID);
 
-				// TODO: Добавить Order в очередь генерации (будет реализовано в Этап 8)
-				// await this.queueService.addOrderToQueue(orderId, queueName);
+				// Create temporary session and run order
+				this.usersService.setTemporarySessionData(order.userId);
+				try {
+					// runOrder will use saved modelId and queue the order
+					await this.ordersService.runOrder(orderId);
+				} finally {
+					this.usersService.clearSessionData();
+				}
 
 				break;
 			}

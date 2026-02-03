@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ClsModule } from 'nestjs-cls';
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
 import { QueueModule } from '../modules/queue/queue.module';
@@ -24,6 +25,9 @@ import { OrderWorkerCommand } from './commands/order-worker.command';
 		ConfigModule.forRoot({
 			isGlobal: true,
 			ignoreEnvFile: true
+		}),
+		ClsModule.forRoot({
+			global: true
 		}),
 		EventEmitterModule.forRoot({
 			global: true

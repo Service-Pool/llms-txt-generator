@@ -1,5 +1,4 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
 import { Session } from 'fastify';
 import { AppConfigService } from '../../../config/config.service';
 import { MailService } from './mail.service';
@@ -16,8 +15,7 @@ class AuthService {
 		private readonly usersService: UsersService,
 		private readonly ordersService: OrdersService,
 		private readonly mailService: MailService,
-		private readonly configService: AppConfigService,
-		private readonly clsService: ClsService
+		private readonly configService: AppConfigService
 	) { }
 
 	/**
@@ -74,7 +72,7 @@ class AuthService {
 		session.userId = user.id;
 
 		// Перенести заказы из текущей сессии
-		const sessionId = this.clsService.get<string>('sessionId');
+		const sessionId = session.sessionId;
 
 		if (sessionId) {
 			await this.transferSessionOrders(sessionId, user.id);
@@ -90,32 +88,29 @@ class AuthService {
 	 * @throws Error если пользователь не авторизован
 	 */
 	public logout(session: Session): void {
-		const userId = this.clsService.get<number | null>('userId');
-
-		if (!userId) {
+		if (!session.userId) {
 			throw new UnauthorizedException('Not authorized');
 		}
 
+		const userId = session.userId;
+
 		// Удалить userId из сессии
 		session.userId = null;
-
-		// Очистить userId из CLS
-		this.clsService.set('userId', null);
 
 		this.logger.log(`User ${userId} logged out`);
 	}
 
 	/**
-	 * Получить текущего пользователя по userId из CLS
+	 * Получить текущего пользователя
 	 */
 	public async status(): Promise<User> {
-		const userId = this.clsService.get<number | null>('userId');
+		const session = this.usersService.getSessionData();
 
-		if (!userId) {
+		if (!session.userId) {
 			throw new UnauthorizedException('Only logged in user may check the status');
 		}
 
-		return this.usersService.findById(userId);
+		return this.usersService.findById(session.userId);
 	}
 
 	/**

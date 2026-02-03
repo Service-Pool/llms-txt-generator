@@ -5,12 +5,14 @@ import {
 	BadRequestException,
 	UnauthorizedException
 } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
 import { CrawlersService } from '../../crawlers/services/crawlers.service';
 import { QueueService } from '../../queue/services/queue.service';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { UsersService } from '../../users/services/users.service';
+import { StripeService } from '../../payments/services/stripe.service';
 import { Currency } from '../../../enums/currency.enum';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ModelConfigDto } from '../../../modules/ai-models/dto/ai-model-config.dto';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
@@ -22,139 +24,146 @@ class OrdersService {
 		@InjectRepository(Order)
 		private readonly orderRepository: Repository<Order>,
 		private readonly crawlersService: CrawlersService,
-		private readonly cls: ClsService,
+		private readonly usersService: UsersService,
 		private readonly queueService: QueueService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
+		private readonly stripeService: StripeService,
 		private readonly dataSource: DataSource
 	) { }
 
 	/**
-	 * Create new order - SIMPLIFIED (no snapshot creation)
-	 * Content extraction happens on-the-fly in worker
+	 * Calculate order price and save model configuration
+	 * Can be called multiple times while order is in CREATED or CALCULATED status
 	 */
-	public async createOrder(hostname: string, sessionId: string, userId?: number): Promise<Order> {
-		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
+	public async calculateOrder(orderId: number, modelId: string): Promise<Order> {
+		const order = await this.getUserOrders(orderId);
 
-		if (!urls.length) {
-			throw new BadRequestException('Sitemap did not return any URLs');
-		}
+		// Validate and transition to CALCULATED status
+		OrderStatusMachine.validateTransition(order.status, OrderStatus.CALCULATED);
 
-		const order = this.orderRepository.create({
-			hostname,
-			sessionId,
-			userId,
-			totalUrls: urls.length,
-			status: OrderStatus.CREATED
-		});
+		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
+		const totalUrls = order.totalUrls;
+		const pricePerUrl = modelConfig.baseRate;
+		const priceTotal = this.aiModelsConfigService.calculatePrice(modelId, totalUrls);
+		const priceCurrency = Currency.EUR;
+
+		order.modelId = modelConfig.id;
+		order.priceTotal = priceTotal;
+		order.pricePerUrl = pricePerUrl;
+		order.priceCurrency = priceCurrency;
+		order.totalUrls = totalUrls;
+		order.status = OrderStatus.CALCULATED;
 
 		return this.orderRepository.save(order);
 	}
 
 	/**
-	 * Get order by ID
-	 * Validates ownership (sessionId or userId must match)
+	 * Run order - queue for processing based on current status
+	 * Uses saved modelId from calculate step
 	 */
-	public async getOrderById(id: number, sessionId: string, userId?: number): Promise<Order> {
-		const order = await this.orderRepository.findOne({
-			where: { id }
-		});
+	public async runOrder(orderId: number): Promise<Order> {
+		const session = this.usersService.getSessionData();
+		const order = await this.getUserOrders(orderId);
 
-		if (!order) {
-			throw new NotFoundException(`Order with ID ${id} not found`);
+		// Ensure modelId is saved (from calculate step or webhook)
+		if (!order.modelId) {
+			throw new BadRequestException('Order has no modelId. Please call /calculate first');
 		}
 
-		// Validate ownership
-		this.validateOwnership(order, sessionId, userId);
+		const modelConfig = this.aiModelsConfigService.getModelById(order.modelId);
+		const priceTotal = order.priceTotal;
 
-		return order;
-	}
-
-	/**
-	 * Get all orders for user or session
-	 */
-	public async getUserOrders(sessionId: string, userId?: number): Promise<Order[]> {
-		const where = userId
-			? [{ userId }, { sessionId }]
-			: [{ sessionId }];
-
-		return this.orderRepository.find({
-			where,
-			order: { createdAt: 'DESC' }
-		});
-	}
-
-	/**
-	 * Start order with selected model
-	 */
-	public async startOrder(orderId: number, modelId: string, priceTotal: number, pricePerUrl: number, priceCurrency: Currency, totalUrls: number): Promise<Order> {
-		const order = await this.orderRepository.findOne({
-			where: { id: orderId }
-		});
-
-		if (!order) {
-			throw new NotFoundException(`Order with ID ${orderId} not found`);
-		}
-
-		// Validate current status
-		if (order.status !== OrderStatus.CREATED) {
-			throw new BadRequestException(`Order must be in CREATED status to start. Current status: ${order.status}`);
-		}
-
-		// Validate authentication for paid models
-		const userId = this.cls.get<number | null>('userId');
-		if (priceTotal > 0 && !userId) {
-			throw new UnauthorizedException('Authentication required for paid models');
-		}
-
-		// Determine next status based on price
-		if (priceTotal === 0) {
-			// Free model - go directly to queue (with transaction)
-			OrderStatusMachine.validateTransition(order.status, OrderStatus.QUEUED);
-
-			const queryRunner = this.dataSource.createQueryRunner();
-			await queryRunner.connect();
-			await queryRunner.startTransaction();
-
-			try {
-				// Update order with pricing and model INSIDE transaction
-				order.modelId = modelId;
-				order.priceTotal = priceTotal;
-				order.pricePerUrl = pricePerUrl;
-				order.priceCurrency = priceCurrency;
-				order.totalUrls = totalUrls;
-				order.status = OrderStatus.QUEUED;
-
-				// Save order first within transaction
-				const savedOrder = await queryRunner.manager.save(order);
-
-				await queryRunner.commitTransaction();
-
-				// Add to BullMQ queue AFTER commit to avoid race condition
-				const modelConfig = this.aiModelsConfigService.getModelById(modelId);
-				const jobId = await this.queueService.addOrderToQueue(savedOrder.id, modelConfig.queueName);
-
-				// Update order with jobId (outside transaction)
-				savedOrder.jobId = jobId;
-				await this.orderRepository.save(savedOrder);
-
-				return savedOrder;
-			} catch (error) {
-				await queryRunner.rollbackTransaction();
-				throw error;
-			} finally {
-				await queryRunner.release();
+		// CALCULATED status - decide next step based on price
+		if (order.status === OrderStatus.CALCULATED) {
+			if (priceTotal === 0) {
+				return this.queueOrder(order, modelConfig);
+			} else {
+				if (!session.userId) {
+					throw new UnauthorizedException('Authentication required for paid models');
+				}
+				OrderStatusMachine.validateTransition(order.status, OrderStatus.PENDING_PAYMENT);
+				order.status = OrderStatus.PENDING_PAYMENT;
+				return this.orderRepository.save(order);
 			}
-		} else {
-			// Paid model - wait for payment
-			OrderStatusMachine.validateTransition(order.status, OrderStatus.PENDING_PAYMENT);
-			order.status = OrderStatus.PENDING_PAYMENT;
-			return this.orderRepository.save(order);
 		}
+
+		// PENDING_PAYMENT - check Stripe status
+		if (order.status === OrderStatus.PENDING_PAYMENT) {
+			if (!order.stripeSessionId) {
+				throw new BadRequestException('Payment session not found. Please create payment session first');
+			}
+
+			const stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+
+			if (stripeStatus === 'complete') {
+				// Payment completed but webhook didn't fire - transition to PAID and queue
+				await this.updateOrderStatus(order.id, OrderStatus.PAID);
+				const paidOrder = await this.getUserOrders(orderId);
+				return this.queueOrder(paidOrder, modelConfig);
+			}
+
+			if (stripeStatus === 'expired') {
+				throw new BadRequestException('Payment session expired. Please create a new payment');
+			}
+
+			// stripeStatus === 'open'
+			throw new BadRequestException('Payment not completed. Please complete payment first');
+		}
+
+		// PAID status - queue directly
+		if (order.status === OrderStatus.PAID) {
+			return this.queueOrder(order, modelConfig);
+		}
+
+		throw new BadRequestException(`Cannot run order in status: ${order.status}`);
+	}
+
+	/**
+	 * Queue order for processing
+	 * Saves pricing, transitions to QUEUED, and adds to processing queue
+	 */
+	private async queueOrder(order: Order, modelConfig: ModelConfigDto): Promise<Order> {
+		OrderStatusMachine.validateTransition(order.status, OrderStatus.QUEUED);
+
+		// Set pricing only if not already set (free orders) or model changed
+		if (!order.modelId || order.modelId !== modelConfig.id) {
+			const totalUrls = order.totalUrls;
+			const pricePerUrl = modelConfig.baseRate;
+			const priceTotal = this.aiModelsConfigService.calculatePrice(modelConfig.id, totalUrls);
+			const priceCurrency = Currency.EUR;
+
+			order.modelId = modelConfig.id;
+			order.priceTotal = priceTotal;
+			order.pricePerUrl = pricePerUrl;
+			order.priceCurrency = priceCurrency;
+			order.totalUrls = totalUrls;
+		}
+
+		order.status = OrderStatus.QUEUED;
+
+		await this.orderRepository.save(order);
+
+		try {
+			const jobId = await this.queueService.addOrderToQueue(order.id, modelConfig.queueName);
+			await this.orderRepository.update(order.id, { jobId });
+		} catch (error) {
+			await this.orderRepository.update(order.id, {
+				status: OrderStatus.FAILED,
+				errors: [{ message: `Failed to add to queue: ${error instanceof Error ? error.message : String(error)}` }]
+			});
+			throw error;
+		}
+
+		const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+		if (!updatedOrder) {
+			throw new Error(`Order ${order.id} not found after update`);
+		}
+		return updatedOrder;
 	}
 
 	/**
 	 * Update order status with validation
-	 * Idempotent: can be called multiple times with same status without error
+	 * Just updates status and timestamps, no side effects
 	 */
 	public async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
 		const order = await this.orderRepository.findOne({
@@ -165,7 +174,7 @@ class OrdersService {
 			throw new NotFoundException(`Order with ID ${orderId} not found`);
 		}
 
-		// Validate status transition (now allows same status via state machine)
+		// Validate status transition
 		OrderStatusMachine.validateTransition(order.status, newStatus);
 
 		order.status = newStatus;
@@ -179,44 +188,79 @@ class OrdersService {
 			order.completedAt = new Date();
 		}
 
-		// If status changed to PAID, automatically add to queue (with transaction)
-		if (newStatus === OrderStatus.PAID) {
-			const queryRunner = this.dataSource.createQueryRunner();
-			await queryRunner.connect();
-			await queryRunner.startTransaction();
+		return this.orderRepository.save(order);
+	}
 
-			try {
-				const savedOrder = await queryRunner.manager.save(order);
+	/**
+	 * Create new order - SIMPLIFIED (no snapshot creation)
+	 * Content extraction happens on-the-fly in worker
+	 */
+	public async createOrder(hostname: string): Promise<Order> {
+		const session = this.usersService.getSessionData();
+		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
 
-				// Transition to QUEUED
-				OrderStatusMachine.validateTransition(savedOrder.status, OrderStatus.QUEUED);
-				savedOrder.status = OrderStatus.QUEUED;
-
-				if (!savedOrder.modelId) {
-					throw new BadRequestException('Order has no modelId - cannot add to queue');
-				}
-
-				await queryRunner.manager.save(savedOrder);
-				await queryRunner.commitTransaction();
-
-				// Add to BullMQ queue AFTER commit to avoid race condition
-				const modelConfig = this.aiModelsConfigService.getModelById(savedOrder.modelId);
-				const jobId = await this.queueService.addOrderToQueue(savedOrder.id, modelConfig.queueName);
-
-				// Update order with jobId (outside transaction)
-				savedOrder.jobId = jobId;
-				await this.orderRepository.save(savedOrder);
-
-				return savedOrder;
-			} catch (error) {
-				await queryRunner.rollbackTransaction();
-				throw error;
-			} finally {
-				await queryRunner.release();
-			}
+		if (!urls.length) {
+			throw new BadRequestException('Sitemap did not return any URLs');
 		}
 
+		const order = this.orderRepository.create({
+			hostname,
+			sessionId: session.sessionId,
+			userId: session.userId,
+			totalUrls: urls.length,
+			status: OrderStatus.CREATED
+		});
+
 		return this.orderRepository.save(order);
+	}
+
+	/**
+	 * Get order(s) for current user/session
+	 * Validates ownership via SQL where clause
+	 */
+	public async getUserOrders(): Promise<Order[]>;
+	public async getUserOrders(id: number): Promise<Order>;
+	public async getUserOrders(id?: number): Promise<Order | Order[]> {
+		const session = this.usersService.getSessionData();
+
+		// Build base ownership conditions
+		const ownershipWhere = session.userId
+			? [{ userId: session.userId }, { sessionId: session.sessionId }]
+			: [{ sessionId: session.sessionId }];
+
+		// Get single order by ID
+		if (id !== undefined) {
+			const where = session.userId
+				? [{ id, userId: session.userId }, { id, sessionId: session.sessionId }]
+				: { id, sessionId: session.sessionId };
+
+			const order = await this.orderRepository.findOne({ where });
+
+			if (!order) {
+				throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
+			}
+
+			return order;
+		}
+
+		// Get all orders
+		return this.orderRepository.find({
+			where: ownershipWhere,
+			order: { createdAt: 'DESC' }
+		});
+	}
+
+	/**
+	 * Find order by ID without ownership check (for internal use)
+	 */
+	public async findById(id: number): Promise<Order> {
+		const order = await this.orderRepository.findOne({ where: { id } });
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${id} not found`);
+		}
+
+		return order;
 	}
 
 	/**

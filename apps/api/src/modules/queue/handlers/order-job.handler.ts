@@ -6,10 +6,10 @@ import { Order } from '../../orders/entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { CrawlersService } from '../../crawlers/services/crawlers.service';
-import { ContentExtractionService } from '../../content/services/content-extraction.service';
 import { CacheService } from '../../generations/services/cache.service';
 import { LLMProviderFactory } from '../../generations/services/llm-provider-factory.service';
-import { BaseLLMProviderService, PageSummary } from '../../generations/services/base-llm-provider.service';
+import { PageContent } from '../../generations/services/llm-provider.service';
+import { PageBatchProcessor } from '../../generations/services/page-processor.service';
 import { LlmsTxtFormatter } from '../../generations/utils/llms-txt-formatter';
 import { OrdersService } from '../../orders/services/orders.service';
 
@@ -39,9 +39,9 @@ class OrderJobHandler {
 	constructor(
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly crawlersService: CrawlersService,
-		private readonly contentExtractionService: ContentExtractionService,
 		private readonly cacheService: CacheService,
 		private readonly llmProviderFactory: LLMProviderFactory,
+		private readonly pageBatchProcessor: PageBatchProcessor,
 		private readonly ordersService: OrdersService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>,
 		private readonly dataSource: DataSource
@@ -95,54 +95,54 @@ class OrderJobHandler {
 			this.logger.log(`Processing order ${orderId}: ${totalUrls} URLs with batch size ${batchSize}`);
 
 			// 5. Обработка страниц батчами
-			const summaries: PageSummary[] = [];
-			let batch: string[] = [];
+			const allPages: PageContent[] = [];
 
 			for (const url of urlsToProcess) {
-				batch.push(url);
+				await this.pageBatchProcessor.add(url);
 
-				if (batch.length >= batchSize) {
-					await this.processBatch(batch, order.modelId, provider, summaries);
+				if (this.pageBatchProcessor.count >= batchSize) {
+					// Сгенерировать саммари для батча
+					await this.pageBatchProcessor.process(order.modelId, provider);
+					allPages.push(...this.pageBatchProcessor.getPages());
 
 					// Обновить прогресс через BullMQ job
 					await job.updateProgress({
-						processedUrls: summaries.length,
+						processedUrls: allPages.length,
 						totalUrls
 					});
 
 					// Обновить processedUrls в Order
 					await this.orderRepository.update(orderId, {
-						processedUrls: summaries.length
+						processedUrls: allPages.length
 					});
 
-					this.logger.debug(`Progress: ${summaries.length}/${totalUrls} URLs processed`);
-
-					batch = [];
+					this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
 				}
 			}
 
 			// Обработать оставшийся батч
-			if (batch.length > 0) {
-				await this.processBatch(batch, order.modelId, provider, summaries);
-				await job.updateProgress({ processedUrls: summaries.length, totalUrls });
+			if (this.pageBatchProcessor.count > 0) {
+				await this.pageBatchProcessor.process(order.modelId, provider);
+				allPages.push(...this.pageBatchProcessor.getPages());
+				await job.updateProgress({ processedUrls: allPages.length, totalUrls });
 
 				// Обновить processedUrls в Order
-				await this.ordersService.updateProgress(orderId, summaries.length);
+				await this.ordersService.updateProgress(orderId, allPages.length);
 
-				this.logger.debug(`Progress: ${summaries.length}/${totalUrls} URLs processed (final batch)`);
+				this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed (final batch)`);
 			}
 
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
 			const { hostname } = this.cacheService.parseUrl(order.hostname);
 			const hashKey = this.cacheService.buildHashKey(order.modelId, hostname);
-			const description = await this.cacheService.getWithCache(hashKey, '__description__', async () => {
+			const description = await this.cacheService.get(hashKey, '__description__', async () => {
 				this.logger.debug(`Generating description for ${order.hostname} (cache miss)`);
-				return provider.generateDescription(summaries);
+				return provider.generateDescription(allPages);
 			});
 
 			// 7. Форматирование llms.txt
-			const output = LlmsTxtFormatter.format(order.hostname, description, summaries);
+			const output = LlmsTxtFormatter.format(order.hostname, description, allPages);
 
 			// 8-9. Сохранение результата
 			await queryRunner.manager.update(Order, orderId, {
@@ -153,7 +153,7 @@ class OrderJobHandler {
 
 			await queryRunner.commitTransaction();
 
-			this.logger.log(`Order ${orderId} completed successfully with ${summaries.length} pages`);
+			this.logger.log(`Order ${orderId} completed successfully with ${allPages.length} pages`);
 		} catch (error) {
 			await queryRunner.rollbackTransaction();
 
@@ -166,38 +166,6 @@ class OrderJobHandler {
 			throw error; // Пробросить для retry BullMQ
 		} finally {
 			await queryRunner.release();
-		}
-	}
-
-	/**
-	 * Обработка батча страниц
-	 * @param batch Массив URLs для обработки
-	 * @param modelId ID модели для кэша
-	 * @param provider LLM провайдер
-	 * @param summaries Массив для накопления результатов
-	 */
-	private async processBatch(batch: string[], modelId: string, provider: BaseLLMProviderService, summaries: PageSummary[]): Promise<void> {
-		for (const url of batch) {
-			try {
-				// Извлечь title и content
-				const { title, content } = await this.contentExtractionService.extractContent(url);
-
-				// Получить hostname и path для кэша
-				const { hostname, path } = this.cacheService.parseUrl(url);
-				const hashKey = this.cacheService.buildHashKey(modelId, hostname);
-
-				// Использовать getWithCache - автоматически проверит кэш и сгенерирует при MISS
-				const summary = await this.cacheService.getWithCache(hashKey, path, async () => {
-					this.logger.debug(`Generating summary for ${url} (cache miss)`);
-					return provider.generateSummary(content, title);
-				});
-
-				summaries.push({ url, title, summary });
-			} catch (error) {
-				this.logger.error(`Failed to process URL ${url}:`, error);
-				// Re-throw to fail the entire job (PRD 9.3 — 100% успех или FAILED)
-				throw new Error(`Failed to process URL ${url}: ${error instanceof Error ? error.message : String(error)}`);
-			}
 		}
 	}
 }

@@ -11,7 +11,8 @@ class OrderStatusMachine {
 	 * Each status can only transition to specific next statuses
 	 */
 	private static readonly ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-		[OrderStatus.CREATED]: [OrderStatus.PENDING_PAYMENT, OrderStatus.QUEUED],
+		[OrderStatus.CREATED]: [OrderStatus.CALCULATED],
+		[OrderStatus.CALCULATED]: [OrderStatus.PENDING_PAYMENT, OrderStatus.QUEUED, OrderStatus.CALCULATED],
 		[OrderStatus.PENDING_PAYMENT]: [OrderStatus.PAID, OrderStatus.PAYMENT_FAILED, OrderStatus.CANCELLED],
 		[OrderStatus.PAID]: [OrderStatus.QUEUED],
 		[OrderStatus.QUEUED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],

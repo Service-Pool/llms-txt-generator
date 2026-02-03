@@ -49,16 +49,21 @@ class CacheService implements OnModuleInit {
 	 *
 	 * @param hashKey Ключ HASH в Redis
 	 * @param field Поле в HASH (путь или '__description__')
-	 * @param callback Функция для вычисления значения при cache miss
-	 * @returns Закэшированное или вычисленное значение
+	 * @param callback Функция для вычисления значения при cache miss (опционально)
+	 * @returns Закэшированное или вычисленное значение, null если не найдено и нет callback
 	 */
-	public async getWithCache(hashKey: string, field: string, callback: () => Promise<string>): Promise<string> {
+	public async get(hashKey: string, field: string, callback?: () => Promise<string>): Promise<string | null> {
 		try {
 			const cached = await this.redis.hget(hashKey, field);
 
 			if (cached) {
 				this.logger.debug(`Cache HIT for key=${hashKey}, field=${field}`);
 				return cached;
+			}
+
+			if (!callback) {
+				this.logger.debug(`Cache MISS for key=${hashKey}, field=${field} - no callback provided`);
+				return null;
 			}
 
 			this.logger.debug(`Cache MISS for key=${hashKey}, field=${field} - computing...`);
@@ -71,9 +76,22 @@ class CacheService implements OnModuleInit {
 
 			return computed;
 		} catch (error) {
-			this.logger.error(`Error in getWithCache for key=${hashKey}, field=${field}:`, error);
-			// При ошибке кэша всё равно вычисляем значение
-			return callback();
+			this.logger.error(`Error in get() for key=${hashKey}, field=${field}:`, error);
+			// При ошибке кэша вычисляем значение если есть callback
+			return callback ? callback() : null;
+		}
+	}
+
+	/**
+	 * Сохранить значение в кэш
+	 */
+	public async set(hashKey: string, field: string, value: string): Promise<void> {
+		try {
+			await this.redis.hset(hashKey, field, value);
+			await this.redis.expire(hashKey, this.TTL_SECONDS);
+			this.logger.debug(`Cached value for key=${hashKey}, field=${field}`);
+		} catch (error) {
+			this.logger.error(`Error in set() for key=${hashKey}, field=${field}:`, error);
 		}
 	}
 

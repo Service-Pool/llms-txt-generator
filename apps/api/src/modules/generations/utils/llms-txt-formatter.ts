@@ -1,21 +1,17 @@
+import { PageContent } from '../services/llm-provider.service';
+
 /**
  * Utility class for formatting llms.txt output
  */
-interface PageSummary {
-	url: string;
-	title: string;
-	summary: string;
-}
-
 class LlmsTxtFormatter {
 	/**
 	 * Format website data into llms.txt format
 	 * @param hostname - The website hostname
 	 * @param description - The website description
-	 * @param pages - Array of page summaries
+	 * @param pages - Array of pages with summaries
 	 * @returns Formatted llms.txt content
 	 */
-	public static format(hostname: string, description: string, pages: PageSummary[]): string {
+	public static format(hostname: string, description: string, pages: PageContent[]): string {
 		const lines: string[] = [
 			`# ${hostname}`,
 			'',
@@ -29,7 +25,7 @@ class LlmsTxtFormatter {
 			lines.push(`### ${page.title}`);
 			lines.push(`URL: ${page.url}`);
 			lines.push('');
-			lines.push(page.summary);
+			lines.push(page.summary || '');
 			lines.push('');
 		}
 

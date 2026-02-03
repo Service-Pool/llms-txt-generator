@@ -11,18 +11,18 @@ class SessionService {
 	private readonly sessionRepository: Repository<Session>) { }
 
 	/**
-	 * Get session by sessionId
+	 * Get session entity by sessionId
 	 */
-	public async getSession(sessionId: string): Promise<Session | null> {
+	public async getSessionEntity(sessionId: string): Promise<Session | null> {
 		return this.sessionRepository.findOne({
 			where: { sessionId }
 		});
 	}
 
 	/**
-	 * Save or update session
+	 * Save or update session entity
 	 */
-	public async saveSession(sessionId: string, data: SessionData, expiresAt: Date, userId?: number): Promise<Session> {
+	public async saveSessionEntity(sessionId: string, data: SessionData, expiresAt: Date, userId?: number): Promise<Session> {
 		const existingSession = await this.sessionRepository.findOne({
 			where: { sessionId }
 		});
@@ -49,9 +49,9 @@ class SessionService {
 	}
 
 	/**
-	 * Destroy session by sessionId
+	 * Destroy session entity by sessionId
 	 */
-	public async destroySession(sessionId: string): Promise<void> {
+	public async destroySessionEntity(sessionId: string): Promise<void> {
 		await this.sessionRepository.delete({ sessionId });
 	}
 
@@ -69,23 +69,6 @@ class SessionService {
 		}
 
 		return deletedCount;
-	}
-
-	/**
-	 * Get all sessions for a user
-	 */
-	public async getUserSessions(userId: number): Promise<Session[]> {
-		return this.sessionRepository.find({
-			where: { userId },
-			order: { createdAt: 'DESC' }
-		});
-	}
-
-	/**
-	 * Destroy all sessions for a user
-	 */
-	public async destroyUserSessions(userId: number): Promise<void> {
-		await this.sessionRepository.delete({ userId });
 	}
 }
 

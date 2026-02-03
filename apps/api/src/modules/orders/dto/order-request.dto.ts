@@ -12,11 +12,11 @@ class CreateOrderRequestDto {
 	hostname: string;
 }
 
-class StartOrderRequestDto {
+class CalculateOrderRequestDto {
 	@IsString()
 	@IsNotEmpty()
 	@Validate(AiModelValidator)
 	modelId: string;
 }
 
-export { CreateOrderRequestDto, StartOrderRequestDto };
+export { CreateOrderRequestDto, CalculateOrderRequestDto };

@@ -2,11 +2,69 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { ClsService } from 'nestjs-cls';
+import { Session as SessionData } from 'fastify';
 
 @Injectable()
 class UsersService {
-	constructor(@InjectRepository(User)
-	private readonly userRepository: Repository<User>) { }
+	constructor(
+		@InjectRepository(User)
+		private readonly userRepository: Repository<User>,
+		private readonly cls: ClsService
+	) { }
+
+	/**
+	 * Получить данные текущей сессии из CLS
+	 */
+	public getSessionData(): SessionData {
+		return this.cls.get<SessionData>('sessionData');
+	}
+
+	/**
+	 * Создать временную сессию для webhook (без реального sessionId)
+	 * Используется когда нужно выполнить операцию от имени пользователя вне HTTP-запроса
+	 */
+	public setTemporarySessionData(userId: number): void {
+		const tempSessionData: SessionData = {
+			userId,
+			sessionId: `webhook-${userId}-${Date.now()}`,
+			cookie: {
+				path: '/',
+				httpOnly: true,
+				secure: false,
+				sameSite: 'strict' as const,
+				maxAge: 0,
+				expires: new Date(),
+				domain: null,
+				originalMaxAge: 0,
+				originalExpires: new Date()
+			}
+		};
+
+		this.cls.set('sessionData', tempSessionData);
+	}
+
+	/**
+	 * Очистить временную сессию после использования
+	 */
+	public clearSessionData(): void {
+		this.cls.set('sessionData', undefined);
+	}
+
+	/**
+	 * Получить текущего аутентифицированного пользователя
+	 * Возвращает null для анонимных пользователей
+	 */
+	public async getCurrentUser(): Promise<User | null> {
+		const session = this.getSessionData();
+		const userId = session.userId;
+
+		if (!userId) {
+			return null;
+		}
+
+		return this.findById(userId);
+	}
 
 	/**
 	 * Получить пользователя по email

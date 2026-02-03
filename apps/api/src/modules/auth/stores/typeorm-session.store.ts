@@ -17,7 +17,14 @@ class TypeOrmSessionStore implements SessionStore {
 		const expiresAt = new Date(Date.now() + maxAge);
 		const userId = session.userId || null;
 
-		this.sessionService.saveSession(sessionId, session, expiresAt, userId)
+		// Create new SessionData object with sessionId included
+		const sessionData: SessionData = {
+			userId: session.userId,
+			sessionId: sessionId,
+			cookie: session.cookie
+		};
+
+		this.sessionService.saveSessionEntity(sessionId, sessionData, expiresAt, userId)
 			.then(() => {
 				if (callback) callback();
 			})
@@ -30,14 +37,14 @@ class TypeOrmSessionStore implements SessionStore {
 	 * Get session data
 	 */
 	public get(sessionId: string, callback?: (err: unknown, result?: SessionData) => void): void {
-		this.sessionService.getSession(sessionId)
+		this.sessionService.getSessionEntity(sessionId)
 			.then(async (sessionEntity) => {
 				if (!sessionEntity) {
 					if (callback) callback(null, null);
 					return;
 				}
 				if (sessionEntity.expiresAt < new Date()) {
-					await this.sessionService.destroySession(sessionId);
+					await this.sessionService.destroySessionEntity(sessionId);
 					if (callback) callback(null, null);
 					return;
 				}
@@ -53,7 +60,7 @@ class TypeOrmSessionStore implements SessionStore {
 	 * Destroy session
 	 */
 	public destroy(sessionId: string, callback?: (err?: unknown) => void): void {
-		this.sessionService.destroySession(sessionId)
+		this.sessionService.destroySessionEntity(sessionId)
 			.then(() => {
 				if (callback) callback();
 			})

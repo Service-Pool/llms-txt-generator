@@ -24,7 +24,7 @@ class AiModelsConfigService {
 
 	/**
 	 * Get available models for specific order parameters
-	 * Paid models (baseRate > 0) are available to all, but require authentication at startOrder
+	 * Paid models (baseRate > 0) are available to all, but require authentication at runOrder
 	 */
 	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableAiModelDto[] {
 		const models = this.getAllModels();

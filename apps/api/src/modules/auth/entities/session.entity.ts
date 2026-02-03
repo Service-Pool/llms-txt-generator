@@ -1,21 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
-// Тип для данных сессии, хранимых в БД (без методов FastifySessionObject)
-interface SessionData {
-	userId?: number;
-	sessionId: string;
-	cookie: {
-		originalMaxAge: number | null;
-		maxAge?: number | null;
-		expires?: Date | null;
-		secure?: boolean;
-		httpOnly?: boolean;
-		domain?: string;
-		path?: string;
-		sameSite?: boolean | 'lax' | 'strict' | 'none';
-	};
-}
+// SessionData теперь алиас к расширенному Fastify.Session (см. src/types/fastify.d.ts)
+type SessionData = import('fastify').Session;
 
 @Entity('sessions')
 class Session {

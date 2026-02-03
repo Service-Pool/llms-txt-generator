@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BaseLLMProviderService } from './base-llm-provider.service';
+import { LLMProviderService } from './llm-provider.service';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import * as path from 'path';
 
@@ -17,7 +17,7 @@ class LLMProviderFactory {
 	 * @param modelId ID модели из MODELS_CONFIG
 	 * @returns Экземпляр соответствующего провайдера
 	 */
-	public async getProvider(modelId: string): Promise<BaseLLMProviderService> {
+	public async getProvider(modelId: string): Promise<LLMProviderService> {
 		this.logger.debug(`Getting LLM provider for model: ${modelId}`);
 
 		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
@@ -49,7 +49,7 @@ class LLMProviderFactory {
 				throw new Error(`Service class ${className} not found in ${modelConfig.serviceClass}. Available exports: ${Object.keys(module).join(', ')}`);
 			}
 
-			return new (ServiceClass as new (...args: unknown[]) => BaseLLMProviderService)(modelConfig);
+			return new (ServiceClass as new (...args: unknown[]) => LLMProviderService)(modelConfig);
 		} catch (error) {
 			this.logger.error(`Failed to load service: ${modelConfig.serviceClass}`, error);
 			throw new Error(`Failed to load LLM provider: ${error instanceof Error ? error.message : String(error)}`);

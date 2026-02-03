@@ -1,8 +1,6 @@
 import { ApiResponse } from '../../../utils/response/api-response';
-import { ClsService } from 'nestjs-cls';
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, Res } from '@nestjs/common';
-import { CreateOrderRequestDto, StartOrderRequestDto } from '../dto/order-request.dto';
-import { Currency } from '../../../enums/currency.enum';
+import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, Res, ParseIntPipe } from '@nestjs/common';
+import { CreateOrderRequestDto, CalculateOrderRequestDto } from '../dto/order-request.dto';
 import { FastifyReply } from 'fastify';
 import { MessageSuccess } from '../../../utils/response/message-success';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
@@ -14,8 +12,7 @@ import { OrdersService } from '../services/orders.service';
 class OrdersController {
 	constructor(
 		private readonly ordersService: OrdersService,
-		private readonly aiModelsConfigService: AiModelsConfigService,
-		private readonly cls: ClsService
+		private readonly aiModelsConfigService: AiModelsConfigService
 	) { }
 
 	/**
@@ -25,57 +22,39 @@ class OrdersController {
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
 	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
-		const sessionId = this.cls.get('sessionId');
-		const userId = this.cls.get('userId');
-
-		// Create order (counts URLs only, no snapshot creation)
-		const order = await this.ordersService.createOrder(
-			dto.hostname,
-			sessionId,
-			userId
-		);
+		const order = await this.ordersService.createOrder(dto.hostname);
 
 		// Calculate available models based on totalUrls
 		const availableModels = this.aiModelsConfigService.getAvailableModels(
 			order.totalUrls,
-			!!userId
+			!!order.userId
 		);
 
 		return ApiResponse.success(OrderResponseDto.fromEntity(order, availableModels));
 	}
 
 	/**
-	 * Start order with selected model
-	 * POST /api/orders/:id/start
+	 * Calculate order price with selected model
+	 * POST /api/orders/:id/calculate
 	 */
-	@Post(':id/start')
+	@Post(':id/calculate')
 	@HttpCode(HttpStatus.OK)
-	public async startOrder(
-		@Param('id') id: number,
-		@Body() dto: StartOrderRequestDto
+	public async calculateOrder(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() dto: CalculateOrderRequestDto
 	): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
-		const sessionId = this.cls.get('sessionId');
-		const userId = this.cls.get('userId');
+		const updatedOrder = await this.ordersService.calculateOrder(id, dto.modelId);
+		return ApiResponse.success(OrderResponseDto.fromEntity(updatedOrder));
+	}
 
-		// Validate ownership
-		const order = await this.ordersService.getOrderById(id, sessionId, userId);
-
-		// Get model config and calculate pricing
-		const modelConfig = this.aiModelsConfigService.getModelById(dto.modelId);
-		const totalUrls = order.totalUrls;
-		const pricePerUrl = modelConfig.baseRate;
-		const priceTotal = this.aiModelsConfigService.calculatePrice(dto.modelId, totalUrls);
-		const priceCurrency = Currency.EUR;
-
-		const updatedOrder = await this.ordersService.startOrder(
-			id,
-			dto.modelId,
-			priceTotal,
-			pricePerUrl,
-			priceCurrency,
-			totalUrls
-		);
-
+	/**
+	 * Run order with selected model
+	 * POST /api/orders/:id/run
+	 */
+	@Post(':id/run')
+	@HttpCode(HttpStatus.OK)
+	public async runOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+		const updatedOrder = await this.ordersService.runOrder(id);
 		return ApiResponse.success(OrderResponseDto.fromEntity(updatedOrder));
 	}
 
@@ -86,10 +65,7 @@ class OrdersController {
 	@Get()
 	@HttpCode(HttpStatus.OK)
 	public async getOrders(): Promise<ApiResponse<MessageSuccess<OrderResponseDto[]>>> {
-		const sessionId = this.cls.get('sessionId');
-		const userId = this.cls.get('userId');
-
-		const orders = await this.ordersService.getUserOrders(sessionId, userId);
+		const orders = await this.ordersService.getUserOrders();
 
 		// TODO: For orders in PENDING_PAYMENT status - poll Stripe for payment status
 
@@ -102,11 +78,8 @@ class OrdersController {
 	 */
 	@Get(':id')
 	@HttpCode(HttpStatus.OK)
-	public async getOrder(@Param('id') id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
-		const sessionId = this.cls.get('sessionId');
-		const userId = this.cls.get('userId');
-
-		const order = await this.ordersService.getOrderById(id, sessionId, userId);
+	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+		const order = await this.ordersService.getUserOrders(id);
 
 		return ApiResponse.success(OrderResponseDto.fromEntity(order));
 	}
@@ -117,13 +90,10 @@ class OrdersController {
 	 */
 	@Get(':id/download')
 	public async downloadLlmsTxt(
-		@Param('id') id: number,
+		@Param('id', ParseIntPipe) id: number,
 		@Res() res: FastifyReply
 	): Promise<void> {
-		const sessionId = this.cls.get('sessionId');
-		const userId = this.cls.get('userId');
-
-		const order = await this.ordersService.getOrderById(id, sessionId, userId);
+		const order = await this.ordersService.getUserOrders(id);
 
 		if (!order.output) {
 			res.code(404).send({

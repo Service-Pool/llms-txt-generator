@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { LLMProviderFactory } from './services/llm-provider-factory.service';
 import { CacheService } from './services/cache.service';
+import { PageBatchProcessor } from './services/page-processor.service';
 import { AiModelsModule } from '../ai-models/ai-models.module';
+import { ContentModule } from '../content/content.module';
 
 /**
  * Generations Module
@@ -11,14 +13,16 @@ import { AiModelsModule } from '../ai-models/ai-models.module';
  * They are instantiated dynamically by LLMProviderFactory based on model config.
  */
 @Module({
-	imports: [AiModelsModule],
+	imports: [AiModelsModule, ContentModule],
 	providers: [
 		LLMProviderFactory,
-		CacheService
+		CacheService,
+		PageBatchProcessor
 	],
 	exports: [
 		LLMProviderFactory,
-		CacheService
+		CacheService,
+		PageBatchProcessor
 	]
 })
 

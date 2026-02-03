@@ -1,18 +1,19 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
+import { SessionData } from '../entities/session.entity';
 
 /**
  * SessionGuard - проверяет наличие авторизации
- * Требует наличия userId в CLS store
+ * Требует наличия userId в session
  */
 @Injectable()
 class SessionGuard implements CanActivate {
 	constructor(private readonly clsService: ClsService) { }
 
 	public canActivate(_context: ExecutionContext): boolean {
-		const userId = this.clsService.get<number | null>('userId');
+		const session = this.clsService.get<SessionData>('sessionData');
 
-		if (!userId) {
+		if (!session?.userId) {
 			throw new UnauthorizedException('Authentication required');
 		}
 

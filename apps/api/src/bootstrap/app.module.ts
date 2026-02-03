@@ -40,8 +40,7 @@ import { UsersModule } from '../modules/users/users.module';
 						}
 					});
 
-					cls.set('userId', req.session.userId || null);
-					cls.set('sessionId', req.session.sessionId);
+					cls.set('sessionData', req.session);
 					cls.set('abortSignal', abortController.signal);
 				}
 			}
