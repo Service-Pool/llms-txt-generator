@@ -24,6 +24,8 @@ interface ValidatedEnv {
 	STRIPE_SECRET_KEY: string;
 	STRIPE_PUBLISHABLE_KEY: string;
 	STRIPE_WEBHOOK_SECRET: string;
+	STRIPE_MIN_PAYMENT: number;
+	STRIPE_CURRENCY: string;
 	ALLOWED_DOMAINS: string;
 	MODELS_CONFIG: string;
 	SMTP_HOST: string;
@@ -50,6 +52,8 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	STRIPE_SECRET_KEY: Joi.string().required(),
 	STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
 	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+	STRIPE_MIN_PAYMENT: Joi.number().positive().required(),
+	STRIPE_CURRENCY: Joi.string().uppercase().valid(...Object.values(Currency)).required(),
 	ALLOWED_DOMAINS: Joi.string().required(),
 	MODELS_CONFIG: Joi.string().required(),
 	SMTP_HOST: Joi.string().required(),
@@ -144,7 +148,7 @@ class AppConfigService {
 				return new ModelConfigDto(
 					item.id,
 					item.category,
-					Currency.EUR,
+					Currency[env.STRIPE_CURRENCY as keyof typeof Currency],
 					item.displayName,
 					item.description,
 					item.serviceClass,
@@ -173,7 +177,8 @@ class AppConfigService {
 	public readonly stripe = {
 		secretKey: env.STRIPE_SECRET_KEY,
 		publishableKey: env.STRIPE_PUBLISHABLE_KEY,
-		webhookSecret: env.STRIPE_WEBHOOK_SECRET
+		webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+		minPayment: env.STRIPE_MIN_PAYMENT
 	};
 
 	public readonly smtp = {

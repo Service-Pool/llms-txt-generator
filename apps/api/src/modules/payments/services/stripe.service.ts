@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '../../../config/config.service';
+import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -30,7 +31,7 @@ class StripeService {
 				line_items: [
 					{
 						price_data: {
-							currency,
+							currency: currency.toLowerCase(),
 							product_data: {
 								name: `LLMs.txt Generation - Order #${orderId}`,
 								description: 'AI-powered content summarization service'
@@ -64,15 +65,11 @@ class StripeService {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 * Возвращает client_secret для инициализации Stripe Elements
 	 */
-	public async createPaymentIntent(
-		orderId: number,
-		amount: number,
-		currency: string = 'usd'
-	): Promise<string> {
+	public async createPaymentIntent(orderId: number, amount: number, currency: string): Promise<string> {
 		try {
 			const paymentIntent = await this.stripe.paymentIntents.create({
 				amount: Math.round(amount * 100), // Stripe expects amount in cents
-				currency,
+				currency: currency.toLowerCase(),
 				metadata: {
 					orderId: orderId.toString()
 				},
@@ -97,16 +94,16 @@ class StripeService {
 	 * Проверяет статус Checkout Session
 	 * Используется для polling состояния оплаты
 	 */
-	public async checkSessionStatus(sessionId: string): Promise<'complete' | 'open' | 'expired'> {
+	public async checkSessionStatus(sessionId: string): Promise<StripeSessionStatus> {
 		try {
 			const session = await this.stripe.checkout.sessions.retrieve(sessionId);
 
 			if (session.status === 'complete') {
-				return 'complete';
+				return StripeSessionStatus.COMPLETE;
 			} else if (session.status === 'open') {
-				return 'open';
+				return StripeSessionStatus.OPEN;
 			} else {
-				return 'expired';
+				return StripeSessionStatus.EXPIRED;
 			}
 		} catch (error) {
 			this.logger.error(
@@ -114,6 +111,32 @@ class StripeService {
 				error
 			);
 			throw new Error(`Stripe Session status check failed: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
+
+	/**
+	 * Проверяет статус Payment Intent по client_secret
+	 * Используется для polling состояния оплаты через встроенную форму
+	 */
+	public async checkPaymentIntentStatus(clientSecret: string): Promise<StripeSessionStatus> {
+		try {
+			// Extract Payment Intent ID from client_secret (format: pi_xxx_secret_yyy)
+			const paymentIntentId = clientSecret.split('_secret_')[0];
+			const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+			if (paymentIntent.status === 'succeeded') {
+				return StripeSessionStatus.COMPLETE;
+			} else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_payment_method' || paymentIntent.status === 'requires_confirmation') {
+				return StripeSessionStatus.OPEN;
+			} else {
+				return StripeSessionStatus.EXPIRED;
+			}
+		} catch (error) {
+			this.logger.error(
+				`Failed to check Payment Intent status for ${clientSecret}:`,
+				error
+			);
+			throw new Error(`Stripe Payment Intent status check failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 

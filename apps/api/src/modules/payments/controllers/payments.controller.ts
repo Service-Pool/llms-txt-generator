@@ -35,62 +35,24 @@ class PaymentsController {
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Body() dto: CreateCheckoutRequestDto
 	): Promise<ApiResponse<MessageSuccess<{ sessionId: string }>>> {
-		// 1. Проверить владение заказом
-		const order = await this.ordersService.getUserOrders(orderId);
-
-		// 2. Проверить статус (должен быть PENDING_PAYMENT)
-		if (order.status !== OrderStatus.PENDING_PAYMENT) {
-			throw new BadRequestException(`Order ${orderId} is not pending payment (current status: ${order.status})`);
-		}
-
-		// 3. Проверить что цена установлена
-		if (!order.priceTotal || !order.priceCurrency) {
-			throw new BadRequestException(`Order ${orderId} has no price information`);
-		}
-
-		// 4. Создать Checkout Session
-		const sessionId = await this.stripeService.createCheckoutSession(
+		const sessionId = await this.ordersService.getOrCreateCheckoutSession(
 			orderId,
-			order.priceTotal,
-			order.priceCurrency.toLowerCase(),
 			dto.successUrl,
 			dto.cancelUrl
 		);
-
-		// 5. Сохранить sessionId в Order
-		await this.ordersService.updateStripeSession(orderId, sessionId);
 
 		return ApiResponse.success({ sessionId });
 	}
 
 	/**
 	 * POST /api/orders/:orderId/payment/intent
+	/**
+	 * POST /api/orders/:orderId/payment/intent
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
 	@Post('intent')
 	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess<{ clientSecret: string }>>> {
-		// 1. Проверить владение заказом
-		const order = await this.ordersService.getUserOrders(orderId);
-
-		// 2. Проверить статус (должен быть PENDING_PAYMENT)
-		if (order.status !== OrderStatus.PENDING_PAYMENT) {
-			throw new BadRequestException(`Order ${orderId} is not pending payment (current status: ${order.status})`);
-		}
-
-		// 3. Проверить что цена установлена
-		if (!order.priceTotal || !order.priceCurrency) {
-			throw new BadRequestException(`Order ${orderId} has no price information`);
-		}
-
-		// 4. Создать Payment Intent
-		const clientSecret = await this.stripeService.createPaymentIntent(
-			orderId,
-			order.priceTotal,
-			order.priceCurrency.toLowerCase()
-		);
-
-		// 5. Сохранить client_secret в Order
-		await this.ordersService.updateStripePaymentIntent(orderId, clientSecret);
+		const clientSecret = await this.ordersService.getOrCreatePaymentIntent(orderId);
 
 		return ApiResponse.success({ clientSecret });
 	}

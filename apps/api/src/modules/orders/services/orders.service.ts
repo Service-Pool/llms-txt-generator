@@ -10,12 +10,13 @@ import { QueueService } from '../../queue/services/queue.service';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { UsersService } from '../../users/services/users.service';
 import { StripeService } from '../../payments/services/stripe.service';
-import { Currency } from '../../../enums/currency.enum';
+import { AppConfigService } from '../../../config/config.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ModelConfigDto } from '../../../modules/ai-models/dto/ai-model-config.dto';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
+import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
 import { Repository, DataSource } from 'typeorm';
 
 @Injectable()
@@ -28,6 +29,7 @@ class OrdersService {
 		private readonly queueService: QueueService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly stripeService: StripeService,
+		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource
 	) { }
 
@@ -44,8 +46,15 @@ class OrdersService {
 		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
 		const totalUrls = order.totalUrls;
 		const pricePerUrl = modelConfig.baseRate;
-		const priceTotal = this.aiModelsConfigService.calculatePrice(modelId, totalUrls);
-		const priceCurrency = Currency.EUR;
+		const priceCurrency = modelConfig.currency;
+		const minPayment = this.configService.stripe.minPayment;
+
+		let priceTotal = this.aiModelsConfigService.calculatePrice(modelId, totalUrls);
+
+		// Apply Stripe minimum payment if price is below threshold
+		if (priceTotal > 0 && priceTotal < minPayment) {
+			priceTotal = minPayment;
+		}
 
 		order.modelId = modelConfig.id;
 		order.priceTotal = priceTotal;
@@ -73,7 +82,7 @@ class OrdersService {
 		const modelConfig = this.aiModelsConfigService.getModelById(order.modelId);
 		const priceTotal = order.priceTotal;
 
-		// CALCULATED status - decide next step based on price
+		// CALCULATED status
 		if (order.status === OrderStatus.CALCULATED) {
 			if (priceTotal === 0) {
 				return this.queueOrder(order, modelConfig);
@@ -87,26 +96,32 @@ class OrdersService {
 			}
 		}
 
-		// PENDING_PAYMENT - check Stripe status
+		// PENDING_PAYMENT
 		if (order.status === OrderStatus.PENDING_PAYMENT) {
-			if (!order.stripeSessionId) {
+			if (!order.stripeSessionId && !order.stripePaymentIntentSecret) {
 				throw new BadRequestException('Payment session not found. Please create payment session first');
 			}
 
-			const stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+			let stripeStatus: StripeSessionStatus;
 
-			if (stripeStatus === 'complete') {
-				// Payment completed but webhook didn't fire - transition to PAID and queue
+			// Check Checkout Session if available
+			// Check Payment Intent if available
+			if (order.stripeSessionId) {
+				stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+			} else if (order.stripePaymentIntentSecret) {
+				stripeStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+			}
+
+			if (stripeStatus === StripeSessionStatus.COMPLETE) {
 				await this.updateOrderStatus(order.id, OrderStatus.PAID);
 				const paidOrder = await this.getUserOrders(orderId);
 				return this.queueOrder(paidOrder, modelConfig);
 			}
 
-			if (stripeStatus === 'expired') {
+			if (stripeStatus === StripeSessionStatus.EXPIRED) {
 				throw new BadRequestException('Payment session expired. Please create a new payment');
 			}
 
-			// stripeStatus === 'open'
 			throw new BadRequestException('Payment not completed. Please complete payment first');
 		}
 
@@ -130,7 +145,7 @@ class OrdersService {
 			const totalUrls = order.totalUrls;
 			const pricePerUrl = modelConfig.baseRate;
 			const priceTotal = this.aiModelsConfigService.calculatePrice(modelConfig.id, totalUrls);
-			const priceCurrency = Currency.EUR;
+			const priceCurrency = modelConfig.currency;
 
 			order.modelId = modelConfig.id;
 			order.priceTotal = priceTotal;
@@ -261,6 +276,89 @@ class OrdersService {
 		}
 
 		return order;
+	}
+
+	/**
+	 * Ensure order is ready for payment
+	 * Validates ownership, status, and price information
+	 */
+	public async ensureOrderPayable(orderId: number): Promise<Order> {
+		// 1. Check ownership
+		const order = await this.getUserOrders(orderId);
+
+		// 2. Check status (must be PENDING_PAYMENT)
+		if (order.status !== OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException(`Order ${orderId} is not pending payment (current status: ${order.status})`);
+		}
+
+		// 3. Check price information
+		if (!order.priceTotal || !order.priceCurrency) {
+			throw new BadRequestException(`Order ${orderId} has no price information`);
+		}
+
+		return order;
+	}
+
+	/**
+	 * Get existing or create new Checkout Session
+	 * Checks if order has active session, returns existing or creates new one
+	 */
+	public async getOrCreateCheckoutSession(orderId: number, successUrl: string, cancelUrl: string): Promise<string> {
+		const order = await this.ensureOrderPayable(orderId);
+
+		// Check if order already has an active Checkout Session
+		if (order.stripeSessionId) {
+			const existingStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+
+			// If session is still open, return existing sessionId
+			if (existingStatus === StripeSessionStatus.OPEN) {
+				return order.stripeSessionId;
+			}
+		}
+
+		// Create new Checkout Session
+		const sessionId = await this.stripeService.createCheckoutSession(
+			orderId,
+			order.priceTotal,
+			order.priceCurrency,
+			successUrl,
+			cancelUrl
+		);
+
+		// Save sessionId to Order
+		await this.updateStripeSession(orderId, sessionId);
+
+		return sessionId;
+	}
+
+	/**
+	 * Get existing or create new Payment Intent
+	 * Checks if order has active intent, returns existing or creates new one
+	 */
+	public async getOrCreatePaymentIntent(orderId: number): Promise<string> {
+		const order = await this.ensureOrderPayable(orderId);
+
+		// Check if order already has an active Payment Intent
+		if (order.stripePaymentIntentSecret) {
+			const existingStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+
+			// If payment intent is still open, return existing clientSecret
+			if (existingStatus === StripeSessionStatus.OPEN) {
+				return order.stripePaymentIntentSecret;
+			}
+		}
+
+		// Create new Payment Intent
+		const clientSecret = await this.stripeService.createPaymentIntent(
+			orderId,
+			order.priceTotal,
+			order.priceCurrency
+		);
+
+		// Save client_secret to Order
+		await this.updateStripePaymentIntent(orderId, clientSecret);
+
+		return clientSecret;
 	}
 
 	/**

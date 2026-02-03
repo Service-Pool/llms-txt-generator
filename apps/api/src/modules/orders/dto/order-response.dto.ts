@@ -1,38 +1,88 @@
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { Order, OrderError } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
-import { Currency, CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
+import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
 
 /**
  * Public DTO for available models (excludes internal configuration)
  */
 class OrderAvailableAiModelDto {
 	id: string;
-	category: string;
-	currencySymbol: string;
-	displayName: string;
-	description: string;
+	available: boolean;
 	baseRate: number;
+	category: string;
+	currency: string;
+	currencySymbol: string;
+	description: string;
+	displayName: string;
 	pageLimit: number | false;
 	price: number;
 	totalPrice: number;
-	available: boolean;
 	unavailableReason: string | null;
 
 	public static fromAvailableModel(model: AvailableAiModelDto): OrderAvailableAiModelDto {
 		const dto = new OrderAvailableAiModelDto();
 		dto.id = model.id;
-		dto.category = model.category;
-		dto.currencySymbol = CURRENCY_SYMBOLS[Currency.EUR];
-		dto.category = model.category;
-		dto.displayName = model.displayName;
-		dto.description = model.description;
+		dto.available = model.available;
 		dto.baseRate = model.baseRate;
+		dto.category = model.category;
+		dto.category = model.category;
+		dto.currency = model.currency;
+		dto.currencySymbol = CURRENCY_SYMBOLS[model.currency];
+		dto.description = model.description;
+		dto.displayName = model.displayName;
 		dto.pageLimit = model.pageLimit;
 		dto.price = model.price;
 		dto.totalPrice = model.totalPrice;
-		dto.available = model.available;
 		dto.unavailableReason = model.unavailableReason;
+
+		return dto;
+	}
+}
+
+class CreateOrderResponseDto {
+	id: number;
+	userId: number | null;
+	availableModels: OrderAvailableAiModelDto[];
+	errors: OrderError[] | null;
+	hostname: string;
+	jobId: string | null;
+	modelId: string | null;
+	outputLength: number | null;
+	pricePerUrl: number | null;
+	priceTotal: number | null;
+	processedUrls: number;
+	startedAt: Date | null;
+	status: OrderStatus;
+	stripePaymentIntentSecret: string | null;
+	stripeSessionId: string | null;
+	totalUrls: number | null;
+	completedAt: Date | null;
+	createdAt: Date;
+	updatedAt: Date;
+
+	public static fromEntity(entity: Order, availableModels: AvailableAiModelDto[]): CreateOrderResponseDto {
+		const dto = new CreateOrderResponseDto();
+		dto.id = entity.id;
+		dto.userId = entity.userId;
+		dto.availableModels = availableModels.map(m => OrderAvailableAiModelDto.fromAvailableModel(m));
+		dto.errors = entity.errors;
+		dto.hostname = entity.hostname;
+		dto.jobId = entity.jobId;
+		dto.modelId = entity.modelId;
+		dto.outputLength = entity.output?.length ?? 0;
+		dto.pricePerUrl = entity.pricePerUrl;
+		dto.priceTotal = entity.priceTotal;
+		dto.processedUrls = entity.processedUrls;
+		dto.startedAt = entity.startedAt;
+		dto.status = entity.status;
+		dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
+		dto.stripeSessionId = entity.stripeSessionId;
+		dto.totalUrls = entity.totalUrls;
+		dto.completedAt = entity.completedAt;
+		dto.createdAt = entity.createdAt;
+		dto.updatedAt = entity.updatedAt;
+
 		return dto;
 	}
 }
@@ -40,51 +90,50 @@ class OrderAvailableAiModelDto {
 class OrderResponseDto {
 	id: number;
 	userId: number | null;
-	sessionId: string | null;
-	hostname: string;
-	modelId: string | null;
-	priceTotal: number | null;
-	priceCurrency: Currency | null;
-	pricePerUrl: number | null;
-	stripeSessionId: string | null;
-	stripePaymentIntentSecret: string | null;
-	status: OrderStatus;
-	jobId: string | null;
-	startedAt: Date | null;
-	completedAt: Date | null;
-	output: string | null;
+	currency: string;
+	currencySymbol: string;
 	errors: OrderError[] | null;
-	totalUrls: number | null;
+	hostname: string;
+	jobId: string | null;
+	modelId: string | null;
+	outputLength: number | null;
+	pricePerUrl: number | null;
+	priceTotal: number | null;
 	processedUrls: number;
+	startedAt: Date | null;
+	status: OrderStatus;
+	stripePaymentIntentSecret: string | null;
+	stripeSessionId: string | null;
+	totalUrls: number | null;
+	completedAt: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
-	availableModels: OrderAvailableAiModelDto[];
 
-	public static fromEntity(entity: Order, availableModels: AvailableAiModelDto[] = []): OrderResponseDto {
+	public static fromEntity(entity: Order): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.id = entity.id;
 		dto.userId = entity.userId;
-		dto.sessionId = entity.sessionId;
-		dto.hostname = entity.hostname;
-		dto.modelId = entity.modelId;
-		dto.priceTotal = entity.priceTotal;
-		dto.priceCurrency = entity.priceCurrency;
-		dto.pricePerUrl = entity.pricePerUrl;
-		dto.stripeSessionId = entity.stripeSessionId;
-		dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
-		dto.status = entity.status;
-		dto.jobId = entity.jobId;
-		dto.startedAt = entity.startedAt;
-		dto.completedAt = entity.completedAt;
-		dto.output = entity.output;
+		dto.currency = entity.priceCurrency;
+		dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
 		dto.errors = entity.errors;
-		dto.totalUrls = entity.totalUrls;
+		dto.hostname = entity.hostname;
+		dto.jobId = entity.jobId;
+		dto.modelId = entity.modelId;
+		dto.outputLength = entity.output?.length ?? 0;
+		dto.pricePerUrl = entity.pricePerUrl;
+		dto.priceTotal = entity.priceTotal;
 		dto.processedUrls = entity.processedUrls;
+		dto.startedAt = entity.startedAt;
+		dto.status = entity.status;
+		dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
+		dto.stripeSessionId = entity.stripeSessionId;
+		dto.totalUrls = entity.totalUrls;
+		dto.completedAt = entity.completedAt;
 		dto.createdAt = entity.createdAt;
 		dto.updatedAt = entity.updatedAt;
-		dto.availableModels = availableModels.map(m => OrderAvailableAiModelDto.fromAvailableModel(m));
+
 		return dto;
 	}
 }
 
-export { OrderResponseDto };
+export { CreateOrderResponseDto, OrderResponseDto };

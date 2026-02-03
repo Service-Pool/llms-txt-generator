@@ -5,7 +5,7 @@ import { FastifyReply } from 'fastify';
 import { MessageSuccess } from '../../../utils/response/message-success';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { Order } from '../entities/order.entity';
-import { OrderResponseDto } from '../dto/order-response.dto';
+import { CreateOrderResponseDto, OrderResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
 
 @Controller('api/orders')
@@ -21,7 +21,7 @@ class OrdersController {
 	 */
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
-	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<CreateOrderResponseDto>>> {
 		const order = await this.ordersService.createOrder(dto.hostname);
 
 		// Calculate available models based on totalUrls
@@ -30,7 +30,7 @@ class OrdersController {
 			!!order.userId
 		);
 
-		return ApiResponse.success(OrderResponseDto.fromEntity(order, availableModels));
+		return ApiResponse.success(CreateOrderResponseDto.fromEntity(order, availableModels));
 	}
 
 	/**
