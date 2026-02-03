@@ -10,6 +10,7 @@ import {
 	Headers
 } from '@nestjs/common';
 import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
+import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
 import { StripeService } from '../services/stripe.service';
 import { OrdersService } from '../../orders/services/orders.service';
 import { UsersService } from '../../users/services/users.service';
@@ -34,27 +35,25 @@ class PaymentsController {
 	public async createCheckoutSession(
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Body() dto: CreateCheckoutRequestDto
-	): Promise<ApiResponse<MessageSuccess<{ sessionId: string }>>> {
+	): Promise<ApiResponse<MessageSuccess<CheckoutSessionResponseDto>>> {
 		const sessionId = await this.ordersService.getOrCreateCheckoutSession(
 			orderId,
 			dto.successUrl,
 			dto.cancelUrl
 		);
 
-		return ApiResponse.success({ sessionId });
+		return ApiResponse.success(CheckoutSessionResponseDto.create(orderId, sessionId));
 	}
 
-	/**
-	 * POST /api/orders/:orderId/payment/intent
 	/**
 	 * POST /api/orders/:orderId/payment/intent
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
 	@Post('intent')
-	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess<{ clientSecret: string }>>> {
+	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess<PaymentIntentResponseDto>>> {
 		const clientSecret = await this.ordersService.getOrCreatePaymentIntent(orderId);
 
-		return ApiResponse.success({ clientSecret });
+		return ApiResponse.success(PaymentIntentResponseDto.create(orderId, clientSecret));
 	}
 
 	/**

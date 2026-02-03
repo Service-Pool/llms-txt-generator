@@ -284,16 +284,27 @@ class OrdersService {
 	 */
 	public async ensureOrderPayable(orderId: number): Promise<Order> {
 		// 1. Check ownership
-		const order = await this.getUserOrders(orderId);
+		let order = await this.getUserOrders(orderId);
 
-		// 2. Check status (must be PENDING_PAYMENT)
-		if (order.status !== OrderStatus.PENDING_PAYMENT) {
-			throw new BadRequestException(`Order ${orderId} is not pending payment (current status: ${order.status})`);
+		// 2. Check status (must be CALCULATED or PENDING_PAYMENT)
+		if (order.status !== OrderStatus.CALCULATED && order.status !== OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException(`Order ${orderId} cannot accept payment (current status: ${order.status}). Order must be calculated first.`);
 		}
 
 		// 3. Check price information
 		if (!order.priceTotal || !order.priceCurrency) {
 			throw new BadRequestException(`Order ${orderId} has no price information`);
+		}
+
+		// 4. Transition CALCULATED → PENDING_PAYMENT if needed
+		if (order.status === OrderStatus.CALCULATED) {
+			if (order.priceTotal === 0) {
+				throw new BadRequestException(`Order ${orderId} is free and does not require payment`);
+			}
+
+			OrderStatusMachine.validateTransition(order.status, OrderStatus.PENDING_PAYMENT);
+			order.status = OrderStatus.PENDING_PAYMENT;
+			order = await this.orderRepository.save(order);
 		}
 
 		return order;

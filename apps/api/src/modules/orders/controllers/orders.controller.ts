@@ -30,7 +30,7 @@ class OrdersController {
 			!!order.userId
 		);
 
-		return ApiResponse.success(CreateOrderResponseDto.fromEntity(order, availableModels));
+		return ApiResponse.success(CreateOrderResponseDto.create(order, availableModels));
 	}
 
 	/**
@@ -44,7 +44,7 @@ class OrdersController {
 		@Body() dto: CalculateOrderRequestDto
 	): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
 		const updatedOrder = await this.ordersService.calculateOrder(id, dto.modelId);
-		return ApiResponse.success(OrderResponseDto.fromEntity(updatedOrder));
+		return ApiResponse.success(OrderResponseDto.create(updatedOrder));
 	}
 
 	/**
@@ -55,7 +55,7 @@ class OrdersController {
 	@HttpCode(HttpStatus.OK)
 	public async runOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
 		const updatedOrder = await this.ordersService.runOrder(id);
-		return ApiResponse.success(OrderResponseDto.fromEntity(updatedOrder));
+		return ApiResponse.success(OrderResponseDto.create(updatedOrder));
 	}
 
 	/**
@@ -69,7 +69,7 @@ class OrdersController {
 
 		// TODO: For orders in PENDING_PAYMENT status - poll Stripe for payment status
 
-		return ApiResponse.success(orders.map((order: Order) => OrderResponseDto.fromEntity(order)));
+		return ApiResponse.success(orders.map((order: Order) => OrderResponseDto.create(order)));
 	}
 
 	/**
@@ -81,7 +81,7 @@ class OrdersController {
 	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
 		const order = await this.ordersService.getUserOrders(id);
 
-		return ApiResponse.success(OrderResponseDto.fromEntity(order));
+		return ApiResponse.success(OrderResponseDto.create(order));
 	}
 
 	/**
