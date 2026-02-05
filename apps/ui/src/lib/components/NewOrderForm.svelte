@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { ordersService } from "$lib/services/orders.service";
 	import { Card, Input, Label, Button, Helper, Alert } from "flowbite-svelte";
+	import { ordersService } from "$lib/services/orders.service";
+	import { UIError } from "$lib/errors/ui-error";
+	import ErrorList from "$lib/components/general/ErrorList.svelte";
 	import type { CreateOrderResponseDto } from "@api/shared";
 
 	interface Props {
@@ -11,7 +13,7 @@
 
 	let hostname = $state("");
 	let submitting = $state(false);
-	let error = $state<string | null>(null);
+	let error = $state<string[] | string | null>(null);
 
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(hostname));
 	const canCreate = $derived(isUrlValid && !submitting);
@@ -32,9 +34,13 @@
 
 			// Reset form
 			hostname = "";
-		} catch (err) {
-			error =
-				err instanceof Error ? err.message : "Failed to create order";
+		} catch (exception) {
+			if (exception instanceof UIError) {
+				error = exception.context;
+			} else if (exception instanceof Error) {
+				error = exception.message;
+			}
+			throw exception;
 		} finally {
 			submitting = false;
 		}
@@ -63,7 +69,7 @@
 		</div>
 
 		{#if error}
-			<Alert color="red">{error}</Alert>
+			<Alert color="red"><ErrorList {error} /></Alert>
 		{/if}
 
 		<Button type="submit" disabled={!canCreate} class="w-full">

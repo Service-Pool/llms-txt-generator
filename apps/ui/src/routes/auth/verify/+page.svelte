@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { page } from "$app/state";
-	import { goto } from "$app/navigation";
 	import { authService } from "$lib/services/auth.service";
 	import { authStore } from "$lib/stores/auth.store.svelte";
-	import { configService } from "$lib/services/config.service";
-	import { UIError } from "$lib/errors/ui-error";
-	import ErrorList from "$lib/components/ErrorList.svelte";
 	import { Card, Heading, P, Button, Spinner } from "flowbite-svelte";
+	import { configService } from "$lib/services/config.service";
+	import { goto } from "$app/navigation";
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
+	import { UIError } from "$lib/errors/ui-error";
+	import ErrorList from "$lib/components/general/ErrorList.svelte";
 
 	import {
 		CheckCircleSolid,

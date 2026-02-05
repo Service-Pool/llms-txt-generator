@@ -1,16 +1,21 @@
 <script lang="ts">
-	import { OrderStatus, type OrderResponseDto } from "@api/shared";
 	import { Card, Badge, Button, Alert, P } from "flowbite-svelte";
 	import { formatNumber } from "$lib/utils/number-format";
-	import ProgressBar from "$lib/components/ProgressBar.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import ErrorList from "$lib/components/ErrorList.svelte";
+	import { ordersService } from "$lib/services/orders.service";
+	import { OrderStatus, type OrderResponseDto } from "@api/shared";
+	import ErrorList from "$lib/components/general/ErrorList.svelte";
+	import ProgressBar from "$lib/components/general/ProgressBar.svelte";
+	import Spinner from "$lib/components/general/Spinner.svelte";
 
 	interface Props {
 		order: OrderResponseDto;
 	}
 
 	let { order }: Props = $props();
+
+	let showContent = $state(false);
+	let fullContent = $state<string | null>(null);
+	let isLoading = $state(false);
 
 	const statusConfig = $derived.by(() => {
 		switch (order.status) {
@@ -68,6 +73,48 @@
 
 		return items;
 	});
+
+	const handleShowContent = async () => {
+		if (fullContent) {
+			showContent = !showContent;
+			return;
+		}
+
+		isLoading = true;
+		try {
+			const response = await ordersService.getById(order.id);
+			fullContent = response.getData().output;
+			showContent = true;
+		} catch (err) {
+			throw err;
+		} finally {
+			isLoading = false;
+		}
+	};
+
+	const handleCopy = async () => {
+		if (!fullContent) return;
+
+		await navigator.clipboard.writeText(fullContent);
+		alert("Content copied to clipboard");
+	};
+
+	const handleDownload = () => {
+		if (!fullContent) return;
+
+		// Extract domain from hostname (e.g., "https://mototechna.cz" -> "mototechna.cz")
+		const domain = new URL(order.hostname).hostname;
+		const element = document.createElement("a");
+		element.setAttribute(
+			"href",
+			"data:text/plain;charset=utf-8," + encodeURIComponent(fullContent),
+		);
+		element.setAttribute("download", `llms-${domain}.txt`);
+		element.style.display = "none";
+		document.body.appendChild(element);
+		element.click();
+		document.body.removeChild(element);
+	};
 </script>
 
 <Card class="max-w-none p-4">
@@ -94,14 +141,17 @@
 				Pay
 			</Button>
 
-			<Button
-				outline
-				color="blue"
-				size="xs"
-				class="border-2"
-				style="min-width: {ACTION_BTN_MIN_WIDTH}">
-				{"Hide/Show"}
-			</Button>
+			{#if order.status === OrderStatus.COMPLETED}
+				<Button
+					onclick={handleShowContent}
+					outline
+					color="blue"
+					size="xs"
+					class="border-2"
+					style="min-width: {ACTION_BTN_MIN_WIDTH}">
+					{showContent ? "Hide" : "Show"}
+				</Button>
+			{/if}
 
 			<Button
 				color="red"
@@ -149,29 +199,37 @@
 	{/if}
 
 	<!-- Content Section -->
-	{#if true}
+	{#if showContent || isLoading}
 		<div
 			class="mt-2 p-2 max-h-96 overflow-y-auto overflow-x-hidden rounded border bg-gray-50 dark:bg-gray-600 border-gray-200 dark:border-gray-700">
-			{#if false}
+			{#if isLoading}
 				<div class="flex justify-center items-center py-6">
 					<Spinner size="8" delay={1000} />
 				</div>
 			{:else}
 				<P
 					class="text-xs leading-relaxed whitespace-pre-wrap wrap-break-word word-break overflow-hidden">
-					{order.output}
+					{fullContent}
 				</P>
 			{/if}
 		</div>
 	{/if}
 
 	<!-- Action Buttons for Content -->
-	{#if order.output && order.status === OrderStatus.COMPLETED}
+	{#if showContent && fullContent && !isLoading}
 		<div class="flex gap-1 justify-end mt-2">
-			<Button outline color="blue" size="xs" class="border-2"
-				>Copy</Button>
-			<Button outline color="green" size="xs" class="border-2"
-				>Download</Button>
+			<Button
+				onclick={handleCopy}
+				outline
+				color="blue"
+				size="xs"
+				class="border-2">Copy</Button>
+			<Button
+				onclick={handleDownload}
+				outline
+				color="green"
+				size="xs"
+				class="border-2">Download</Button>
 		</div>
 	{/if}
 </Card>

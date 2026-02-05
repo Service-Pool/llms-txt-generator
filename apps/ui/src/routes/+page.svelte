@@ -13,10 +13,8 @@
 			Create AI-optimized content files from your website automatically
 		</P>
 		<div class="flex gap-4 justify-center">
-			<Button
-				href={configService.routes.orders}
-				size="lg"
-				color="primary">Start Generating</Button>
+			<Button href={configService.routes.orders} size="lg" color="primary"
+				>Start Generating</Button>
 			<Button href={configService.routes.about} size="lg" color="light"
 				>Learn More</Button>
 		</div>
@@ -80,9 +78,7 @@
 		<P class="mb-6 text-gray-600 dark:text-gray-400">
 			Generate your first LLMs.txt file today
 		</P>
-		<Button
-			href={configService.routes.orders}
-			size="lg"
-			color="primary">Generate Now</Button>
+		<Button href={configService.routes.orders} size="lg" color="primary"
+			>Generate Now</Button>
 	</Card>
 </div>

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import "../app.css";
-	import Navigation from "$lib/components/Navigation.svelte";
-	import ErrorToast from "$lib/components/ErrorToast.svelte";
+	import { Footer, FooterCopyright } from "flowbite-svelte";
 	import { handleCriticalError } from "$lib/stores/error.store.svelte";
 	import { onMount } from "svelte";
-	import { Footer, FooterCopyright } from "flowbite-svelte";
+	import ErrorToast from "$lib/components/general/ErrorToast.svelte";
+	import Navigation from "$lib/components/general/Navigation.svelte";
 
 	const { children } = $props();
 

@@ -1,9 +1,12 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { goto } from "$app/navigation";
-	import { page } from "$app/state";
 	import { authService } from "$lib/services/auth.service";
 	import { authStore } from "$lib/stores/auth.store.svelte";
+	import { EnvelopeSolid, CheckCircleSolid } from "flowbite-svelte-icons";
+	import { goto } from "$app/navigation";
+	import { onMount } from "svelte";
+	import { page } from "$app/state";
+	import { UIError } from "$lib/errors/ui-error";
+	import ErrorList from "$lib/components/general/ErrorList.svelte";
 	import {
 		Card,
 		Heading,
@@ -16,11 +19,10 @@
 		InputAddon,
 		ButtonGroup,
 	} from "flowbite-svelte";
-	import { EnvelopeSolid, CheckCircleSolid } from "flowbite-svelte-icons";
 
 	let redirectUrl = $state("");
 	let email = $state("");
-	let error = $state("");
+	let error = $state<string[] | string | null>(null);
 	let success = $state(false);
 	let loading = $state(false);
 
@@ -44,7 +46,7 @@
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
-		error = "";
+		error = null;
 		success = false;
 		loading = true;
 
@@ -52,7 +54,11 @@
 			await authService.loginLinkRequest(email, redirectUrl);
 			success = true;
 		} catch (exception) {
-			error = "Failed to send login link. Please try again.";
+			if (exception instanceof UIError) {
+				error = exception.context;
+			} else if (exception instanceof Error) {
+				error = exception.message;
+			}
 		} finally {
 			loading = false;
 		}
@@ -83,7 +89,10 @@
 				{/if}
 
 				{#if error}
-					<Alert color="red">{error}</Alert>
+					<Alert color="red"
+						><ErrorList
+							class="text-xs dark:text-black"
+							{error} /></Alert>
 				{/if}
 
 				<div class="mb-6">

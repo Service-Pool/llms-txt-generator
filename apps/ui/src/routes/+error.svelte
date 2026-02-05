@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { page } from "$app/state";
-	import { Button, Heading } from "flowbite-svelte";
 	import { ArrowLeftOutline, HomeOutline } from "flowbite-svelte-icons";
+	import { Button, Heading } from "flowbite-svelte";
+	import { page } from "$app/state";
 
 	const error = $derived(page.error);
 	const status = $derived(page.status);

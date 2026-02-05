@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { ordersService } from "$lib/services/orders.service";
+	import { Spinner, Alert, Button } from "flowbite-svelte";
 	import { statsStore } from "$lib/stores/stats.store.svelte";
+	import { UIError } from "$lib/errors/ui-error";
+	import ErrorList from "$lib/components/general/ErrorList.svelte";
 	import NewOrderForm from "$lib/components/NewOrderForm.svelte";
 	import OrdersList from "$lib/components/OrdersList.svelte";
-	import Pagination from "$lib/components/Pagination.svelte";
-	import { Spinner, Alert, Button } from "flowbite-svelte";
+	import Pagination from "$lib/components/general/Pagination.svelte";
 	import type { CreateOrderResponseDto, OrderResponseDto } from "@api/shared";
 
 	let orders = $state<OrderResponseDto[]>([]);
 	let loading = $state(true);
-	let error = $state<string | null>(null);
+	let error = $state<string[] | string | null>(null);
 	let page = $state(1);
 	let limit = $state(5);
 	let total = $state(0);
@@ -23,9 +25,13 @@
 			const data = response.getData();
 			orders = data.items;
 			total = data.total;
-		} catch (err) {
-			error =
-				err instanceof Error ? err.message : "Failed to load orders";
+		} catch (exception) {
+			if (exception instanceof UIError) {
+				error = exception.context;
+			} else if (exception instanceof Error) {
+				error = exception.message;
+			}
+			throw exception;
 		} finally {
 			loading = false;
 		}
@@ -67,7 +73,7 @@
 		</div>
 	{:else if error}
 		<Alert color="red">
-			<p>{error}</p>
+			<ErrorList class="text-xs dark:text-black" {error} />
 			<Button
 				onclick={() => loadOrders()}
 				size="xs"
@@ -86,5 +92,13 @@
 				onLimitChange={handleLimitChange} />
 		{/if}
 		<OrdersList items={orders} />
+		{#if total > limit}
+			<Pagination
+				{page}
+				{limit}
+				{total}
+				onPageChange={handlePageChange}
+				onLimitChange={handleLimitChange} />
+		{/if}
 	{/if}
 </div>
