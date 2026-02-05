@@ -21,8 +21,9 @@ class MailService {
 	}
 
 	public async sendLoginLink(email: string, redirectUrl: string, encryptedQuery: string): Promise<void> {
-		// encryptedQuery — уже зашифрованная строка
-		const loginLink = `${redirectUrl}/auth/verify?crd=${encodeURIComponent(encryptedQuery)}`;
+		const url = new URL(redirectUrl);
+		url.searchParams.set('crd', encryptedQuery);
+		const loginLink = url.toString();
 
 		const html = `
 <!DOCTYPE html>

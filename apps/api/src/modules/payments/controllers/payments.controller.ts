@@ -16,7 +16,6 @@ import { OrdersService } from '../../orders/services/orders.service';
 import { UsersService } from '../../users/services/users.service';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { ApiResponse } from '../../../utils/response/api-response';
-import { MessageSuccess } from '../../../utils/response/message-success';
 import type { FastifyRequest } from 'fastify';
 
 @Controller('api/orders/:orderId/payment')
@@ -35,7 +34,7 @@ class PaymentsController {
 	public async createCheckoutSession(
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Body() dto: CreateCheckoutRequestDto
-	): Promise<ApiResponse<MessageSuccess<CheckoutSessionResponseDto>>> {
+	): Promise<ApiResponse<CheckoutSessionResponseDto>> {
 		const sessionId = await this.ordersService.getOrCreateCheckoutSession(
 			orderId,
 			dto.successUrl,
@@ -50,7 +49,7 @@ class PaymentsController {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
 	@Post('intent')
-	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess<PaymentIntentResponseDto>>> {
+	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<PaymentIntentResponseDto>> {
 		const clientSecret = await this.ordersService.getOrCreatePaymentIntent(orderId);
 
 		return ApiResponse.success(PaymentIntentResponseDto.create(orderId, clientSecret));
@@ -61,7 +60,7 @@ class PaymentsController {
 	 * Запрашивает возврат средств за заказ
 	 */
 	@Post('refund')
-	public async requestRefund(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<MessageSuccess>> {
+	public async requestRefund(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<string>> {
 		// 1. Проверить владение заказом
 		const order = await this.ordersService.getUserOrders(orderId);
 

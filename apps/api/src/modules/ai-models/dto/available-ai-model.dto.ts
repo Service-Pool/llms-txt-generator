@@ -1,13 +1,13 @@
-import { ModelConfigDto } from './ai-model-config.dto';
+import { AiModelConfigDto } from './ai-model-config.dto';
 
-class AvailableAiModelDto extends ModelConfigDto {
+class AvailableAiModelDto extends AiModelConfigDto {
 	public price: number;
 	public totalPrice: number;
 	public available: boolean;
 	public unavailableReason: string | null;
 
 	constructor(
-		config: ModelConfigDto,
+		config: AiModelConfigDto,
 		totalUrls: number
 	) {
 		super(
@@ -37,7 +37,7 @@ class AvailableAiModelDto extends ModelConfigDto {
 				: null;
 	}
 
-	public static fromModelConfig(config: ModelConfigDto, totalUrls: number): AvailableAiModelDto {
+	public static fromModelConfig(config: AiModelConfigDto, totalUrls: number): AvailableAiModelDto {
 		return new AvailableAiModelDto(config, totalUrls);
 	}
 }

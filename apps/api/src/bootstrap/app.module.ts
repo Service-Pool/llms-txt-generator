@@ -15,6 +15,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../modules/users/users.module';
+import { WebSocketModule } from '../modules/websocket/websocket.module';
+import { StatsModule } from '../modules/stats/stats.module';
 
 @Module({
 	imports: [
@@ -57,6 +59,8 @@ import { UsersModule } from '../modules/users/users.module';
 		PaymentsModule,
 		CrawlersModule,
 		ContentModule,
+		WebSocketModule,
+		StatsModule,
 		TypeOrmModule.forRootAsync({
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm

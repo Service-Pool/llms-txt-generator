@@ -1,5 +1,6 @@
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { Order, OrderError } from '../entities/order.entity';
+import { AiModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
+import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
 
@@ -123,9 +124,6 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 	return links;
 }
 
-/**
- * Public DTO for available models (excludes internal configuration)
- */
 class OrderAvailableAiModelDto {
 	id: string;
 	available: boolean;
@@ -140,12 +138,11 @@ class OrderAvailableAiModelDto {
 	totalPrice: number;
 	unavailableReason: string | null;
 
-	public static create(model: AvailableAiModelDto): OrderAvailableAiModelDto {
+	public static createFromAvailableModels(model: AvailableAiModelDto): OrderAvailableAiModelDto {
 		const dto = new OrderAvailableAiModelDto();
 		dto.id = model.id;
 		dto.available = model.available;
 		dto.baseRate = model.baseRate;
-		dto.category = model.category;
 		dto.category = model.category;
 		dto.currency = model.currency;
 		dto.currencySymbol = CURRENCY_SYMBOLS[model.currency];
@@ -158,17 +155,51 @@ class OrderAvailableAiModelDto {
 
 		return dto;
 	}
+
+	public static createFromModelConfig(modelConfig: AiModelConfigDto, totalUrls: number): OrderAvailableAiModelDto {
+		const dto = new OrderAvailableAiModelDto();
+		dto.id = modelConfig.id;
+		dto.available = true;
+		dto.baseRate = modelConfig.baseRate;
+		dto.category = modelConfig.category;
+		dto.description = modelConfig.description;
+		dto.displayName = modelConfig.displayName;
+		dto.pageLimit = modelConfig.pageLimit;
+		dto.price = modelConfig.baseRate;
+		dto.totalPrice = modelConfig.baseRate * totalUrls;
+		dto.unavailableReason = null;
+
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrderAvailableAiModelDto {
+		const dto = new OrderAvailableAiModelDto();
+		dto.id = json.id as string;
+		dto.available = json.available as boolean;
+		dto.baseRate = json.baseRate as number;
+		dto.category = json.category as string;
+		dto.currency = json.currency as string;
+		dto.currencySymbol = json.currencySymbol as string;
+		dto.description = json.description as string;
+		dto.displayName = json.displayName as string;
+		dto.pageLimit = json.pageLimit as number | false;
+		dto.price = json.price as number;
+		dto.totalPrice = json.totalPrice as number;
+		dto.unavailableReason = json.unavailableReason as string | null;
+
+		return dto;
+	}
 }
 
 class CreateOrderResponseDto {
 	id: number;
 	userId: number | null;
-	availableModels: OrderAvailableAiModelDto[];
-	errors: OrderError[] | null;
+	availableAiModels: OrderAvailableAiModelDto[];
+	errors: string[] | null;
 	hostname: string;
 	jobId: string | null;
 	modelId: string | null;
-	outputLength: number | null;
+	output: string | null;
 	pricePerUrl: number | null;
 	priceTotal: number | null;
 	processedUrls: number;
@@ -182,16 +213,16 @@ class CreateOrderResponseDto {
 	updatedAt: Date;
 	_links: Record<string, HateoasLink>;
 
-	public static create(entity: Order, availableModels: AvailableAiModelDto[]): CreateOrderResponseDto {
+	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.id = entity.id;
 		dto.userId = entity.userId;
-		dto.availableModels = availableModels.map(m => OrderAvailableAiModelDto.create(m));
+		dto.availableAiModels = availableAiModels.map(m => OrderAvailableAiModelDto.createFromAvailableModels(m));
 		dto.errors = entity.errors;
 		dto.hostname = entity.hostname;
 		dto.jobId = entity.jobId;
 		dto.modelId = entity.modelId;
-		dto.outputLength = entity.output?.length ?? 0;
+		dto.output = entity.output;
 		dto.pricePerUrl = entity.pricePerUrl;
 		dto.priceTotal = entity.priceTotal;
 		dto.processedUrls = entity.processedUrls;
@@ -207,18 +238,45 @@ class CreateOrderResponseDto {
 
 		return dto;
 	}
+
+	public static fromJSON(json: Record<string, unknown>): CreateOrderResponseDto {
+		const dto = new CreateOrderResponseDto();
+		dto.id = json.id as number;
+		dto.userId = json.userId as number | null;
+		dto.availableAiModels = (json.availableAiModels as Record<string, unknown>[]).map(m =>
+			OrderAvailableAiModelDto.fromJSON(m));
+		dto.errors = json.errors as string[] | null;
+		dto.hostname = json.hostname as string;
+		dto.jobId = json.jobId as string | null;
+		dto.modelId = json.modelId as string | null;
+		dto.output = json.output as string | null;
+		dto.pricePerUrl = json.pricePerUrl as number | null;
+		dto.priceTotal = json.priceTotal as number | null;
+		dto.processedUrls = json.processedUrls as number;
+		dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
+		dto.status = json.status as OrderStatus;
+		dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
+		dto.stripeSessionId = json.stripeSessionId as string | null;
+		dto.totalUrls = json.totalUrls as number | null;
+		dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
+		dto.createdAt = new Date(json.createdAt as string);
+		dto.updatedAt = new Date(json.updatedAt as string);
+		dto._links = json._links as Record<string, HateoasLink>;
+
+		return dto;
+	}
 }
 
 class OrderResponseDto {
 	id: number;
 	userId: number | null;
+	currentAiModel: OrderAvailableAiModelDto | null = null;
 	currency: string;
 	currencySymbol: string;
-	errors: OrderError[] | null;
+	errors: string[] | null;
 	hostname: string;
 	jobId: string | null;
-	modelId: string | null;
-	outputLength: number | null;
+	output: string | null;
 	pricePerUrl: number | null;
 	priceTotal: number | null;
 	processedUrls: number;
@@ -241,8 +299,7 @@ class OrderResponseDto {
 		dto.errors = entity.errors;
 		dto.hostname = entity.hostname;
 		dto.jobId = entity.jobId;
-		dto.modelId = entity.modelId;
-		dto.outputLength = entity.output?.length ?? 0;
+		dto.output = entity.output;
 		dto.pricePerUrl = entity.pricePerUrl;
 		dto.priceTotal = entity.priceTotal;
 		dto.processedUrls = entity.processedUrls;
@@ -254,10 +311,71 @@ class OrderResponseDto {
 		dto.completedAt = entity.completedAt;
 		dto.createdAt = entity.createdAt;
 		dto.updatedAt = entity.updatedAt;
+
+		if (entity.modelConfig) {
+			dto.currentAiModel = OrderAvailableAiModelDto.createFromModelConfig(entity.modelConfig, entity.totalUrls || 0);
+		}
+
 		dto._links = buildOrderLinks(entity);
+
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrderResponseDto {
+		const dto = new OrderResponseDto();
+		dto.id = json.id as number;
+		dto.userId = json.userId as number | null;
+		dto.currentAiModel = json.currentAiModel
+			? OrderAvailableAiModelDto.fromJSON(json.currentAiModel as Record<string, unknown>)
+			: null;
+		dto.currency = json.currency as string;
+		dto.currencySymbol = json.currencySymbol as string;
+		dto.errors = json.errors as string[] | null;
+		dto.hostname = json.hostname as string;
+		dto.jobId = json.jobId as string | null;
+		dto.output = json.output as string | null;
+		dto.pricePerUrl = json.pricePerUrl as number | null;
+		dto.priceTotal = json.priceTotal as number | null;
+		dto.processedUrls = json.processedUrls as number;
+		dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
+		dto.status = json.status as OrderStatus;
+		dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
+		dto.stripeSessionId = json.stripeSessionId as string | null;
+		dto.totalUrls = json.totalUrls as number | null;
+		dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
+		dto.createdAt = new Date(json.createdAt as string);
+		dto.updatedAt = new Date(json.updatedAt as string);
+		dto._links = json._links as Record<string, HateoasLink>;
 
 		return dto;
 	}
 }
 
-export { CreateOrderResponseDto, OrderResponseDto };
+class OrdersListResponseDto {
+	items: OrderResponseDto[];
+	total: number;
+	page: number;
+	limit: number;
+
+	public static create(orders: Order[], total: number, page: number, limit: number): OrdersListResponseDto {
+		const dto = new OrdersListResponseDto();
+		dto.items = orders.map(order => OrderResponseDto.create(order));
+		dto.total = total;
+		dto.page = page;
+		dto.limit = limit;
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrdersListResponseDto {
+		const dto = new OrdersListResponseDto();
+		dto.items = (json.items as Record<string, unknown>[]).map(item =>
+			OrderResponseDto.fromJSON(item));
+
+		dto.total = json.total as number;
+		dto.page = json.page as number;
+		dto.limit = json.limit as number;
+		return dto;
+	}
+}
+
+export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto };

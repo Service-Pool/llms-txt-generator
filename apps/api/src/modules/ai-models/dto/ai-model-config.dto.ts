@@ -7,7 +7,7 @@ interface AiModelOptions {
 	maxTokens: number;
 }
 
-class ModelConfigDto {
+class AiModelConfigDto {
 	constructor(
 		public id: string,
 		public category: string,
@@ -26,4 +26,4 @@ class ModelConfigDto {
 	) { }
 }
 
-export { ModelConfigDto };
+export { AiModelConfigDto };

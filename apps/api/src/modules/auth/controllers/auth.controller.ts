@@ -1,9 +1,13 @@
 import { ApiResponse } from '../../../utils/response/api-response';
 import { AuthService } from '../services/auth.service';
 import { Controller, Post, Get, Body, Query, Session, HttpCode, Logger } from '@nestjs/common';
-import { MessageSuccess } from '../../../utils/response/message-success';
 import { RequestLoginLinkRequestDto, LoginRequestDto } from '../dto/auth-request.dto';
-import { VerifyLoginLinkResponseDto, StatusResponseDto } from '../dto/auth-response.dto';
+import {
+	RequestLoginLinkResponseDto,
+	AuthLoginDtoResponse,
+	AuthLogoutDtoResponse,
+	AuthStatusDtoResponse
+} from '../dto/auth-response.dto';
 import { type Session as SessionType } from 'fastify';
 
 @Controller('api/auth')
@@ -16,12 +20,12 @@ class AuthController {
 	 * POST /api/auth/request-login-link
 	 * Отправить Magic Link на email
 	 */
-	@Post('request-login-link')
+	@Post('login-link-request')
 	@HttpCode(200)
-	public async requestLoginLink(@Body() dto: RequestLoginLinkRequestDto): Promise<ApiResponse<MessageSuccess>> {
+	public async requestLoginLink(@Body() dto: RequestLoginLinkRequestDto): Promise<ApiResponse<RequestLoginLinkResponseDto>> {
 		await this.authService.requestLoginLink(dto.email, dto.redirectUrl);
 
-		return ApiResponse.success(`Login link been sent to ${dto.email}. Please check the email.`);
+		return ApiResponse.success(RequestLoginLinkResponseDto.create(`Login link has been sent to ${dto.email}. Please check your email.`));
 	}
 
 	/**
@@ -29,18 +33,11 @@ class AuthController {
 	 * Проверить Magic Link и авторизовать пользователя
 	 */
 	@Get('login')
-	public async login(@Query() query: LoginRequestDto, @Session() session: SessionType): Promise<ApiResponse<MessageSuccess<VerifyLoginLinkResponseDto>>> {
+	public async login(@Query() query: LoginRequestDto, @Session() session: SessionType): Promise<ApiResponse<AuthLoginDtoResponse>> {
 		// Вся логика проверки в authService.login
 		const { user, redirectUrl } = await this.authService.login(query.crd, session);
 
-		const response = new VerifyLoginLinkResponseDto(
-			user.id,
-			user.email,
-			user.createdAt,
-			redirectUrl
-		);
-
-		return ApiResponse.success(response);
+		return ApiResponse.success(AuthLoginDtoResponse.fromEntity(user, redirectUrl, 0));
 	}
 
 	/**
@@ -49,10 +46,10 @@ class AuthController {
 	 */
 	@Post('logout')
 	@HttpCode(200)
-	public logout(@Session() session: SessionType): ApiResponse<MessageSuccess> {
+	public logout(@Session() session: SessionType): ApiResponse<AuthLogoutDtoResponse> {
 		this.authService.logout(session);
 
-		return ApiResponse.success('Successfully logged out');
+		return ApiResponse.success(AuthLogoutDtoResponse.create('Successfully logged out'));
 	}
 
 	/**
@@ -60,20 +57,10 @@ class AuthController {
 	 * Получить текущего пользователя
 	 */
 	@Get('me')
-	public async getCurrentUser(): Promise<ApiResponse<MessageSuccess<StatusResponseDto | null>>> {
-		const user = await this.authService.status();
+	public async getCurrentUser(): Promise<ApiResponse<AuthStatusDtoResponse>> {
+		const { user, sessionId } = await this.authService.status();
 
-		if (!user) {
-			return ApiResponse.success(null);
-		}
-
-		const response = new StatusResponseDto(
-			user.id,
-			user.email,
-			user.createdAt
-		);
-
-		return ApiResponse.success(response);
+		return ApiResponse.success(AuthStatusDtoResponse.fromEntity(!!user, sessionId, user));
 	}
 }
 

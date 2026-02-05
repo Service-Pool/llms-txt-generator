@@ -9,6 +9,7 @@ import { ClsModule } from 'nestjs-cls';
 import { Order } from './entities/order.entity';
 import { OrdersController } from './controllers/orders.controller';
 import { OrdersService } from './services/orders.service';
+import { OrderSubscriber } from './subscribers/order.subscriber';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '../../validators/host.validator';
 import { AiModelValidator } from '../../validators/ai-model.validator';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -27,6 +28,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 	controllers: [OrdersController],
 	providers: [
 		OrdersService,
+		OrderSubscriber,
 		RobotsAccessibleValidator,
 		SitemapAccessibleValidator,
 		AiModelValidator

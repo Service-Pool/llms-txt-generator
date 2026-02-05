@@ -12,6 +12,8 @@ import { PageContent } from '../../generations/services/llm-provider.service';
 import { PageBatchProcessor } from '../../generations/services/page-processor.service';
 import { LlmsTxtFormatter } from '../../generations/utils/llms-txt-formatter';
 import { OrdersService } from '../../orders/services/orders.service';
+import { WebSocketService } from '../../websocket/services/websocket.service';
+import { StatsService } from '../../stats/services/stats.service';
 
 /**
  * Generation Job Handler
@@ -43,6 +45,8 @@ class OrderJobHandler {
 		private readonly llmProviderFactory: LLMProviderFactory,
 		private readonly pageBatchProcessor: PageBatchProcessor,
 		private readonly ordersService: OrdersService,
+		private readonly webSocketService: WebSocketService,
+		private readonly statsService: StatsService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>,
 		private readonly dataSource: DataSource
 	) { }
@@ -116,6 +120,14 @@ class OrderJobHandler {
 						processedUrls: allPages.length
 					});
 
+					// Отправить прогресс через WebSocket
+					this.webSocketService.sendProgress(
+						orderId,
+						allPages.length,
+						totalUrls,
+						'processing'
+					);
+
 					this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
 				}
 			}
@@ -129,11 +141,28 @@ class OrderJobHandler {
 				// Обновить processedUrls в Order
 				await this.ordersService.updateProgress(orderId, allPages.length);
 
+				// Отправить прогресс через WebSocket
+				this.webSocketService.sendProgress(
+					orderId,
+					allPages.length,
+					totalUrls,
+					'processing'
+				);
+
 				this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed (final batch)`);
 			}
 
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
+
+			// Отправить статус через WebSocket
+			this.webSocketService.sendProgress(
+				orderId,
+				allPages.length,
+				totalUrls,
+				'generating_description'
+			);
+
 			const { hostname } = this.cacheService.parseUrl(order.hostname);
 			const hashKey = this.cacheService.buildHashKey(order.modelId, hostname);
 			const description = await this.cacheService.get(hashKey, '__description__', async () => {
@@ -153,6 +182,13 @@ class OrderJobHandler {
 
 			await queryRunner.commitTransaction();
 
+			// Отправить уведомление о завершении через WebSocket
+			this.webSocketService.sendCompletion(orderId, OrderStatus.COMPLETED);
+
+			// Broadcast обновленную статистику
+			const count = await this.statsService.getCompletedCount();
+			this.webSocketService.broadcastStatsUpdate(count);
+
 			this.logger.log(`Order ${orderId} completed successfully with ${allPages.length} pages`);
 		} catch (error) {
 			await queryRunner.rollbackTransaction();
@@ -161,6 +197,9 @@ class OrderJobHandler {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			await this.ordersService.updateOrderStatus(orderId, OrderStatus.FAILED);
 			await this.ordersService.addError(orderId, errorMessage);
+
+			// Отправить уведомление об ошибке через WebSocket
+			this.webSocketService.sendCompletion(orderId, OrderStatus.FAILED);
 
 			this.logger.error(`Order ${orderId} failed: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
 			throw error; // Пробросить для retry BullMQ

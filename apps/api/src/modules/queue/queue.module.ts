@@ -7,6 +7,8 @@ import { CrawlersModule } from '../crawlers/crawlers.module';
 import { ContentModule } from '../content/content.module';
 import { GenerationsModule } from '../generations/generations.module';
 import { OrdersModule } from '../orders/orders.module';
+import { WebSocketModule } from '../websocket/websocket.module';
+import { StatsModule } from '../stats/stats.module';
 import { Order } from '../orders/entities/order.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -23,6 +25,8 @@ import { User } from '../users/entities/user.entity';
 		CrawlersModule,
 		ContentModule,
 		GenerationsModule,
+		WebSocketModule,
+		StatsModule,
 		forwardRef(() => OrdersModule)
 	],
 	providers: [QueueService, OrderJobHandler],

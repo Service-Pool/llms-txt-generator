@@ -2,7 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 import { Currency } from '../enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { ModelConfigDto } from '../modules/ai-models/dto/ai-model-config.dto';
+import { AiModelConfigDto } from '../modules/ai-models/dto/ai-model-config.dto';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 
@@ -135,7 +135,7 @@ class AppConfigService {
 		path: env.SOCKET_PATH
 	};
 
-	public readonly modelsConfig = ((): ModelConfigDto[] => {
+	public readonly modelsConfig = ((): AiModelConfigDto[] => {
 		try {
 			const interpolated = interpolateEnvVariables(env.MODELS_CONFIG);
 			const parsed = JSON.parse(interpolated) as unknown[];
@@ -144,8 +144,8 @@ class AppConfigService {
 				throw new Error('MODELS_CONFIG must be an array');
 			}
 
-			return parsed.map((item: ModelConfigDto) => {
-				return new ModelConfigDto(
+			return parsed.map((item: AiModelConfigDto) => {
+				return new AiModelConfigDto(
 					item.id,
 					item.category,
 					Currency[env.STRIPE_CURRENCY as keyof typeof Currency],

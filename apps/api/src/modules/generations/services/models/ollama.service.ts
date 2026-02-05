@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { Ollama, GenerateRequest } from 'ollama';
-import { ModelConfigDto } from '../../../ai-models/dto/ai-model-config.dto';
+import { AiModelConfigDto } from '../../../ai-models/dto/ai-model-config.dto';
 import { LLMProviderService, PageContent } from '../llm-provider.service';
 
 class OllamaService extends LLMProviderService {
 	private readonly logger = new Logger(OllamaService.name);
 	private readonly ollama: Ollama;
-	private readonly config: ModelConfigDto;
+	private readonly config: AiModelConfigDto;
 
-	constructor(config: ModelConfigDto) {
+	constructor(config: AiModelConfigDto) {
 		super();
 		this.config = config;
 

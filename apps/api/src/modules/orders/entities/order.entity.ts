@@ -2,10 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Currency } from '../../../enums/currency.enum';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { User } from '../../users/entities/user.entity';
-
-interface OrderError {
-	message: string;
-}
+import { AiModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
 
 @Entity('orders')
 class Order {
@@ -61,7 +58,7 @@ class Order {
 	output: string | null;
 
 	@Column({ type: 'json', nullable: true })
-	errors: OrderError[] | null;
+	errors: string[] | null;
 
 	@ManyToOne(() => User, user => user.orders)
 	@JoinColumn({ name: 'userId' })
@@ -72,6 +69,12 @@ class Order {
 
 	@UpdateDateColumn({ utc: true })
 	updatedAt: Date;
+
+	/**
+	 * Synthetic property populated by OrderSubscriber.
+	 * Contains model configuration if modelId is set.
+	 */
+	modelConfig: AiModelConfigDto | null = null;
 }
 
-export { Order, OrderError };
+export { Order };

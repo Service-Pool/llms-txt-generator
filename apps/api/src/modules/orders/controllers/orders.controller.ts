@@ -1,11 +1,9 @@
 import { ApiResponse } from '../../../utils/response/api-response';
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, Res, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Query, Body, Param, HttpCode, HttpStatus, Res, ParseIntPipe } from '@nestjs/common';
 import { CreateOrderRequestDto, CalculateOrderRequestDto } from '../dto/order-request.dto';
 import { FastifyReply } from 'fastify';
-import { MessageSuccess } from '../../../utils/response/message-success';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
-import { Order } from '../entities/order.entity';
-import { CreateOrderResponseDto, OrderResponseDto } from '../dto/order-response.dto';
+import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
 
 @Controller('api/orders')
@@ -21,16 +19,16 @@ class OrdersController {
 	 */
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
-	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<MessageSuccess<CreateOrderResponseDto>>> {
+	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<CreateOrderResponseDto>> {
 		const order = await this.ordersService.createOrder(dto.hostname);
 
 		// Calculate available models based on totalUrls
-		const availableModels = this.aiModelsConfigService.getAvailableModels(
+		const availableAiModels = this.aiModelsConfigService.getAvailableModels(
 			order.totalUrls,
 			!!order.userId
 		);
 
-		return ApiResponse.success(CreateOrderResponseDto.create(order, availableModels));
+		return ApiResponse.success(CreateOrderResponseDto.create(order, availableAiModels));
 	}
 
 	/**
@@ -42,7 +40,7 @@ class OrdersController {
 	public async calculateOrder(
 		@Param('id', ParseIntPipe) id: number,
 		@Body() dto: CalculateOrderRequestDto
-	): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	): Promise<ApiResponse<OrderResponseDto>> {
 		const updatedOrder = await this.ordersService.calculateOrder(id, dto.modelId);
 		return ApiResponse.success(OrderResponseDto.create(updatedOrder));
 	}
@@ -53,7 +51,7 @@ class OrdersController {
 	 */
 	@Post(':id/run')
 	@HttpCode(HttpStatus.OK)
-	public async runOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	public async runOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<OrderResponseDto>> {
 		const updatedOrder = await this.ordersService.runOrder(id);
 		return ApiResponse.success(OrderResponseDto.create(updatedOrder));
 	}
@@ -64,12 +62,13 @@ class OrdersController {
 	 */
 	@Get()
 	@HttpCode(HttpStatus.OK)
-	public async getOrders(): Promise<ApiResponse<MessageSuccess<OrderResponseDto[]>>> {
+	public async getOrders(@Query('page') _page: number = 1, @Query('limit') _limit: number = 5): Promise<ApiResponse<OrdersListResponseDto>> {
 		const orders = await this.ordersService.getUserOrders();
 
 		// TODO: For orders in PENDING_PAYMENT status - poll Stripe for payment status
+		// TODO: Add pagination support via query params
 
-		return ApiResponse.success(orders.map((order: Order) => OrderResponseDto.create(order)));
+		return ApiResponse.success(OrdersListResponseDto.create(orders, orders.length, 1, orders.length));
 	}
 
 	/**
@@ -78,7 +77,7 @@ class OrdersController {
 	 */
 	@Get(':id')
 	@HttpCode(HttpStatus.OK)
-	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<MessageSuccess<OrderResponseDto>>> {
+	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<OrderResponseDto>> {
 		const order = await this.ordersService.getUserOrders(id);
 
 		return ApiResponse.success(OrderResponseDto.create(order));

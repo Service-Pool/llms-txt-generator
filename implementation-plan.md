@@ -317,7 +317,8 @@ npm install helmet  # Security headers (если нужен, Fastify имеет 
 
 ## Этап 6: Payments Module (Stripe Integration)
 
-> **API часть выполнена - см. `implementation-plan-done.md`**
+> **API часть базовой интеграции выполнена - см. `implementation-plan-done.md`**
+> **Расширения (dual payment methods, HATEOAS, session reuse) выполнены - см. `implementation-plan-done.md` раздел 6**
 
 ### 6.2 UI: Payment Integration
 
@@ -343,204 +344,19 @@ npm install helmet  # Security headers (если нужен, Fastify имеет 
 
 ## Этап 9: WebSocket Module (Real-time Updates)
 
-### 9.1 API: WebSocket Gateway
-
-**API: `apps/api/src/modules/websocket/` (создать новый, используя подход из `apps/_api`)**
-
-> **Примечание:** Используется `@fastify/websocket`, а не socket.io.
-
-- [ ] Создать **WebSocketService** (`services/websocket.service.ts`):
-  ```typescript
-  @Injectable()
-  export class WebSocketService {
-    private clients: Map<string, Set<WebSocket>> = new Map();
-    
-    // Регистрация клиента для получения уведомлений по orderId
-    subscribe(orderId: number, client: WebSocket) {
-      const key = `order:${orderId}`;
-      if (!this.clients.has(key)) {
-        this.clients.set(key, new Set());
-      }
-      this.clients.get(key)!.add(client);
-    }
-    
-    unsubscribe(orderId: number, client: WebSocket) {
-      const key = `order:${orderId}`;
-      this.clients.get(key)?.delete(client);
-    }
-    
-    // Broadcast ко всем клиентам, подписанным на заказ
-    sendToOrder(orderId: number, event: string, data: unknown) {
-      const key = `order:${orderId}`;
-      const message = JSON.stringify({ event, data });
-      this.clients.get(key)?.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    }
-    
-    sendQueuePosition(orderId: number, position: number, queueType: string) {
-      this.sendToOrder(orderId, `order:${orderId}:queue`, { orderId, position, queueType });
-    }
-    
-    sendProgress(orderId: number, processedUrls: number, totalUrls: number, stage: string) {
-      this.sendToOrder(orderId, `order:${orderId}:progress`, { orderId, processedUrls, totalUrls, stage });
-    }
-    
-    sendCompletion(orderId: number, status: OrderStatus) {
-      this.sendToOrder(orderId, `order:${orderId}:complete`, { orderId, status });
-    }
-  }
-  ```
-
-- [ ] Создать **WebSocket Controller** (`controllers/websocket.controller.ts`):
-  ```typescript
-  @Controller()
-  export class WebSocketController {
-    constructor(private wsService: WebSocketService) {}
-    
-    @Get('/ws/orders')
-    async handleOrdersWs(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
-      // Fastify WebSocket upgrade
-      await reply.hijack();
-      const socket = await req.socket; // WebSocket connection
-      
-      socket.on('message', (msg: string) => {
-        const { action, orderId } = JSON.parse(msg);
-        if (action === 'subscribe') {
-          this.wsService.subscribe(orderId, socket);
-        }
-      });
-      
-      socket.on('close', () => {
-        // Cleanup subscriptions
-      });
-    }
-  }
-  ```
-
-- [ ] Интегрировать с GenerationService:
-  - Отправка прогресса после каждого батча
-  - Отправка позиции в очереди
-
-### 9.2 UI: WebSocket Client
-
-**UI: `apps/ui/src/lib/services/`**
-
-> **Примечание:** API использует `@fastify/websocket`, поэтому UI использует нативный WebSocket API браузера (без socket.io).
-
-- [ ] Создать **WebSocketService** (`websocket.service.ts`):
-  ```typescript
-  export class WebSocketService {
-    private socket: WebSocket | null = null;
-    private listeners: Map<string, Set<(data: unknown) => void>> = new Map();
-    
-    connect(path: string = '/ws/orders') {
-      const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${path}`;
-      this.socket = new WebSocket(wsUrl);
-      
-      this.socket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        const eventListeners = this.listeners.get(message.event);
-        eventListeners?.forEach(cb => cb(message.data));
-      };
-    }
-    
-    on(event: string, callback: (data: unknown) => void) {
-      if (!this.listeners.has(event)) {
-        this.listeners.set(event, new Set());
-      }
-      this.listeners.get(event)!.add(callback);
-    }
-    
-    off(event: string, callback: (data: unknown) => void) {
-      this.listeners.get(event)?.delete(callback);
-    }
-    
-    subscribeToOrder(orderId: number, callbacks: {
-      onQueue: (data: { position: number; queueType: string }) => void;
-      onProgress: (data: { processedUrls: number; totalUrls: number }) => void;
-      onComplete: (data: { status: string }) => void;
-    }) {
-      this.on(`order:${orderId}:queue`, callbacks.onQueue);
-      this.on(`order:${orderId}:progress`, callbacks.onProgress);
-      this.on(`order:${orderId}:complete`, callbacks.onComplete);
-    }
-    
-    disconnect() {
-      this.socket?.close();
-      this.socket = null;
-      this.listeners.clear();
-    }
-  }
-  ```
+> **Выполнено - см. `implementation-plan-done.md`**
 
 ---
 
-## Этап 10: Statistics Module
+## Étап 10: Statistics Module
 
-### 10.1 API: Stats Service
+> **API выполнено - см. `implementation-plan-done.md`**
 
-**API: `apps/api/src/modules/stats/`**
-
-- [ ] Создать **StatsService** (`services/stats.service.ts`):
-  - `getCompletedCount(): Promise<number>` - COUNT Orders WHERE status = COMPLETED
-  - `getStats(): Promise<{ completed: number }>` - агрегированная статистика
-
-- [ ] Создать **StatsController** (`controllers/stats.controller.ts`):
-  ```typescript
-  @Controller('api/stats')
-  export class StatsController {
-    @Get('completed')
-    async getCompleted() {
-      return { count: await this.statsService.getCompletedCount() };
-    }
-  }
-  ```
-
-### 10.2 API: Stats WebSocket Gateway
-
-**ВАЖНО: Realtime обновление счётчика статистики происходит ТОЛЬКО через WebSocket, не через REST polling.**
-
-- [ ] Расширить **WebSocketService** для stats broadcast:
-  ```typescript
-  @Injectable()
-  export class WebSocketService {
-    // ... существующий код для orders ...
-    
-    private statsClients: Set<WebSocket> = new Set();
-    
-    subscribeToStats(client: WebSocket) {
-      this.statsClients.add(client);
-    }
-    
-    unsubscribeFromStats(client: WebSocket) {
-      this.statsClients.delete(client);
-    }
-    
-    /**
-     * Вызывается из GenerationService при успешном завершении заказа.
-     * Рассылает обновлённый счётчик ВСЕМ подключённым клиентам.
-     */
-    async broadcastStatsUpdate(statsService: StatsService): Promise<void> {
-      const stats = await statsService.getStats();
-      const message = JSON.stringify({ event: 'stats:update', data: stats });
-      
-      this.statsClients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    }
-  }
-  ```
-
-- [ ] Добавить WebSocket endpoint `/ws/stats` в контроллер
-
-### 10.3 UI: Stats WebSocket Client
+### 10.1 UI: Stats WebSocket Client
 
 **UI: `apps/ui/src/lib/stores/`**
+
+**ВАЖНО: Realtime обновление счётчика статистики происходит ТОЛЬКО через WebSocket, не через REST polling.**
 
 - [ ] Создать **StatsStore** (`stats.store.ts`):
   ```typescript
@@ -580,7 +396,7 @@ npm install helmet  # Security headers (если нужен, Fastify имеет 
 
 **Поток данных:**
 1. При загрузке страницы: GET /api/stats/completed (однократно)
-2. При каждом завершении заказа: `GenerationService` → `WebSocketService.broadcastStatsUpdate()` → WebSocket event `stats:update` → все клиенты обновляют счётчик
+2. При каждом завершении заказа: `OrderJobHandler` → `WebSocketService.broadcastStatsUpdate()` → WebSocket event `stats:update` → все клиенты обновляют счётчик
 
 ---
 

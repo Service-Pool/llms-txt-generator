@@ -360,4 +360,223 @@ npm run generation-worker:dev
 
 ---
 
-## Конец выполненных задач
+## Этап 6: Payments Module - Расширения
+
+### 6.1 Stripe Payment Enums и статусы
+
+- [x] Создан **StripeSessionStatus enum** (`enums/stripe-session-status.enum.ts`):
+  - COMPLETE = 'complete'
+  - OPEN = 'open'
+  - EXPIRED = 'expired'
+
+- [x] Расширен **StripeService**:
+  - `checkSessionStatus(sessionId)` - проверка статуса Checkout Session
+  - `checkPaymentIntentStatus(clientSecret)` - проверка статуса Payment Intent
+  - Маппинг Stripe статусов в StripeSessionStatus enum
+
+### 6.2 Stripe Configuration
+
+- [x] Добавлены переменные окружения в `.env.example`:
+  - `STRIPE_MIN_PAYMENT=0.50` - минимальная сумма платежа
+  - `STRIPE_CURRENCY=eur` - валюта платежей
+
+- [x] Обновлен **ConfigService** (`config/config.service.ts`):
+  - Добавлена валидация `STRIPE_CURRENCY` через Joi против значений Currency enum
+  - stripe объект: `{ secretKey, publishableKey, webhookSecret, minPayment, currency }`
+  - modelsConfig использует `Currency[env.STRIPE_CURRENCY.toUpperCase() as keyof typeof Currency]`
+
+### 6.3 Payment Business Logic
+
+- [x] Обновлен **OrdersService** (`services/orders.service.ts`):
+  - Добавлена зависимость от `AppConfigService`
+  - `calculateOrder()`:
+    - Использует `configService.stripe.currency` вместо hardcoded EUR
+    - Автоматическое увеличение цены до `STRIPE_MIN_PAYMENT` если меньше минимума
+  - `ensureOrderPayable()`:
+    - Принимает статусы CALCULATED и PENDING_PAYMENT
+    - Автоматический переход CALCULATED → PENDING_PAYMENT для платных заказов
+    - Проверка что бесплатные заказы не требуют оплаты
+  - `getOrCreateCheckoutSession()`:
+    - Проверка существующего stripeSessionId через Stripe API
+    - Возврат существующей сессии если статус OPEN
+    - Создание новой сессии при отсутствии или истечении
+  - `getOrCreatePaymentIntent()`:
+    - Аналогичная логика для Payment Intent
+    - Проверка и переиспользование активных интентов
+  - `queueOrder()`:
+    - Использует `configService.stripe.currency`
+
+- [x] Централизация валюты:
+  - Все Currency.EUR заменены на `configService.stripe.currency`
+  - `OrderAvailableAiModelDto.fromAvailableModel()` использует `CURRENCY_SYMBOLS[model.currency]`
+  - Единая точка управления валютой через STRIPE_CURRENCY
+
+### 6.4 HATEOAS Implementation
+
+- [x] Обновлен **OrderResponseDto** (`dto/order-response.dto.ts`):
+  - Добавлен интерфейс `HateoasLink: { href, method?, description? }`
+  - Добавлено поле `_links: Record<string, HateoasLink>`
+  - Создана функция `buildOrderLinks(entity: Order)` для контекстных ссылок
+  - Ссылки зависят от статуса заказа:
+    - CREATED → calculate
+    - CALCULATED (free) → run
+    - CALCULATED (paid) → checkout, paymentIntent
+    - PENDING_PAYMENT → run, checkout, paymentIntent
+    - PAID → run
+    - QUEUED/PROCESSING → self only
+    - COMPLETED → self, download
+    - FAILED → self, refund
+    - PAYMENT_FAILED → self, checkout, paymentIntent
+
+- [x] Созданы **Payment Response DTOs** (`modules/payments/dto/payment-response.dto.ts`):
+  - `CheckoutSessionResponseDto` - с sessionId, orderId, _links
+  - `PaymentIntentResponseDto` - с clientSecret, orderId, _links
+  - `buildPaymentLinks()` - создает HATEOAS-ссылки для платежных ответов
+  - Ссылки: self (заказ), run (запуск), альтернативный метод оплаты
+
+- [x] Обновлен **PaymentsController**:
+  - Импорт новых DTOs
+  - `createCheckoutSession()` возвращает `CheckoutSessionResponseDto`
+  - `createPaymentIntent()` возвращает `PaymentIntentResponseDto`
+
+### 6.5 Shared Exports
+
+- [x] Создан **shared.ts** (`src/shared.ts`):
+  - Экспорт всех необходимых типов для использования в UI
+  - Enums: Currency, OrderStatus, ResponseCode, StripeSessionStatus
+  - Response utilities: ApiResponse, MessageSuccess/Error/Invalid, Types
+  - DTOs: Auth, Orders, Payments, AI Models
+  - Entities: Order
+
+---
+
+## Архитектурные улучшения
+
+### Worker Context (ClsModule)
+
+- [x] Обновлен **CliModule** (`cli/cli.module.ts`):
+  - Добавлен `ClsModule.forRoot({ global: true })`
+  - Решена проблема с недоступностью CLS в worker процессах
+
+### Payment Session Reuse
+
+- [x] Логика предотвращения дубликатов платежных сессий:
+  - Проверка существующих через Stripe API
+  - Переиспользование активных (OPEN) сессий
+  - Создание новых только при необходимости
+  - Улучшение UX и предотвращение rate limiting от Stripe
+
+### Service Layer Pattern
+
+- [x] Рефакторинг логики платежей:
+  - Вся бизнес-логика в OrdersService
+  - PaymentsController - тонкая прокладка для HTTP
+  - Соблюдение принципа единственной ответственности
+
+### Currency Management
+
+- [x] Централизованное управление валютой:
+  - STRIPE_CURRENCY как единая точка правды
+  - Joi валидация против Currency enum
+  - Устранение hardcoded Currency.EUR по всему коду
+  - Поддержка множественных валют через конфигурацию
+
+### Minimum Payment Enforcement
+
+- [x] Автоматическое соблюдение минимумов Stripe:
+  - Проверка в calculateOrder()
+  - Автоматическое увеличение до STRIPE_MIN_PAYMENT
+  - Предотвращение ошибок при создании платежей
+
+---
+
+## Этап 9: WebSocket Module (Real-time Updates)
+
+### 9.1 API: WebSocket Gateway
+
+**API: `apps/api/src/modules/websocket/`**
+
+- [x] Создан **WebSocketService** (`services/websocket.service.ts`):
+  - Управление подписками клиентов через Map<string, Set<WebSocket>>
+  - `subscribe(orderId, client)` - подписка на обновления заказа
+  - `subscribeToStats(client)` - подписка на статистику
+  - `sendQueuePosition()` - отправка позиции в очереди
+  - `sendProgress()` - отправка прогресса обработки
+  - `sendCompletion()` - отправка финального статуса
+  - `broadcastStatsUpdate()` - broadcast обновлений статистики
+  - `removeClient()` - очистка при отключении
+
+- [x] Создан **WebSocketGateway** (`gateways/websocket.gateway.ts`):
+  - Использует OnModuleInit для регистрации через Fastify
+  - Endpoints: `/ws/orders`, `/ws/stats`
+  - **Аутентификация через сессии**:
+    - `extractSession()` - извлечение sessionId из cookie
+    - `parseCookie()` - парсинг подписанных cookies ('s:' prefix)
+    - `checkOrderAccess()` - проверка владения заказом (userId OR sessionId)
+    - Закрытие соединения при отсутствии валидной сессии
+    - Отправка ошибки при попытке подписки на чужой заказ
+  - Обработка сообщений через отдельный метод `handleOrderMessage()`
+  - WebSocket message format: `{ event: string, data: any }`
+
+- [x] Создан **WebSocketModule** (`websocket.module.ts`):
+  - Imports: TypeORM.forFeature([Session, Order]), StatsModule
+  - Providers: WebSocketService, WebSocketGateway
+  - Exports: WebSocketService
+
+- [x] Созданы **WebSocket Events** (`websocket.events.ts`):
+  - Классы (не интерфейсы) для десериализации на клиенте:
+    - `OrderQueueEvent` - позиция в очереди
+    - `OrderProgressEvent` - прогресс обработки (с percentage)
+    - `OrderCompletionEvent` - финальный статус
+    - `StatsUpdateEvent` - обновление статистики
+    - `SubscriptionAckEvent` - подтверждение подписки
+    - `WebSocketMessage<T>` - обертка для сообщений
+  - Экспортированы через `shared.ts` для использования в UI
+
+- [x] Интеграция с **OrderJobHandler**:
+  - Инжектирован WebSocketService и StatsService
+  - `sendProgress()` после каждого батча страниц
+  - `sendProgress()` при генерации description
+  - `sendCompletion()` при успехе/ошибке
+  - `broadcastStatsUpdate()` при завершении заказа
+
+- [x] Обновлены модули:
+  - `app.module.ts` - добавлен WebSocketModule
+  - `queue.module.ts` - добавлены WebSocketModule и StatsModule
+
+**Безопасность:**
+- ✅ Проверка сессии при подключении
+- ✅ Проверка владения заказом перед подпиской
+- ✅ Поддержка как авторизованных (userId), так и анонимных (sessionId) пользователей
+- ✅ Логирование несанкционированных попыток доступа
+- ✅ Stats endpoint публичный (без авторизации)
+
+---
+
+## Этап 10: Statistics Module
+
+### 10.1 API: Stats Service
+
+**API: `apps/api/src/modules/stats/`**
+
+- [x] Создан **StatsService** (`services/stats.service.ts`):
+  - `getCompletedCount()` - COUNT Orders WHERE status = COMPLETED
+  - `getStats()` - агрегированная статистика `{ completed: number }`
+
+- [x] Создан **StatsController** (`controllers/stats.controller.ts`):
+  - `GET /api/stats/completed` - возвращает `{ count: number }`
+  - `GET /api/stats` - возвращает `{ completed: number }`
+
+- [x] Создан **StatsModule** (`stats.module.ts`):
+  - Imports: TypeORM.forFeature([Order])
+  - Providers: StatsService
+  - Controllers: StatsController
+  - Exports: StatsService
+
+- [x] Интеграция с WebSocket:
+  - StatsService импортирован в WebSocketModule
+  - `broadcastStatsUpdate()` вызывается при завершении заказов
+  - Real-time обновление статистики для всех подписчиков `/ws/stats`
+
+---
+

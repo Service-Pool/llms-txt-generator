@@ -12,7 +12,7 @@ import { UsersService } from '../../users/services/users.service';
 import { StripeService } from '../../payments/services/stripe.service';
 import { AppConfigService } from '../../../config/config.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ModelConfigDto } from '../../../modules/ai-models/dto/ai-model-config.dto';
+import { AiModelConfigDto } from '../../../modules/ai-models/dto/ai-model-config.dto';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
@@ -137,7 +137,7 @@ class OrdersService {
 	 * Queue order for processing
 	 * Saves pricing, transitions to QUEUED, and adds to processing queue
 	 */
-	private async queueOrder(order: Order, modelConfig: ModelConfigDto): Promise<Order> {
+	private async queueOrder(order: Order, modelConfig: AiModelConfigDto): Promise<Order> {
 		OrderStatusMachine.validateTransition(order.status, OrderStatus.QUEUED);
 
 		// Set pricing only if not already set (free orders) or model changed
@@ -164,7 +164,7 @@ class OrdersService {
 		} catch (error) {
 			await this.orderRepository.update(order.id, {
 				status: OrderStatus.FAILED,
-				errors: [{ message: `Failed to add to queue: ${error instanceof Error ? error.message : String(error)}` }]
+				errors: [`Failed to add to queue: ${error instanceof Error ? error.message : String(error)}`]
 			});
 			throw error;
 		}
@@ -413,9 +413,7 @@ class OrdersService {
 			}
 
 			const errors = order.errors ?? [];
-			errors.push({
-				message: error
-			});
+			errors.push(error);
 
 			await queryRunner.manager.update(Order, orderId, { errors });
 			await queryRunner.commitTransaction();

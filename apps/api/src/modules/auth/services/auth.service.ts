@@ -103,14 +103,15 @@ class AuthService {
 	/**
 	 * Получить текущего пользователя
 	 */
-	public async status(): Promise<User> {
+	public async status(): Promise<{ user: User | null; sessionId: string }> {
 		const session = this.usersService.getSessionData();
 
 		if (!session.userId) {
-			throw new UnauthorizedException('Only logged in user may check the status');
+			return { user: null, sessionId: session.sessionId };
 		}
 
-		return this.usersService.findById(session.userId);
+		const user = await this.usersService.findById(session.userId);
+		return { user, sessionId: session.sessionId };
 	}
 
 	/**

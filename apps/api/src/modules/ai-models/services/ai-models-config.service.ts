@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../../config/config.service';
-import { ModelConfigDto } from '../dto/ai-model-config.dto';
+import { AiModelConfigDto } from '../dto/ai-model-config.dto';
 import { AvailableAiModelDto } from '../dto/available-ai-model.dto';
 
 @Injectable()
@@ -10,14 +10,14 @@ class AiModelsConfigService {
 	/**
 	 * Get all available model configurations from MODELS_CONFIG
 	 */
-	public getAllModels(): ModelConfigDto[] {
+	public getAllModels(): AiModelConfigDto[] {
 		return this.configService.modelsConfig;
 	}
 
 	/**
 	 * Get model configuration by ID
 	 */
-	public getModelById(id: string): ModelConfigDto | null {
+	public getModelById(id: string): AiModelConfigDto | null {
 		const models = this.getAllModels();
 		return models.find(m => m.id === id) || null;
 	}
