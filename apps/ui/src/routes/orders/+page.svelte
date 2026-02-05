@@ -4,19 +4,25 @@
 	import { statsStore } from "$lib/stores/stats.store.svelte";
 	import NewOrderForm from "$lib/components/NewOrderForm.svelte";
 	import OrdersList from "$lib/components/OrdersList.svelte";
+	import Pagination from "$lib/components/Pagination.svelte";
 	import { Spinner, Alert, Button } from "flowbite-svelte";
 	import type { CreateOrderResponseDto, OrderResponseDto } from "@api/shared";
 
 	let orders = $state<OrderResponseDto[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let page = $state(1);
+	let limit = $state(5);
+	let total = $state(0);
 
 	const loadOrders = async () => {
 		try {
 			loading = true;
 			error = null;
-			const response = await ordersService.getAll();
-			orders = response.getData().items;
+			const response = await ordersService.getAll(page, limit);
+			const data = response.getData();
+			orders = data.items;
+			total = data.total;
 		} catch (err) {
 			error =
 				err instanceof Error ? err.message : "Failed to load orders";
@@ -28,6 +34,18 @@
 	const handleCreate = (newOrder: CreateOrderResponseDto) => {
 		// Add new order to the top of the list
 		orders = [newOrder as unknown as OrderResponseDto, ...orders];
+		total = total + 1;
+	};
+
+	const handlePageChange = (newPage: number) => {
+		page = newPage;
+		loadOrders();
+	};
+
+	const handleLimitChange = (newLimit: number) => {
+		limit = newLimit;
+		page = 1; // Reset to first page when changing limit
+		loadOrders();
 	};
 
 	onMount(async () => {
@@ -59,6 +77,14 @@
 			</Button>
 		</Alert>
 	{:else}
+		{#if total > limit}
+			<Pagination
+				{page}
+				{limit}
+				{total}
+				onPageChange={handlePageChange}
+				onLimitChange={handleLimitChange} />
+		{/if}
 		<OrdersList items={orders} />
 	{/if}
 </div>

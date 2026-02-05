@@ -62,7 +62,7 @@ class PaymentsController {
 	@Post('refund')
 	public async requestRefund(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<string>> {
 		// 1. Проверить владение заказом
-		const order = await this.ordersService.getUserOrders(orderId);
+		const order = await this.ordersService.getUserOrder(orderId);
 
 		// 2. Проверить что заказ может быть возвращён (FAILED или COMPLETED с ошибками)
 		if (order.status !== OrderStatus.FAILED) {

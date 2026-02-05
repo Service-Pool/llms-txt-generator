@@ -33,8 +33,15 @@ class OrdersService extends HttpClient {
 	/**
 	 * Get all user orders (history)
 	 */
-	async getAll(): Promise<ApiResponse<OrdersListResponseDto>> {
-		return this.fetch(configService.endpoints.orders.base, OrdersListResponseDto);
+	async getAll(page: number = 1, limit: number = 5): Promise<ApiResponse<OrdersListResponseDto>> {
+		const params = new URLSearchParams({
+			page: page.toString(),
+			limit: limit.toString()
+		});
+		return this.fetch(
+			`${configService.endpoints.orders.base}?${params}`,
+			OrdersListResponseDto
+		);
 	}
 
 	/**

@@ -62,13 +62,16 @@ class OrdersController {
 	 */
 	@Get()
 	@HttpCode(HttpStatus.OK)
-	public async getOrders(@Query('page') _page: number = 1, @Query('limit') _limit: number = 5): Promise<ApiResponse<OrdersListResponseDto>> {
-		const orders = await this.ordersService.getUserOrders();
+	public async getOrders(@Query('page') page: number = 1, @Query('limit') limit: number = 5): Promise<ApiResponse<OrdersListResponseDto>> {
+		const result = await this.ordersService.getUserOrders(page, limit);
 
-		// TODO: For orders in PENDING_PAYMENT status - poll Stripe for payment status
-		// TODO: Add pagination support via query params
+		// TypeScript narrowing: result is { orders: Order[]; total: number }
+		if ('orders' in result) {
+			// TODO: For orders in PENDING_PAYMENT status - poll Stripe for payment status
+			return ApiResponse.success(OrdersListResponseDto.create(result.orders, result.total, page, limit));
+		}
 
-		return ApiResponse.success(OrdersListResponseDto.create(orders, orders.length, 1, orders.length));
+		throw new Error('Unexpected result from getUserOrders');
 	}
 
 	/**
@@ -78,7 +81,7 @@ class OrdersController {
 	@Get(':id')
 	@HttpCode(HttpStatus.OK)
 	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<OrderResponseDto>> {
-		const order = await this.ordersService.getUserOrders(id);
+		const order = await this.ordersService.getUserOrder(id);
 
 		return ApiResponse.success(OrderResponseDto.create(order));
 	}
@@ -92,7 +95,7 @@ class OrdersController {
 		@Param('id', ParseIntPipe) id: number,
 		@Res() res: FastifyReply
 	): Promise<void> {
-		const order = await this.ordersService.getUserOrders(id);
+		const order = await this.ordersService.getUserOrder(id);
 
 		if (!order.output) {
 			res.code(404).send({

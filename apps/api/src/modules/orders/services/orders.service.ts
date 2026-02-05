@@ -38,7 +38,7 @@ class OrdersService {
 	 * Can be called multiple times while order is in CREATED or CALCULATED status
 	 */
 	public async calculateOrder(orderId: number, modelId: string): Promise<Order> {
-		const order = await this.getUserOrders(orderId);
+		const order = await this.getUserOrder(orderId);
 
 		// Validate and transition to CALCULATED status
 		OrderStatusMachine.validateTransition(order.status, OrderStatus.CALCULATED);
@@ -72,7 +72,7 @@ class OrdersService {
 	 */
 	public async runOrder(orderId: number): Promise<Order> {
 		const session = this.usersService.getSessionData();
-		const order = await this.getUserOrders(orderId);
+		const order = await this.getUserOrder(orderId);
 
 		// Ensure modelId is saved (from calculate step or webhook)
 		if (!order.modelId) {
@@ -114,7 +114,7 @@ class OrdersService {
 
 			if (stripeStatus === StripeSessionStatus.COMPLETE) {
 				await this.updateOrderStatus(order.id, OrderStatus.PAID);
-				const paidOrder = await this.getUserOrders(orderId);
+				const paidOrder = await this.getUserOrder(orderId);
 				return this.queueOrder(paidOrder, modelConfig);
 			}
 
@@ -230,39 +230,46 @@ class OrdersService {
 	}
 
 	/**
-	 * Get order(s) for current user/session
+	 * Get single order by ID for current user/session
 	 * Validates ownership via SQL where clause
 	 */
-	public async getUserOrders(): Promise<Order[]>;
-	public async getUserOrders(id: number): Promise<Order>;
-	public async getUserOrders(id?: number): Promise<Order | Order[]> {
+	public async getUserOrder(id: number): Promise<Order> {
 		const session = this.usersService.getSessionData();
 
-		// Build base ownership conditions
+		const where = session.userId
+			? [{ id, userId: session.userId }, { id, sessionId: session.sessionId }]
+			: { id, sessionId: session.sessionId };
+
+		const order = await this.orderRepository.findOne({ where });
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
+		}
+
+		return order;
+	}
+
+	/**
+	 * Get paginated orders for current user/session
+	 * Validates ownership via SQL where clause
+	 */
+	public async getUserOrders(page: number, limit: number): Promise<{ orders: Order[]; total: number }> {
+		const session = this.usersService.getSessionData();
+
 		const ownershipWhere = session.userId
 			? [{ userId: session.userId }, { sessionId: session.sessionId }]
 			: [{ sessionId: session.sessionId }];
 
-		// Get single order by ID
-		if (id !== undefined) {
-			const where = session.userId
-				? [{ id, userId: session.userId }, { id, sessionId: session.sessionId }]
-				: { id, sessionId: session.sessionId };
+		const skip = (page - 1) * limit;
 
-			const order = await this.orderRepository.findOne({ where });
-
-			if (!order) {
-				throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
-			}
-
-			return order;
-		}
-
-		// Get all orders
-		return this.orderRepository.find({
+		const [orders, total] = await this.orderRepository.findAndCount({
 			where: ownershipWhere,
-			order: { createdAt: 'DESC' }
+			order: { createdAt: 'DESC' },
+			skip,
+			take: limit
 		});
+
+		return { orders, total };
 	}
 
 	/**
@@ -284,7 +291,7 @@ class OrdersService {
 	 */
 	public async ensureOrderPayable(orderId: number): Promise<Order> {
 		// 1. Check ownership
-		let order = await this.getUserOrders(orderId);
+		let order = await this.getUserOrder(orderId);
 
 		// 2. Check status (must be CALCULATED or PENDING_PAYMENT)
 		if (order.status !== OrderStatus.CALCULATED && order.status !== OrderStatus.PENDING_PAYMENT) {
