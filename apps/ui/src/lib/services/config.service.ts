@@ -36,6 +36,7 @@ class ConfigService {
 		home: '/',
 		about: '/about',
 		orders: '/orders',
+		orderById: (id: number) => `/orders/${id}`,
 		auth: {
 			request: '/auth/request',
 			verify: '/auth/verify'

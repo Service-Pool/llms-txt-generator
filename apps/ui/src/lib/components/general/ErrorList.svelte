@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { List, Li, P } from "flowbite-svelte";
+	import { List, Li, P } from 'flowbite-svelte';
 
 	interface Props {
 		error: string | string[] | null;
 		class?: string;
 	}
 
-	let { error, class: className = "text-red-600 dark:text-red-400" }: Props =
-		$props();
+	let { error, class: className = 'text-red-600 dark:text-red-400' }: Props = $props();
 
 	const errors = $derived.by(() => {
 		if (!error) return [];

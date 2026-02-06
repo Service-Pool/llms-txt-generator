@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { Spinner as FlowbiteSpinner } from "flowbite-svelte";
-	import { type SpinnerProps } from "flowbite-svelte";
+	import { Spinner as FlowbiteSpinner } from 'flowbite-svelte';
+	import { type SpinnerProps } from 'flowbite-svelte';
 
 	interface Props {
-		size?: SpinnerProps["size"];
-		color?: SpinnerProps["color"];
+		size?: SpinnerProps['size'];
+		color?: SpinnerProps['color'];
 		delay?: number;
 	}
 
-	let { size = "6", color = "primary", delay = 0 }: Props = $props();
+	let { size = '6', color = 'primary', delay = 0 }: Props = $props();
 
 	let isVisible = $state(false);
 

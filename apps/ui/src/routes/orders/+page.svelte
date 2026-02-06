@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { ordersService } from "$lib/services/orders.service";
-	import { Spinner, Alert, Button, Hr } from "flowbite-svelte";
-	import { statsStore } from "$lib/stores/stats.store.svelte";
-	import { UIError } from "$lib/errors/ui-error";
-	import ErrorList from "$lib/components/general/ErrorList.svelte";
-	import NewOrderForm from "$lib/components/NewOrderForm.svelte";
-	import OrdersList from "$lib/components/OrdersList.svelte";
-	import Pagination from "$lib/components/general/Pagination.svelte";
-	import type { CreateOrderResponseDto, OrderResponseDto } from "@api/shared";
+	import { onMount } from 'svelte';
+	import { ordersService } from '$lib/services/orders.service';
+	import { Spinner, Alert, Button, Hr } from 'flowbite-svelte';
+	import { statsStore } from '$lib/stores/stats.store.svelte';
+	import { UIError } from '$lib/errors/ui-error';
+	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import NewOrderForm from '$lib/components/NewOrderForm.svelte';
+	import OrdersList from '$lib/components/OrdersList.svelte';
+	import Pagination from '$lib/components/general/Pagination.svelte';
+	import type { OrderResponseDto } from '@api/shared';
 
 	let orders = $state<OrderResponseDto[]>([]);
 	let loading = $state(true);
@@ -37,12 +37,6 @@
 		}
 	};
 
-	const handleCreate = (newOrder: CreateOrderResponseDto) => {
-		// Add new order to the top of the list
-		orders = [newOrder as unknown as OrderResponseDto, ...orders];
-		total = total + 1;
-	};
-
 	const handlePageChange = (newPage: number) => {
 		page = newPage;
 		loadOrders();
@@ -65,7 +59,7 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto space-y-6">
-	<NewOrderForm onCreate={handleCreate} />
+	<NewOrderForm />
 
 	{#if loading}
 		<div class="flex justify-center py-12">
@@ -74,33 +68,17 @@
 	{:else if error}
 		<Alert color="red">
 			<ErrorList class="text-xs dark:text-black" {error} />
-			<Button
-				onclick={() => loadOrders()}
-				size="xs"
-				color="red"
-				class="mt-2">
-				Try again
-			</Button>
+			<Button onclick={() => loadOrders()} size="xs" color="red" class="mt-2">Try again</Button>
 		</Alert>
 	{:else}
 		{#if total > limit}
-			<Pagination
-				{page}
-				{limit}
-				{total}
-				onPageChange={handlePageChange}
-				onLimitChange={handleLimitChange} />
+			<Pagination {page} {limit} {total} onPageChange={handlePageChange} onLimitChange={handleLimitChange} />
 		{/if}
 		<Hr class="my-8" />
 		<OrdersList items={orders} />
 		<Hr class="my-8" />
 		{#if total > limit}
-			<Pagination
-				{page}
-				{limit}
-				{total}
-				onPageChange={handlePageChange}
-				onLimitChange={handleLimitChange} />
+			<Pagination {page} {limit} {total} onPageChange={handlePageChange} onLimitChange={handleLimitChange} />
 		{/if}
 	{/if}
 </div>

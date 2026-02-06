@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { PaginationNav, Select, Label } from "flowbite-svelte";
-	import {
-		ChevronLeftOutline,
-		ChevronRightOutline,
-	} from "flowbite-svelte-icons";
+	import { PaginationNav, Dropdown, DropdownItem, Button } from 'flowbite-svelte';
+	import { ChevronLeftOutline, ChevronRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
 
 	interface Props {
 		page: number;
@@ -15,23 +12,11 @@
 
 	let { page, limit, total, onPageChange, onLimitChange }: Props = $props();
 
-	const uniqueId = `limit-${Math.random().toString(36).substring(2, 9)}`;
-
 	const totalPages = $derived(Math.ceil(total / limit) || 1);
-	const limitOptions = [
-		{ value: 5, name: "5" },
-		{ value: 10, name: "10" },
-		{ value: 20, name: "20" },
-		{ value: 50, name: "50" },
-	];
+	const limitOptions = [5, 10, 20, 50];
 
 	const handlePageChange = (newPage: number) => {
 		onPageChange(newPage);
-	};
-
-	const handleLimitChange = (e: Event) => {
-		const select = e.target as HTMLSelectElement;
-		onLimitChange(Number(select.value));
 	};
 </script>
 
@@ -41,25 +26,27 @@
 	</div>
 
 	<div class="flex items-center gap-4">
-		<!-- Items per page select -->
+		<!-- Items per page dropdown -->
 		<div class="flex items-center gap-2">
-			<Label for={uniqueId} class="text-sm opacity-75 whitespace-nowrap"
-				>Per page:</Label>
-			<Select
-				id={uniqueId}
-				size="sm"
-				class="min-w-16"
-				items={limitOptions}
-				bind:value={limit}
-				onchange={handleLimitChange} />
+			<span class="text-sm opacity-75 whitespace-nowrap">Per page:</span>
+			<Button size="xs" color="light">
+				{limit}
+				<ChevronDownOutline class="w-3 h-3 ml-1" />
+			</Button>
+			<Dropdown simple class="w-20">
+				{#each limitOptions as option}
+					<DropdownItem
+						onclick={() => onLimitChange(option)}
+						class={limit === option ? 'bg-gray-100 dark:bg-gray-600' : ''}
+					>
+						{option}
+					</DropdownItem>
+				{/each}
+			</Dropdown>
 		</div>
 
 		<!-- Navigation -->
-		<PaginationNav
-			currentPage={page}
-			{totalPages}
-			onPageChange={handlePageChange}
-			size="default">
+		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="default">
 			{#snippet prevContent()}
 				<span class="sr-only">Previous</span>
 				<ChevronLeftOutline class="h-5 w-5" />

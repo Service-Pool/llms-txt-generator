@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { ArrowLeftOutline, HomeOutline } from "flowbite-svelte-icons";
-	import { Button, Heading } from "flowbite-svelte";
-	import { page } from "$app/state";
+	import { ArrowLeftOutline, HomeOutline } from 'flowbite-svelte-icons';
+	import { Button, Heading } from 'flowbite-svelte';
+	import { page } from '$app/state';
 
 	const error = $derived(page.error);
 	const status = $derived(page.status);
 </script>
 
 <svelte:head>
-	<title>{status} - {error?.message || "Error"}</title>
+	<title>{status} - {error?.message || 'Error'}</title>
 </svelte:head>
 
 <div class="absolute inset-0 flex items-center justify-center">
@@ -16,14 +16,15 @@
 		<!-- Error Code -->
 		<div class="mb-8">
 			<span
-				class="text-8xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary-600 to-primary-400">
+				class="text-8xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary-600 to-primary-400"
+			>
 				{status}
 			</span>
 		</div>
 
 		<!-- Error Title -->
 		<Heading tag="h1" class="mb-12">
-			{error?.message || "Something Went Wrong"}
+			{error?.message || 'Something Went Wrong'}
 		</Heading>
 
 		<!-- Actions -->

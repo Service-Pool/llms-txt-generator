@@ -1,27 +1,16 @@
 <script lang="ts">
-	import { authService } from "$lib/services/auth.service";
-	import { authStore } from "$lib/stores/auth.store.svelte";
-	import { EnvelopeSolid, CheckCircleSolid } from "flowbite-svelte-icons";
-	import { goto } from "$app/navigation";
-	import { onMount } from "svelte";
-	import { page } from "$app/state";
-	import { UIError } from "$lib/errors/ui-error";
-	import ErrorList from "$lib/components/general/ErrorList.svelte";
-	import {
-		Card,
-		Heading,
-		P,
-		Label,
-		Input,
-		Button,
-		Alert,
-		Spinner,
-		InputAddon,
-		ButtonGroup,
-	} from "flowbite-svelte";
+	import { authService } from '$lib/services/auth.service';
+	import { authStore } from '$lib/stores/auth.store.svelte';
+	import { EnvelopeSolid, CheckCircleSolid } from 'flowbite-svelte-icons';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { UIError } from '$lib/errors/ui-error';
+	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import { Card, Heading, P, Label, Input, Button, Alert, Spinner, InputAddon, ButtonGroup } from 'flowbite-svelte';
 
-	let redirectUrl = $state("");
-	let email = $state("");
+	let redirectUrl = $state('');
+	let email = $state('');
 	let error = $state<string[] | string | null>(null);
 	let success = $state(false);
 	let loading = $state(false);
@@ -32,14 +21,14 @@
 	// Если пользователь уже залогинен - редирект
 	$effect(() => {
 		if (!checkingAuth && user) {
-			const targetUrl = page.url.searchParams.get("redirectUrl") || "/";
+			const targetUrl = page.url.searchParams.get('redirectUrl') || '/';
 			goto(targetUrl);
 		}
 	});
 
 	onMount(() => {
 		// Откуда пришел пользователь (куда вернуть после логина)
-		const targetPath = page.url.searchParams.get("redirectUrl") || "/";
+		const targetPath = page.url.searchParams.get('redirectUrl') || '/';
 		// URL для ссылки в письме = /auth/verify + параметр с финальным редиректом
 		redirectUrl = `${page.url.origin}/auth/verify?target=${encodeURIComponent(targetPath)}`;
 	});
@@ -80,27 +69,21 @@
 					<Alert color="green" class="flex items-start gap-3">
 						<CheckCircleSolid class="w-5 h-5 shrink-0 mt-0.5" />
 						<div>
-							<P weight="semibold" class="mb-1"
-								>Check your email!</P>
-							<P size="sm"
-								>We've sent you a login link to sign in.</P>
+							<P weight="semibold" class="mb-1">Check your email!</P>
+							<P size="sm">We've sent you a login link to sign in.</P>
 						</div>
 					</Alert>
 				{/if}
 
 				{#if error}
-					<Alert color="red"
-						><ErrorList
-							class="text-xs dark:text-black"
-							{error} /></Alert>
+					<Alert color="red"><ErrorList class="text-xs dark:text-black" {error} /></Alert>
 				{/if}
 
 				<div class="mb-6">
 					<Label for="email" class="mb-2 block">Email</Label>
 					<ButtonGroup class="w-full">
 						<InputAddon>
-							<EnvelopeSolid
-								class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+							<EnvelopeSolid class="h-4 w-4 text-gray-500 dark:text-gray-400" />
 						</InputAddon>
 						<Input
 							id="email"
@@ -109,15 +92,12 @@
 							bind:value={email}
 							placeholder="name@company.com"
 							required
-							disabled={success}>
-						</Input>
+							disabled={success}
+						></Input>
 					</ButtonGroup>
 				</div>
 
-				<Button
-					type="submit"
-					class="w-full"
-					disabled={loading || success}>
+				<Button type="submit" class="w-full" disabled={loading || success}>
 					{#if loading}
 						<Spinner class="mr-2" size="4" />
 						Sending...
@@ -128,10 +108,7 @@
 					{/if}
 				</Button>
 
-				<P size="sm" class="text-center">
-					We'll send you an email with a sign-in link. No password
-					needed!
-				</P>
+				<P size="sm" class="text-center">We'll send you an email with a sign-in link. No password needed!</P>
 			</form>
 		</Card>
 	{/if}

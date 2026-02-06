@@ -5,8 +5,30 @@ import {
 	CreateOrderResponseDto,
 	OrderResponseDto,
 	OrdersListResponseDto,
+	OrderStatus,
 	type ApiResponse
 } from '@api/shared';
+
+type StatusColor = 'blue' | 'purple' | 'yellow' | 'green' | 'indigo' | 'red' | 'gray';
+
+interface StatusConfig {
+	label: string;
+	color: StatusColor;
+}
+
+const STATUS_MAP: Record<OrderStatus, StatusConfig> = {
+	[OrderStatus.CREATED]: { label: 'Created', color: 'blue' },
+	[OrderStatus.CALCULATED]: { label: 'Calculated', color: 'indigo' },
+	[OrderStatus.PENDING_PAYMENT]: { label: 'Pending Payment', color: 'yellow' },
+	[OrderStatus.PAID]: { label: 'Paid', color: 'green' },
+	[OrderStatus.QUEUED]: { label: 'Queued', color: 'purple' },
+	[OrderStatus.PROCESSING]: { label: 'Processing', color: 'purple' },
+	[OrderStatus.COMPLETED]: { label: 'Completed', color: 'green' },
+	[OrderStatus.FAILED]: { label: 'Failed', color: 'red' },
+	[OrderStatus.PAYMENT_FAILED]: { label: 'Payment Failed', color: 'red' },
+	[OrderStatus.CANCELLED]: { label: 'Cancelled', color: 'gray' },
+	[OrderStatus.REFUNDED]: { label: 'Refunded', color: 'gray' }
+};
 
 /**
  * Orders API Service
@@ -69,7 +91,30 @@ class OrdersService extends HttpClient {
 
 		return response.blob();
 	}
+
+	/**
+	 * Get status configuration (color and label)
+	 */
+	getStatusConfig(status: OrderStatus): StatusConfig {
+		return STATUS_MAP[status] || { label: status, color: 'gray' };
+	}
+
+	/**
+	 * Check if specific action is available for order based on HATEOAS _links
+	 */
+	hasAction(order: OrderResponseDto, action: string): boolean {
+		return !!(order._links && action in order._links);
+	}
+
+	/**
+	 * Get available actions for order
+	 */
+	getAvailableActions(order: OrderResponseDto): string[] {
+		if (!order._links) return [];
+		return Object.keys(order._links);
+	}
 }
 
 // Singleton instance
 export const ordersService = new OrdersService();
+export type { StatusColor, StatusConfig };

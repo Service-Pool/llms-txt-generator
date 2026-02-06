@@ -1,17 +1,12 @@
 <script lang="ts">
-	import { Card, Input, Label, Button, Helper, Alert } from "flowbite-svelte";
-	import { ordersService } from "$lib/services/orders.service";
-	import { UIError } from "$lib/errors/ui-error";
-	import ErrorList from "$lib/components/general/ErrorList.svelte";
-	import type { CreateOrderResponseDto } from "@api/shared";
+	import { Card, Input, Label, Button, Helper, Alert } from 'flowbite-svelte';
+	import { goto } from '$app/navigation';
+	import { ordersService } from '$lib/services/orders.service';
+	import { configService } from '$lib/services/config.service';
+	import { UIError } from '$lib/errors/ui-error';
+	import ErrorList from '$lib/components/general/ErrorList.svelte';
 
-	interface Props {
-		onCreate: (order: CreateOrderResponseDto) => void;
-	}
-
-	let { onCreate }: Props = $props();
-
-	let hostname = $state("");
+	let hostname = $state('');
 	let submitting = $state(false);
 	let error = $state<string[] | string | null>(null);
 
@@ -30,10 +25,8 @@
 			const response = await ordersService.create({ hostname });
 			const order = response.getData();
 
-			onCreate(order);
-
-			// Reset form
-			hostname = "";
+			// Redirect to order page
+			goto(configService.routes.orderById(order.id));
 		} catch (exception) {
 			if (exception instanceof UIError) {
 				error = exception.context;
@@ -59,12 +52,10 @@
 				bind:value={hostname}
 				disabled={submitting}
 				placeholder="https://example.com"
-				color={!isUrlValid && hostname ? "red" : undefined} />
+				color={!isUrlValid && hostname ? 'red' : undefined}
+			/>
 			{#if !isUrlValid && hostname}
-				<Helper color="red">
-					Please enter a valid URL (must start with http:// or
-					https://)
-				</Helper>
+				<Helper color="red">Please enter a valid URL (must start with http:// or https://)</Helper>
 			{/if}
 		</div>
 
@@ -73,7 +64,7 @@
 		{/if}
 
 		<Button type="submit" disabled={!canCreate} class="w-full">
-			{submitting ? "Creating..." : "Create Order"}
+			{submitting ? 'Creating...' : 'Create Order'}
 		</Button>
 	</form>
 </Card>

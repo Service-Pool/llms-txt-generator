@@ -1,25 +1,17 @@
 <script lang="ts">
-	import { page } from "$app/state";
-	import { goto } from "$app/navigation";
-	import { fly } from "svelte/transition";
-	import { authStore } from "$lib/stores/auth.store.svelte";
-	import { authService } from "$lib/services/auth.service";
-	import { configService } from "$lib/services/config.service";
-	import Spinner from "./Spinner.svelte";
-	import {
-		Navbar,
-		NavBrand,
-		NavLi,
-		NavUl,
-		NavHamburger,
-		Button,
-		DarkMode,
-	} from "flowbite-svelte";
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { fly } from 'svelte/transition';
+	import { authStore } from '$lib/stores/auth.store.svelte';
+	import { authService } from '$lib/services/auth.service';
+	import { configService } from '$lib/services/config.service';
+	import Spinner from './Spinner.svelte';
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
 
 	const navItems = [
-		{ href: configService.routes.home, label: "Home" },
-		{ href: configService.routes.orders, label: "Generate" },
-		{ href: configService.routes.about, label: "About" },
+		{ href: configService.routes.home, label: 'Home' },
+		{ href: configService.routes.orders, label: 'Generate' },
+		{ href: configService.routes.about, label: 'About' }
 	];
 
 	let currentPath = $derived(page.url.pathname);
@@ -33,16 +25,13 @@
 	async function handleLogout() {
 		await authService.logout();
 		authStore.reset();
-		goto("/");
+		goto('/');
 	}
 </script>
 
-<Navbar>
+<Navbar fluid={true} class="sm:px-0 px-0">
 	<NavBrand href="/" class="mb-1">
-		<span
-			class="self-center whitespace-nowrap text-xl font-semibold dark:text-white">
-			LLMs.txt Generator
-		</span>
+		<span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"> LLMs.txt Generator </span>
 	</NavBrand>
 	<div class="flex items-center mb-1">
 		<NavUl transition={fly} activeUrl={currentPath}>
@@ -56,8 +45,7 @@
 		{:else if user}
 			<Button onclick={handleLogout} color="red" size="sm">Logout</Button>
 		{:else}
-			<Button onclick={handleLogin} color="primary" size="sm"
-				>Login</Button>
+			<Button onclick={handleLogin} color="primary" size="sm">Login</Button>
 		{/if}
 		<NavHamburger />
 	</div>
