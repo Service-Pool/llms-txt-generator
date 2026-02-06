@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PaginationNav, Select, Label, Hr } from "flowbite-svelte";
+	import { PaginationNav, Select, Label } from "flowbite-svelte";
 	import {
 		ChevronLeftOutline,
 		ChevronRightOutline,
@@ -14,6 +14,8 @@
 	}
 
 	let { page, limit, total, onPageChange, onLimitChange }: Props = $props();
+
+	const uniqueId = `limit-${Math.random().toString(36).substring(2, 9)}`;
 
 	const totalPages = $derived(Math.ceil(total / limit) || 1);
 	const limitOptions = [
@@ -33,8 +35,6 @@
 	};
 </script>
 
-<Hr divClass="my-8" />
-
 <div class="flex items-center justify-between">
 	<div class="text-sm opacity-75">
 		Page {page} of {totalPages} ({total} total)
@@ -43,10 +43,10 @@
 	<div class="flex items-center gap-4">
 		<!-- Items per page select -->
 		<div class="flex items-center gap-2">
-			<Label for="limit" class="text-sm opacity-75 whitespace-nowrap"
+			<Label for={uniqueId} class="text-sm opacity-75 whitespace-nowrap"
 				>Per page:</Label>
 			<Select
-				id="limit"
+				id={uniqueId}
 				size="sm"
 				class="min-w-16"
 				items={limitOptions}

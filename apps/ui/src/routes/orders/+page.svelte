@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { ordersService } from "$lib/services/orders.service";
-	import { Spinner, Alert, Button } from "flowbite-svelte";
+	import { Spinner, Alert, Button, Hr } from "flowbite-svelte";
 	import { statsStore } from "$lib/stores/stats.store.svelte";
 	import { UIError } from "$lib/errors/ui-error";
 	import ErrorList from "$lib/components/general/ErrorList.svelte";
@@ -91,7 +91,9 @@
 				onPageChange={handlePageChange}
 				onLimitChange={handleLimitChange} />
 		{/if}
+		<Hr class="my-8" />
 		<OrdersList items={orders} />
+		<Hr class="my-8" />
 		{#if total > limit}
 			<Pagination
 				{page}

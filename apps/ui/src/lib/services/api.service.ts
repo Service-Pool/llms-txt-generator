@@ -24,9 +24,10 @@ class HttpClient {
 	 * @param endpoint - API endpoint (e.g., '/orders')
 	 * @param DataClass - Class constructor for deserialization (e.g., Order)
 	 * @param options - Fetch options
+	 * @param fetchFn - Optional fetch function from SvelteKit load context
 	 * @returns Deserialized response with class instances
 	 */
-	protected async fetch<T>(endpoint: string, DataClass?: Deserializable<T>, options?: RequestInit): Promise<ApiResponse<T>> {
+	protected async fetch<T>(endpoint: string, DataClass?: Deserializable<T>, options?: RequestInit, fetchFn?: typeof fetch): Promise<ApiResponse<T>> {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		const controller = new AbortController();
@@ -44,7 +45,8 @@ class HttpClient {
 				(headers as Record<string, string>)['Content-Type'] = 'application/json';
 			}
 
-			const response = await fetch(url, {
+			const fetchFunction = fetchFn || fetch;
+			const response = await fetchFunction(url, {
 				...options,
 				headers,
 				credentials: 'include',

@@ -38,12 +38,14 @@
 </svelte:head>
 
 <div
-	class="min-h-screen flex flex-col px-5 bg-gray-50 dark:bg-gray-900 overflow-x-hidden max-w-full">
+	class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-x-hidden max-w-full">
 	<!-- Header -->
-	<Navigation />
+	<div class="px-5">
+		<Navigation />
+	</div>
 
 	<!-- Main Content -->
-	<main class="container flex-1 w-full max-w-7xl mx-auto px-4 py-8">
+	<main class="container flex-1 w-full max-w-7xl mx-auto px-5 py-8 relative">
 		{@render children()}
 	</main>
 

@@ -54,10 +54,12 @@ class AuthService extends HttpClient {
 	/**
 	 * Get current authentication status
 	 */
-	public async getStatus(): Promise<ApiResponse<AuthStatusDtoResponse>> {
+	public async getStatus(fetchFn?: typeof fetch): Promise<ApiResponse<AuthStatusDtoResponse>> {
 		return this.fetch(
 			configService.endpoints.auth.status,
-			AuthStatusDtoResponse
+			AuthStatusDtoResponse,
+			undefined,
+			fetchFn
 		);
 	}
 }

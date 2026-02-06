@@ -11,7 +11,7 @@
 	<title>{status} - {error?.message || "Error"}</title>
 </svelte:head>
 
-<div class="flex flex-1 items-center justify-center">
+<div class="absolute inset-0 flex items-center justify-center">
 	<div class="text-center max-w-md mx-auto px-4">
 		<!-- Error Code -->
 		<div class="mb-8">

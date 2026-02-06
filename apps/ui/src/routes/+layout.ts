@@ -1,12 +1,13 @@
 import { authService } from '$lib/services/auth.service';
 import { authStore } from '$lib/stores/auth.store.svelte';
+import type { LoadEvent } from '@sveltejs/kit';
 
 // Disable SSR for the app
 const ssr = false;
 
-const load = async () => {
+const load = async ({ fetch }: LoadEvent) => {
 	try {
-		const res = await authService.getStatus();
+		const res = await authService.getStatus(fetch);
 		const data = res.getData();
 
 		if (data.user && data.authenticated) {
