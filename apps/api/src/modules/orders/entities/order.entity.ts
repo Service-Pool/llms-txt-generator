@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Currency } from '../../../enums/currency.enum';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { User } from '../../users/entities/user.entity';
-import { AiModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../../ai-models/entities/ai-model-config.entity';
 
 @Entity('orders')
 class Order {
@@ -74,7 +74,7 @@ class Order {
 	 * Synthetic property populated by OrderSubscriber.
 	 * Contains model configuration if modelId is set.
 	 */
-	modelConfig: AiModelConfigDto | null = null;
+	aiModelConfig: AiModelConfig | null = null;
 }
 
 export { Order };

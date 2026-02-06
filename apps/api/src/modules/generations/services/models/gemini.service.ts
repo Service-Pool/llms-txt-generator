@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { GoogleGenAI } from '@google/genai';
-import { AiModelConfigDto } from '../../../ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
 import { LLMProviderService, PageContent } from '../llm-provider.service';
 
 class GeminiService extends LLMProviderService {
 	private readonly logger = new Logger(GeminiService.name);
 	private readonly ai: GoogleGenAI;
-	private readonly config: AiModelConfigDto;
+	private readonly config: AiModelConfig;
 
-	constructor(config: AiModelConfigDto) {
+	constructor(config: AiModelConfig) {
 		super();
 		this.config = config;
 

@@ -1,14 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { Ollama, GenerateRequest } from 'ollama';
-import { AiModelConfigDto } from '../../../ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
 import { LLMProviderService, PageContent } from '../llm-provider.service';
 
 class OllamaService extends LLMProviderService {
 	private readonly logger = new Logger(OllamaService.name);
 	private readonly ollama: Ollama;
-	private readonly config: AiModelConfigDto;
+	private readonly config: AiModelConfig;
 
-	constructor(config: AiModelConfigDto) {
+	constructor(config: AiModelConfig) {
 		super();
 		this.config = config;
 
@@ -68,7 +68,7 @@ JSON Response:`;
 			try {
 				// Удаляем возможные markdown код-блоки
 				const jsonText = fullText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-				parsed = JSON.parse(jsonText);
+				parsed = JSON.parse(jsonText) as Array<{ summary: string }>;
 			} catch (parseError) {
 				throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
 			}

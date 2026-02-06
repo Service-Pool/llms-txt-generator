@@ -12,7 +12,7 @@ import { UsersService } from '../../users/services/users.service';
 import { StripeService } from '../../payments/services/stripe.service';
 import { AppConfigService } from '../../../config/config.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AiModelConfigDto } from '../../../modules/ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../../../modules/ai-models/entities/ai-model-config.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
@@ -137,7 +137,7 @@ class OrdersService {
 	 * Queue order for processing
 	 * Saves pricing, transitions to QUEUED, and adds to processing queue
 	 */
-	private async queueOrder(order: Order, modelConfig: AiModelConfigDto): Promise<Order> {
+	private async queueOrder(order: Order, modelConfig: AiModelConfig): Promise<Order> {
 		OrderStatusMachine.validateTransition(order.status, OrderStatus.QUEUED);
 
 		// Set pricing only if not already set (free orders) or model changed

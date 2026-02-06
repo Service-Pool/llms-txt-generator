@@ -2,7 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 import { Currency } from '../enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { AiModelConfigDto } from '../modules/ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../modules/ai-models/entities/ai-model-config.entity';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 
@@ -135,7 +135,7 @@ class AppConfigService {
 		path: env.SOCKET_PATH
 	};
 
-	public readonly modelsConfig = ((): AiModelConfigDto[] => {
+	public readonly aiModelConfig = ((): AiModelConfig[] => {
 		try {
 			const interpolated = interpolateEnvVariables(env.MODELS_CONFIG);
 			const parsed = JSON.parse(interpolated) as unknown[];
@@ -144,23 +144,25 @@ class AppConfigService {
 				throw new Error('MODELS_CONFIG must be an array');
 			}
 
-			return parsed.map((item: AiModelConfigDto) => {
-				return new AiModelConfigDto(
-					item.id,
-					item.category,
-					Currency[env.STRIPE_CURRENCY as keyof typeof Currency],
-					item.displayName,
-					item.description,
-					item.serviceClass,
-					item.modelName,
-					item.baseRate,
-					item.pageLimit,
-					item.queueName,
-					item.queueType,
-					item.batchSize,
-					item.options,
-					item.enabled
-				);
+			return parsed.map((item: unknown) => {
+				const json = item as AiModelConfig;
+				const config: AiModelConfig = {
+					id: json.id,
+					category: json.category,
+					currency: Currency[env.STRIPE_CURRENCY as keyof typeof Currency],
+					displayName: json.displayName,
+					description: json.description,
+					serviceClass: json.serviceClass,
+					modelName: json.modelName,
+					baseRate: json.baseRate,
+					pageLimit: json.pageLimit,
+					queueName: json.queueName,
+					queueType: json.queueType,
+					batchSize: json.batchSize,
+					options: json.options,
+					enabled: json.enabled
+				};
+				return config;
 			});
 		} catch (error) {
 			throw new InternalServerErrorException(`Failed to parse MODELS_CONFIG: ${error instanceof Error ? error.message : String(error)}`);

@@ -1,25 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '../../../config/config.service';
-import { AiModelConfigDto } from '../dto/ai-model-config.dto';
+import { AiModelConfigRepository } from '../repositories/ai-model-config.repository';
 import { AvailableAiModelDto } from '../dto/available-ai-model.dto';
+import { AiModelConfig } from '../entities/ai-model-config.entity';
 
+/**
+ * Service for working with AI Model configurations
+ * Uses repository pattern for future database migration
+ */
 @Injectable()
 class AiModelsConfigService {
-	constructor(private readonly configService: AppConfigService) { }
+	constructor(private readonly repository: AiModelConfigRepository) { }
 
 	/**
-	 * Get all available model configurations from MODELS_CONFIG
+	 * Get all available model configurations
 	 */
-	public getAllModels(): AiModelConfigDto[] {
-		return this.configService.modelsConfig;
+	public getAllModels(): AiModelConfig[] {
+		return this.repository.find();
+	}
+
+	/**
+	 * Get model configuration by ID (synchronous for subscribers)
+	 */
+	public getModelByIdSync(id: string): AiModelConfig | null {
+		return this.repository.findOneSync(id);
 	}
 
 	/**
 	 * Get model configuration by ID
 	 */
-	public getModelById(id: string): AiModelConfigDto | null {
-		const models = this.getAllModels();
-		return models.find(m => m.id === id) || null;
+	public getModelById(id: string): AiModelConfig | null {
+		const entity = this.repository.findOne({ where: { id } });
+		return entity;
 	}
 
 	/**

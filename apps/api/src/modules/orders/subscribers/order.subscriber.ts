@@ -23,7 +23,7 @@ class OrderSubscriber implements EntitySubscriberInterface<Order> {
 	 */
 	afterLoad(entity: Order): void {
 		if (entity.modelId) {
-			entity.modelConfig = this.aiModelsConfigService.getModelById(entity.modelId);
+			entity.aiModelConfig = this.aiModelsConfigService.getModelByIdSync(entity.modelId);
 		}
 	}
 }

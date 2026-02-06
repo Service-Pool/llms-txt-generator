@@ -1,5 +1,5 @@
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { AiModelConfigDto } from '../../ai-models/dto/ai-model-config.dto';
+import { AiModelConfig } from '../../ai-models/entities/ai-model-config.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
@@ -156,7 +156,7 @@ class OrderAvailableAiModelDto {
 		return dto;
 	}
 
-	public static createFromModelConfig(modelConfig: AiModelConfigDto, totalUrls: number): OrderAvailableAiModelDto {
+	public static createFromModelConfig(modelConfig: AiModelConfig, totalUrls: number): OrderAvailableAiModelDto {
 		const dto = new OrderAvailableAiModelDto();
 		dto.id = modelConfig.id;
 		dto.available = true;
@@ -270,7 +270,7 @@ class CreateOrderResponseDto {
 class OrderResponseDto {
 	id: number;
 	userId: number | null;
-	currentAiModel: OrderAvailableAiModelDto | null = null;
+	currentAiModel: OrderAvailableAiModelDto | null;
 	currency: string;
 	currencySymbol: string;
 	errors: string[] | null;
@@ -294,6 +294,9 @@ class OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.id = entity.id;
 		dto.userId = entity.userId;
+		dto.currentAiModel = entity.aiModelConfig
+			? OrderAvailableAiModelDto.createFromModelConfig(entity.aiModelConfig, entity.totalUrls || 0)
+			: null;
 		dto.currency = entity.priceCurrency;
 		dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
 		dto.errors = entity.errors;
@@ -311,11 +314,6 @@ class OrderResponseDto {
 		dto.completedAt = entity.completedAt;
 		dto.createdAt = entity.createdAt;
 		dto.updatedAt = entity.updatedAt;
-
-		if (entity.modelConfig) {
-			dto.currentAiModel = OrderAvailableAiModelDto.createFromModelConfig(entity.modelConfig, entity.totalUrls || 0);
-		}
-
 		dto._links = buildOrderLinks(entity);
 
 		return dto;

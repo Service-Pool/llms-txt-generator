@@ -13,8 +13,8 @@ class AiModelValidator implements ValidatorConstraintInterface {
 
 	public validate(modelId: string): boolean {
 		try {
-			this.aiModelsConfigService.getModelById(modelId);
-			return true;
+			const model = this.aiModelsConfigService.getModelById(modelId);
+			return !!model;
 		} catch {
 			return false;
 		}
