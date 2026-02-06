@@ -273,7 +273,7 @@ class OrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.id = json.id as number;
-		dto.userId = json.userId as number | null;
+		// dto.userId = json.userId as number | null;
 		dto.currentAiModel = json.currentAiModel
 			? AvailableAiModelDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
 			: null;
@@ -281,7 +281,7 @@ class OrderResponseDto {
 		dto.currencySymbol = json.currencySymbol as string;
 		dto.errors = json.errors as string[] | null;
 		dto.hostname = json.hostname as string;
-		dto.jobId = json.jobId as string | null;
+		// dto.jobId = json.jobId as string | null;
 		dto.output = json.output as string | null;
 		dto.pricePerUrl = json.pricePerUrl as number | null;
 		dto.priceTotal = json.priceTotal as number | null;
