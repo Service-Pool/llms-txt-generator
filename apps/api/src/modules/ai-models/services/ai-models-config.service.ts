@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { AiModelConfigRepository } from '../repositories/ai-model-config.repository';
 import { AvailableAiModelDto } from '../dto/available-ai-model.dto';
 import { AiModelConfig } from '../entities/ai-model-config.entity';
+import { AppConfigService } from '../../../config/config.service';
+import { Currency } from '../../../enums/currency.enum';
 
 /**
  * Service for working with AI Model configurations
@@ -9,7 +11,10 @@ import { AiModelConfig } from '../entities/ai-model-config.entity';
  */
 @Injectable()
 class AiModelsConfigService {
-	constructor(private readonly repository: AiModelConfigRepository) { }
+	constructor(
+		private readonly repository: AiModelConfigRepository,
+		private readonly configService: AppConfigService
+	) { }
 
 	/**
 	 * Get all available model configurations
@@ -35,26 +40,49 @@ class AiModelsConfigService {
 
 	/**
 	 * Get available models for specific order parameters
-	 * Paid models (baseRate > 0) are available to all, but require authentication at runOrder
+	 * Uses getModelPricing to ensure consistent pricing with Stripe minimum applied
 	 */
 	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableAiModelDto[] {
 		const models = this.getAllModels();
 
 		return models.map((model) => {
-			return AvailableAiModelDto.fromModelConfig(model, totalUrls);
+			const pricing = this.getModelPricing(model.id, totalUrls);
+			return AvailableAiModelDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
 		});
 	}
 
 	/**
-	 * Calculate total price for a model and number of URLs
+	 * Get model pricing information with Stripe minimum payment applied
+	 * Returns all data needed for order calculation
 	 */
-	public calculatePrice(modelId: string, totalUrls: number): number {
-		const model = this.getModelById(modelId);
-		if (!model) {
+	public getModelPricing(modelId: string, totalUrls: number): {
+		modelConfig: AiModelConfig;
+		pricePerUrl: number;
+		priceCurrency: Currency;
+		priceTotal: number;
+	} {
+		const modelConfig = this.getModelById(modelId);
+		if (!modelConfig) {
 			throw new Error(`Model ${modelId} not found`);
 		}
 
-		return model.baseRate * totalUrls;
+		const pricePerUrl = modelConfig.baseRate;
+		const priceCurrency = modelConfig.currency;
+		const minPayment = this.configService.stripe.minPayment;
+
+		let priceTotal = pricePerUrl * totalUrls;
+
+		// Apply Stripe minimum payment if price is below threshold
+		if (priceTotal > 0 && priceTotal < minPayment) {
+			priceTotal = minPayment;
+		}
+
+		return {
+			modelConfig,
+			pricePerUrl,
+			priceCurrency,
+			priceTotal
+		};
 	}
 
 	/**

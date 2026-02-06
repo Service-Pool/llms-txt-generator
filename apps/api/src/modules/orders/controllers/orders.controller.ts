@@ -3,6 +3,7 @@ import { Controller, Post, Get, Query, Body, Param, HttpCode, HttpStatus, Res, P
 import { CreateOrderRequestDto, CalculateOrderRequestDto } from '../dto/order-request.dto';
 import { FastifyReply } from 'fastify';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
 
@@ -21,13 +22,7 @@ class OrdersController {
 	@HttpCode(HttpStatus.CREATED)
 	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<CreateOrderResponseDto>> {
 		const order = await this.ordersService.createOrder(dto.hostname);
-
-		// Calculate available models based on totalUrls
-		const availableAiModels = this.aiModelsConfigService.getAvailableModels(
-			order.totalUrls,
-			!!order.userId
-		);
-
+		const availableAiModels = this.ordersService.getAvailableAiModels(order);
 		return ApiResponse.success(CreateOrderResponseDto.create(order, availableAiModels));
 	}
 
@@ -84,6 +79,18 @@ class OrdersController {
 		const order = await this.ordersService.getUserOrder(id);
 
 		return ApiResponse.success(OrderResponseDto.create(order));
+	}
+
+	/**
+	 * Get available AI models for an order
+	 * GET /api/orders/:id/available-models
+	 */
+	@Get(':id/available-models')
+	@HttpCode(HttpStatus.OK)
+	public async getAvailableAiModels(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<AvailableAiModelDto[]>> {
+		const order = await this.ordersService.getUserOrder(id);
+		const availableAiModels = this.ordersService.getAvailableAiModels(order);
+		return ApiResponse.success(availableAiModels);
 	}
 
 	/**

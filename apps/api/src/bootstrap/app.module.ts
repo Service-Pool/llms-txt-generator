@@ -1,4 +1,3 @@
-import { ApiResponse } from '../utils/response/api-response';
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
 import { AuthModule } from '../modules/auth/auth.module';
@@ -65,9 +64,7 @@ import { StatsModule } from '../modules/stats/stats.module';
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		})
-	],
-	providers: [ApiResponse],
-	exports: [ApiResponse]
+	]
 })
 
 export class AppModule { }

@@ -37,6 +37,27 @@ interface ValidatedEnv {
 	AES_IV: string;
 }
 
+const aiModelConfigSchema = Joi.object({
+	id: Joi.string().required(),
+	category: Joi.string().required(),
+	displayName: Joi.string().required(),
+	description: Joi.string().required(),
+	serviceClass: Joi.string().required(),
+	modelName: Joi.string().required(),
+	baseRate: Joi.number().min(0).required(),
+	pageLimit: Joi.alternatives().try(Joi.number().positive(), Joi.boolean().valid(false)).required(),
+	queueName: Joi.string().required(),
+	queueType: Joi.string().valid('local', 'cloud').required(),
+	batchSize: Joi.number().positive().required(),
+	enabled: Joi.boolean().required(),
+	options: Joi.object({
+		apiKey: Joi.string().optional(),
+		baseUrl: Joi.string().optional(),
+		temperature: Joi.number().min(0).max(2).required(),
+		maxTokens: Joi.number().positive().required()
+	}).required()
+});
+
 const validationSchema = Joi.object<ValidatedEnv>({
 	DB_HOST: Joi.string().required(),
 	DB_NAME: Joi.string().required(),
@@ -140,12 +161,14 @@ class AppConfigService {
 			const interpolated = interpolateEnvVariables(env.MODELS_CONFIG);
 			const parsed = JSON.parse(interpolated) as unknown[];
 
-			if (!Array.isArray(parsed)) {
-				throw new Error('MODELS_CONFIG must be an array');
-			}
+			return parsed.map((item: unknown, index: number) => {
+				const validationResult = aiModelConfigSchema.validate(item, { abortEarly: false });
 
-			return parsed.map((item: unknown) => {
-				const json = item as AiModelConfig;
+				if (validationResult.error) {
+					throw new Error(`Model config [${index}] validation failed: ${validationResult.error.message}`);
+				}
+
+				const json = validationResult.value as AiModelConfig;
 				const config: AiModelConfig = {
 					id: json.id,
 					category: json.category,

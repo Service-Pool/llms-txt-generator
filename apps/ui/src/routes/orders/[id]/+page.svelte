@@ -5,10 +5,11 @@
 	import { ordersService } from '$lib/services/orders.service';
 	import { configService } from '$lib/services/config.service';
 	import { Spinner, Alert, Heading, Button } from 'flowbite-svelte';
-	import { ArrowLeftOutline, ChartMixedDollarSolid, CashSolid, FireSolid, DownloadSolid } from 'flowbite-svelte-icons';
+	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import OrderStatusBadge from '$lib/components/OrderStatusBadge.svelte';
+	import OrderActions from '$lib/components/OrderActions.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
 	const orderId = $derived(Number(page.params.id));
@@ -141,10 +142,7 @@
 	<!-- Actions Section -->
 	<div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 mb-8">
 		<Heading tag="h2" class="text-xl font-semibold mb-4">Available Actions</Heading>
-		<div class="flex gap-3">
-			<!-- TODO: Add action buttons based on order._links -->
-			<p class="text-gray-500 dark:text-gray-400">Actions will be displayed here based on order status</p>
-		</div>
+		<OrderActions {order} onUpdate={loadOrder} />
 	</div>
 
 	<!-- Timeline / Metadata -->

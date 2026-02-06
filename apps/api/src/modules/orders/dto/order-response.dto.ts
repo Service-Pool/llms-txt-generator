@@ -1,5 +1,4 @@
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { AiModelConfig } from '../../ai-models/entities/ai-model-config.entity';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
@@ -124,91 +123,26 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 	return links;
 }
 
-class OrderAvailableAiModelDto {
-	id: string;
-	available: boolean;
-	baseRate: number;
-	category: string;
-	currency: string;
-	currencySymbol: string;
-	description: string;
-	displayName: string;
-	pageLimit: number | false;
-	price: number;
-	totalPrice: number;
-	unavailableReason: string | null;
-
-	public static createFromAvailableModels(model: AvailableAiModelDto): OrderAvailableAiModelDto {
-		const dto = new OrderAvailableAiModelDto();
-		dto.id = model.id;
-		dto.available = model.available;
-		dto.baseRate = model.baseRate;
-		dto.category = model.category;
-		dto.currency = model.currency;
-		dto.currencySymbol = CURRENCY_SYMBOLS[model.currency];
-		dto.description = model.description;
-		dto.displayName = model.displayName;
-		dto.pageLimit = model.pageLimit;
-		dto.price = model.price;
-		dto.totalPrice = model.totalPrice;
-		dto.unavailableReason = model.unavailableReason;
-
-		return dto;
-	}
-
-	public static createFromModelConfig(modelConfig: AiModelConfig, totalUrls: number): OrderAvailableAiModelDto {
-		const dto = new OrderAvailableAiModelDto();
-		dto.id = modelConfig.id;
-		dto.available = true;
-		dto.baseRate = modelConfig.baseRate;
-		dto.category = modelConfig.category;
-		dto.description = modelConfig.description;
-		dto.displayName = modelConfig.displayName;
-		dto.pageLimit = modelConfig.pageLimit;
-		dto.price = modelConfig.baseRate;
-		dto.totalPrice = modelConfig.baseRate * totalUrls;
-		dto.unavailableReason = null;
-
-		return dto;
-	}
-
-	public static fromJSON(json: Record<string, unknown>): OrderAvailableAiModelDto {
-		const dto = new OrderAvailableAiModelDto();
-		dto.id = json.id as string;
-		dto.available = json.available as boolean;
-		dto.baseRate = json.baseRate as number;
-		dto.category = json.category as string;
-		dto.currency = json.currency as string;
-		dto.currencySymbol = json.currencySymbol as string;
-		dto.description = json.description as string;
-		dto.displayName = json.displayName as string;
-		dto.pageLimit = json.pageLimit as number | false;
-		dto.price = json.price as number;
-		dto.totalPrice = json.totalPrice as number;
-		dto.unavailableReason = json.unavailableReason as string | null;
-
-		return dto;
-	}
-}
-
 class CreateOrderResponseDto {
 	id: number;
-	userId: number | null;
-	availableAiModels: OrderAvailableAiModelDto[];
-	errors: string[] | null;
+	// userId: number | null;
+	availableAiModels: AvailableAiModelDto[];
+	// currency: string;
+	// currencySymbol: string;
+	// errors: string[] | null;
 	hostname: string;
-	jobId: string | null;
+	// jobId: string | null;
 	modelId: string | null;
-	output: string | null;
-	pricePerUrl: number | null;
-	priceTotal: number | null;
-	processedUrls: number;
-	startedAt: Date | null;
+	// output: string | null;
+	// pricePerUrl: number | null;
+	// priceTotal: number | null;
+	// processedUrls: number;
+	// startedAt: Date | null;
 	status: OrderStatus;
-	stripePaymentIntentSecret: string | null;
-	stripeSessionId: string | null;
+	// stripePaymentIntentSecret: string | null;
+	// stripeSessionId: string | null;
 	totalUrls: number | null;
-	completedAt: Date | null;
+	// completedAt: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
 	_links: Record<string, HateoasLink>;
@@ -216,22 +150,24 @@ class CreateOrderResponseDto {
 	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.id = entity.id;
-		dto.userId = entity.userId;
-		dto.availableAiModels = availableAiModels.map(m => OrderAvailableAiModelDto.createFromAvailableModels(m));
-		dto.errors = entity.errors;
+		// dto.userId = entity.userId;
+		dto.availableAiModels = availableAiModels;
+		// dto.currency = entity.priceCurrency;
+		// dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
+		// dto.errors = entity.errors;
 		dto.hostname = entity.hostname;
-		dto.jobId = entity.jobId;
+		// dto.jobId = entity.jobId;
 		dto.modelId = entity.modelId;
-		dto.output = entity.output;
-		dto.pricePerUrl = entity.pricePerUrl;
-		dto.priceTotal = entity.priceTotal;
-		dto.processedUrls = entity.processedUrls;
-		dto.startedAt = entity.startedAt;
+		// dto.output = entity.output;
+		// dto.pricePerUrl = entity.pricePerUrl;
+		// dto.priceTotal = entity.priceTotal;
+		// dto.processedUrls = entity.processedUrls;
+		// dto.startedAt = entity.startedAt;
 		dto.status = entity.status;
-		dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
-		dto.stripeSessionId = entity.stripeSessionId;
+		// dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
+		// dto.stripeSessionId = entity.stripeSessionId;
 		dto.totalUrls = entity.totalUrls;
-		dto.completedAt = entity.completedAt;
+		// dto.completedAt = entity.completedAt;
 		dto.createdAt = entity.createdAt;
 		dto.updatedAt = entity.updatedAt;
 		dto._links = buildOrderLinks(entity);
@@ -242,23 +178,22 @@ class CreateOrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.id = json.id as number;
-		dto.userId = json.userId as number | null;
-		dto.availableAiModels = (json.availableAiModels as Record<string, unknown>[]).map(m =>
-			OrderAvailableAiModelDto.fromJSON(m));
-		dto.errors = json.errors as string[] | null;
+		// dto.userId = json.userId as number | null;
+		dto.availableAiModels = AvailableAiModelDto.fromJSON(json.availableAiModels);
+		// dto.errors = json.errors as string[] | null;
 		dto.hostname = json.hostname as string;
-		dto.jobId = json.jobId as string | null;
+		// dto.jobId = json.jobId as string | null;
 		dto.modelId = json.modelId as string | null;
-		dto.output = json.output as string | null;
-		dto.pricePerUrl = json.pricePerUrl as number | null;
-		dto.priceTotal = json.priceTotal as number | null;
-		dto.processedUrls = json.processedUrls as number;
-		dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
+		// dto.output = json.output as string | null;
+		// dto.pricePerUrl = json.pricePerUrl as number | null;
+		// dto.priceTotal = json.priceTotal as number | null;
+		// dto.processedUrls = json.processedUrls as number;
+		// dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
 		dto.status = json.status as OrderStatus;
-		dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
-		dto.stripeSessionId = json.stripeSessionId as string | null;
+		// dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
+		// dto.stripeSessionId = json.stripeSessionId as string | null;
 		dto.totalUrls = json.totalUrls as number | null;
-		dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
+		// dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
 		dto.createdAt = new Date(json.createdAt as string);
 		dto.updatedAt = new Date(json.updatedAt as string);
 		dto._links = json._links as Record<string, HateoasLink>;
@@ -269,13 +204,13 @@ class CreateOrderResponseDto {
 
 class OrderResponseDto {
 	id: number;
-	userId: number | null;
-	currentAiModel: OrderAvailableAiModelDto | null;
+	// userId: number | null;
+	currentAiModel: AvailableAiModelDto | null;
 	currency: string;
 	currencySymbol: string;
 	errors: string[] | null;
 	hostname: string;
-	jobId: string | null;
+	// jobId: string | null;
 	output: string | null;
 	pricePerUrl: number | null;
 	priceTotal: number | null;
@@ -293,15 +228,13 @@ class OrderResponseDto {
 	public static create(entity: Order): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.id = entity.id;
-		dto.userId = entity.userId;
-		dto.currentAiModel = entity.aiModelConfig
-			? OrderAvailableAiModelDto.createFromModelConfig(entity.aiModelConfig, entity.totalUrls || 0)
-			: null;
+		// dto.userId = entity.userId;
+		dto.currentAiModel = null;
 		dto.currency = entity.priceCurrency;
 		dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
 		dto.errors = entity.errors;
 		dto.hostname = entity.hostname;
-		dto.jobId = entity.jobId;
+		// dto.jobId = entity.jobId;
 		dto.output = entity.output;
 		dto.pricePerUrl = entity.pricePerUrl;
 		dto.priceTotal = entity.priceTotal;
@@ -316,6 +249,24 @@ class OrderResponseDto {
 		dto.updatedAt = entity.updatedAt;
 		dto._links = buildOrderLinks(entity);
 
+		// Build currentAiModel from entity data (no intermediate conversions)
+		// entity.aiModelConfig is a synthetic property populated by OrderSubscriber based on entity.modelId
+		if (entity.modelId) {
+			const aiModelDto = new AvailableAiModelDto();
+			aiModelDto.id = entity.aiModelConfig.id;
+			aiModelDto.available = true;
+			aiModelDto.baseRate = entity.aiModelConfig.baseRate;
+			aiModelDto.category = entity.aiModelConfig.category;
+			aiModelDto.currency = entity.priceCurrency;
+			aiModelDto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
+			aiModelDto.description = entity.aiModelConfig.description;
+			aiModelDto.displayName = entity.aiModelConfig.displayName;
+			aiModelDto.pageLimit = entity.aiModelConfig.pageLimit;
+			aiModelDto.totalPrice = entity.priceTotal;
+			aiModelDto.unavailableReason = null;
+			dto.currentAiModel = aiModelDto;
+		}
+
 		return dto;
 	}
 
@@ -324,7 +275,7 @@ class OrderResponseDto {
 		dto.id = json.id as number;
 		dto.userId = json.userId as number | null;
 		dto.currentAiModel = json.currentAiModel
-			? OrderAvailableAiModelDto.fromJSON(json.currentAiModel as Record<string, unknown>)
+			? AvailableAiModelDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
 			: null;
 		dto.currency = json.currency as string;
 		dto.currencySymbol = json.currencySymbol as string;

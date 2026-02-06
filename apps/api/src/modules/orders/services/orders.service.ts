@@ -10,9 +10,9 @@ import { QueueService } from '../../queue/services/queue.service';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { UsersService } from '../../users/services/users.service';
 import { StripeService } from '../../payments/services/stripe.service';
-import { AppConfigService } from '../../../config/config.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AiModelConfig } from '../../../modules/ai-models/entities/ai-model-config.entity';
+import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
@@ -29,7 +29,6 @@ class OrdersService {
 		private readonly queueService: QueueService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly stripeService: StripeService,
-		private readonly configService: AppConfigService,
 		private readonly dataSource: DataSource
 	) { }
 
@@ -43,24 +42,13 @@ class OrdersService {
 		// Validate and transition to CALCULATED status
 		OrderStatusMachine.validateTransition(order.status, OrderStatus.CALCULATED);
 
-		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
-		const totalUrls = order.totalUrls;
-		const pricePerUrl = modelConfig.baseRate;
-		const priceCurrency = modelConfig.currency;
-		const minPayment = this.configService.stripe.minPayment;
+		// Get pricing information from AI models service
+		const pricing = this.aiModelsConfigService.getModelPricing(modelId, order.totalUrls);
 
-		let priceTotal = this.aiModelsConfigService.calculatePrice(modelId, totalUrls);
-
-		// Apply Stripe minimum payment if price is below threshold
-		if (priceTotal > 0 && priceTotal < minPayment) {
-			priceTotal = minPayment;
-		}
-
-		order.modelId = modelConfig.id;
-		order.priceTotal = priceTotal;
-		order.pricePerUrl = pricePerUrl;
-		order.priceCurrency = priceCurrency;
-		order.totalUrls = totalUrls;
+		order.modelId = pricing.modelConfig.id;
+		order.priceTotal = pricing.priceTotal;
+		order.pricePerUrl = pricing.pricePerUrl;
+		order.priceCurrency = pricing.priceCurrency;
 		order.status = OrderStatus.CALCULATED;
 
 		return this.orderRepository.save(order);
@@ -142,16 +130,12 @@ class OrdersService {
 
 		// Set pricing only if not already set (free orders) or model changed
 		if (!order.modelId || order.modelId !== modelConfig.id) {
-			const totalUrls = order.totalUrls;
-			const pricePerUrl = modelConfig.baseRate;
-			const priceTotal = this.aiModelsConfigService.calculatePrice(modelConfig.id, totalUrls);
-			const priceCurrency = modelConfig.currency;
+			const pricing = this.aiModelsConfigService.getModelPricing(modelConfig.id, order.totalUrls);
 
-			order.modelId = modelConfig.id;
-			order.priceTotal = priceTotal;
-			order.pricePerUrl = pricePerUrl;
-			order.priceCurrency = priceCurrency;
-			order.totalUrls = totalUrls;
+			order.modelId = pricing.modelConfig.id;
+			order.priceTotal = pricing.priceTotal;
+			order.pricePerUrl = pricing.pricePerUrl;
+			order.priceCurrency = pricing.priceCurrency;
 		}
 
 		order.status = OrderStatus.QUEUED;
@@ -247,6 +231,17 @@ class OrdersService {
 		}
 
 		return order;
+	}
+
+	/**
+	 * Get available AI models for an order based on its context
+	 * Models are calculated based on totalUrls and user authentication status
+	 */
+	public getAvailableAiModels(order: Order): AvailableAiModelDto[] {
+		return this.aiModelsConfigService.getAvailableModels(
+			order.totalUrls,
+			!!order.userId
+		);
 	}
 
 	/**

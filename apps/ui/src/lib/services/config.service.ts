@@ -16,6 +16,7 @@ class ConfigService {
 		orders: {
 			base: '/api/orders',
 			byId: (id: number) => `/api/orders/${id}`,
+			availableModels: (id: number) => `/api/orders/${id}/available-models`,
 			calculate: (id: number) => `/api/orders/${id}/calculate`,
 			run: (id: number) => `/api/orders/${id}/run`,
 			download: (id: number) => `/api/orders/${id}/download`

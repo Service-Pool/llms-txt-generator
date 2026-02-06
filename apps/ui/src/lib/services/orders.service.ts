@@ -5,6 +5,7 @@ import {
 	CreateOrderResponseDto,
 	OrderResponseDto,
 	OrdersListResponseDto,
+	AvailableAiModelDto,
 	OrderStatus,
 	type ApiResponse
 } from '@api/shared';
@@ -50,6 +51,13 @@ class OrdersService extends HttpClient {
 	 */
 	async getById(id: number): Promise<ApiResponse<OrderResponseDto>> {
 		return this.fetch(configService.endpoints.orders.byId(id), OrderResponseDto);
+	}
+
+	/**
+	 * Get available AI models for an order
+	 */
+	async getAvailableModels(id: number): Promise<ApiResponse<AvailableAiModelDto[]>> {
+		return this.fetch(configService.endpoints.orders.availableModels(id), AvailableAiModelDto);
 	}
 
 	/**
