@@ -54,98 +54,96 @@
 	};
 </script>
 
-<div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-	<h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
-		<ChartMixedDollarSolid class="w-5 h-5 inline me-2 text-purple-600 dark:text-purple-400" />
-		Select AI Model
-	</h3>
+<h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
+	<ChartMixedDollarSolid class="w-5 h-5 inline me-2 text-purple-600 dark:text-purple-400" />
+	Select AI Model
+</h3>
 
-	{#if isLoadingModels}
-		<p class="text-sm text-gray-500">Loading available models...</p>
-	{:else if availableModels.length === 0}
-		<p class="text-sm text-gray-500">No models available</p>
-	{:else}
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each availableModels as model}
-				<Card
-					class="max-w-none p-4 h-full flex flex-col relative overflow-hidden {selectedModelId === model.id
-						? 'ring-2 ring-purple-500'
-						: ''}"
-				>
-					<div
-						class="absolute inset-0 opacity-10 dark:invert"
-						style="background-image: url('/pattern.svg'); background-size: cover; background-repeat: repeat;"
-					></div>
+{#if isLoadingModels}
+	<p class="text-sm text-gray-500">Loading available models...</p>
+{:else if availableModels.length === 0}
+	<p class="text-sm text-gray-500">No models available</p>
+{:else}
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		{#each availableModels as model}
+			<Card
+				class="max-w-none p-4 h-full flex flex-col relative overflow-hidden {selectedModelId === model.id
+					? 'ring-2 ring-purple-500'
+					: ''}"
+			>
+				<div
+					class="absolute inset-0 opacity-10 dark:invert"
+					style="background-image: url('/pattern.svg'); background-size: cover; background-repeat: repeat;"
+				></div>
 
-					<div class="relative z-10 flex-1 space-y-3">
-						<!-- Model Name & Category -->
-						<div>
-							<h5 class="text-lg font-medium text-gray-900 dark:text-white">
-								{model.displayName}
-							</h5>
-							<p class="text-xs text-gray-500 dark:text-gray-400 uppercase">
-								{model.category}
-							</p>
-						</div>
-
-						<!-- Price -->
-						{#if model.totalPrice > 0}
-							<div class="flex items-baseline">
-								<span class="text-2xl font-semibold text-gray-900 dark:text-white">
-									{model.currencySymbol}
-								</span>
-								<span class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-									{model.totalPrice.toFixed(2)}
-								</span>
-							</div>
-						{:else}
-							<div class="text-2xl font-semibold text-gray-900 dark:text-white">Free</div>
-						{/if}
-
-						<!-- Features -->
-						<ul class="space-y-2">
-							{#if model.description}
-								<li class="flex items-start space-x-2">
-									<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
-									<span class="text-sm text-gray-700 dark:text-gray-300">
-										{model.description}
-									</span>
-								</li>
-							{/if}
-							{#if model.pageLimit}
-								<li class="flex items-start space-x-2">
-									<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
-									<span class="text-sm text-gray-700 dark:text-gray-300">
-										Up to {model.pageLimit} pages
-									</span>
-								</li>
-							{/if}
-						</ul>
+				<div class="relative z-10 flex-1 space-y-3">
+					<!-- Model Name & Category -->
+					<div>
+						<h5 class="text-lg font-medium text-gray-900 dark:text-white">
+							{model.displayName}
+						</h5>
+						<p class="text-xs text-gray-500 dark:text-gray-400 uppercase">
+							{model.category}
+						</p>
 					</div>
 
-					<!-- Action Button -->
-					<Button
-						onclick={() => handleCalculate(model.id)}
-						disabled={!model.available || isCalculating}
-						color="purple"
-						class="mt-4 w-full relative z-10"
-					>
-						{#if isCalculating && selectedModelId === model.id}
-							Calculating...
-						{:else if !model.available}
-							{model.unavailableReason || 'Unavailable'}
-						{:else}
-							Select Model
-						{/if}
-					</Button>
-				</Card>
-			{/each}
-		</div>
+					<!-- Price -->
+					{#if model.totalPrice > 0}
+						<div class="flex items-baseline">
+							<span class="text-2xl font-semibold text-gray-900 dark:text-white">
+								{model.currencySymbol}
+							</span>
+							<span class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+								{model.totalPrice.toFixed(2)}
+							</span>
+						</div>
+					{:else}
+						<div class="text-2xl font-semibold text-gray-900 dark:text-white">Free</div>
+					{/if}
 
-		{#if order.totalUrls}
-			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				Price calculated for {order.totalUrls} URLs
-			</p>
-		{/if}
+					<!-- Features -->
+					<ul class="space-y-2">
+						{#if model.description}
+							<li class="flex items-start space-x-2">
+								<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
+								<span class="text-sm text-gray-700 dark:text-gray-300">
+									{model.description}
+								</span>
+							</li>
+						{/if}
+						{#if model.pageLimit}
+							<li class="flex items-start space-x-2">
+								<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
+								<span class="text-sm text-gray-700 dark:text-gray-300">
+									Up to {model.pageLimit} pages
+								</span>
+							</li>
+						{/if}
+					</ul>
+				</div>
+
+				<!-- Action Button -->
+				<Button
+					onclick={() => handleCalculate(model.id)}
+					disabled={!model.available || isCalculating}
+					color="purple"
+					class="mt-4 w-full relative z-10"
+				>
+					{#if isCalculating && selectedModelId === model.id}
+						Calculating...
+					{:else if !model.available}
+						{model.unavailableReason || 'Unavailable'}
+					{:else}
+						Select Model
+					{/if}
+				</Button>
+			</Card>
+		{/each}
+	</div>
+
+	{#if order.totalUrls}
+		<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+			Price calculated for {order.totalUrls} URLs
+		</p>
 	{/if}
-</div>
+{/if}

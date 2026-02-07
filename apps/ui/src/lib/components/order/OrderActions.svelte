@@ -9,14 +9,15 @@
 	interface Props {
 		order: OrderResponseDto;
 		onUpdate?: () => void;
+		class?: string;
 	}
 
-	let { order, onUpdate }: Props = $props();
+	let { order, onUpdate, class: className = '' }: Props = $props();
 
 	const hasAction = (action: HateoasAction) => ordersService.hasAction(order, action);
 </script>
 
-<div class="space-y-4">
+<div class="space-y-4 {className}">
 	<!-- Calculate Price Action -->
 	{#if hasAction(HateoasAction.CALCULATE)}
 		<CalculateAction {order} {onUpdate} />

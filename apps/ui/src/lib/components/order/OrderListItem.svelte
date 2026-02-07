@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, Button, Alert, Dropdown, DropdownDivider, DropdownItem } from 'flowbite-svelte';
+	import { Card, DropdownDivider, Alert, SpeedDial, SpeedDialTrigger, Listgroup, ListgroupItem } from 'flowbite-svelte';
 	import { fly } from 'svelte/transition';
 	import {
 		DotsHorizontalOutline,
@@ -78,60 +78,81 @@
 			</div>
 		</div>
 
-		<!-- Action Dropdown -->
-		<div class="shrink-0">
-			<Button size="xs" outline class="border-2 p-1"><DotsHorizontalOutline /></Button>
+		<!-- Action SpeedDial -->
+		<div class="shrink-0 relative">
+			<SpeedDialTrigger color="dark" class="rounded-full! px-2! py-2!">
+				{#snippet icon()}
+					<DotsHorizontalOutline class="h-4 w-4" />
+				{/snippet}
+			</SpeedDialTrigger>
+			<SpeedDial
+				pill={true}
+				transition={fly}
+				transitionParams={{ duration: 200 }}
+				tooltip="none"
+				placement="bottom-end"
+			>
+				<Listgroup class="divide-none shadow-xl rounded-lg border border-gray-200 dark:border-gray-600" active>
+					<!-- View Details -->
+					<ListgroupItem href={configService.routes.orderById(order.id)} class="flex gap-3 px-5 py-3">
+						<InfoCircleSolid class="h-4 w-4" />
+						View Details
+					</ListgroupItem>
 
-			<Dropdown simple offset={5} transition={fly} placement="bottom-end" class="w-48">
-				<!-- Open Order -->
-				<DropdownItem href={configService.routes.orderById(order.id)}>
-					<InfoCircleSolid color="black" size="sm" class="me-2 inline" />
-					View Details
-				</DropdownItem>
+					<!-- Divider -->
+					<DropdownDivider />
 
-				<!-- Divider -->
-				<DropdownDivider />
+					<!-- Calculate -->
+					<ListgroupItem
+						disabled={!ordersService.hasAction(order, HateoasAction.CALCULATE)}
+						onclick={() => console.log('Calculate')}
+						class="flex gap-3 px-5 py-3"
+					>
+						<ChartMixedDollarSolid class="h-4 w-4 text-purple-500" />
+						Select Model
+					</ListgroupItem>
 
-				<!-- Calculate -->
-				<DropdownItem
-					disabled={!ordersService.hasAction(order, HateoasAction.CALCULATE)}
-					onclick={() => console.log('Calculate')}
-				>
-					<ChartMixedDollarSolid size="sm" color="purple" class="me-2 inline" />
-					Select Model
-				</DropdownItem>
+					<!-- Payment -->
+					<ListgroupItem
+						disabled={!ordersService.hasAction(order, HateoasAction.CHECKOUT) &&
+							!ordersService.hasAction(order, HateoasAction.PAYMENT_INTENT)}
+						onclick={() => console.log('Pay')}
+						class="flex gap-3 px-5 py-3"
+					>
+						<CashSolid class="h-4 w-4 text-green-500" />
+						Checkout & Pay
+					</ListgroupItem>
 
-				<!-- Payment -->
-				<DropdownItem
-					disabled={!ordersService.hasAction(order, HateoasAction.CHECKOUT) &&
-						!ordersService.hasAction(order, HateoasAction.PAYMENT_INTENT)}
-					onclick={() => console.log('Pay')}
-				>
-					<CashSolid size="sm" color="green" class="me-2 inline" />
-					Checkout & Pay
-				</DropdownItem>
+					<!-- Run -->
+					<ListgroupItem
+						disabled={!ordersService.hasAction(order, HateoasAction.RUN)}
+						onclick={() => console.log('Run')}
+						class="flex gap-3 px-5 py-3"
+					>
+						<FireSolid class="h-4 w-4 text-red-500" />
+						Start Processing
+					</ListgroupItem>
 
-				<!-- Run -->
-				<DropdownItem disabled={!ordersService.hasAction(order, HateoasAction.RUN)} onclick={() => console.log('Run')}>
-					<FireSolid size="sm" color="red" class="me-2 inline" />
-					Start Processing
-				</DropdownItem>
+					<!-- Download -->
+					<ListgroupItem
+						disabled={!ordersService.hasAction(order, HateoasAction.DOWNLOAD)}
+						onclick={handleDownload}
+						class="flex gap-3 px-5 py-3"
+					>
+						<DownloadSolid class="h-4 w-4 text-blue-500" />
+						Download Result
+					</ListgroupItem>
 
-				<!-- Download -->
-				<DropdownItem disabled={!ordersService.hasAction(order, HateoasAction.DOWNLOAD)} onclick={handleDownload}>
-					<DownloadSolid size="sm" color="blue" class="me-2 inline" />
-					Download Result
-				</DropdownItem>
+					<!-- Divider -->
+					<DropdownDivider />
 
-				<!-- Divider -->
-				<DropdownDivider />
-
-				<!-- Delete -->
-				<DropdownItem class="text-red-600 dark:text-red-400">
-					<TrashBinOutline color="red" size="sm" class="me-2 inline" />
-					Delete
-				</DropdownItem>
-			</Dropdown>
+					<!-- Delete -->
+					<ListgroupItem class="flex gap-3 px-5 py-3 text-red-600 dark:text-red-400">
+						<TrashBinOutline class="h-4 w-4" />
+						Delete
+					</ListgroupItem>
+				</Listgroup>
+			</SpeedDial>
 		</div>
 	</div>
 

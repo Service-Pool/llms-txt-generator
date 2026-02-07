@@ -57,121 +57,127 @@
 {:else if order}
 	<!-- Header -->
 	<div class="mb-8">
-		<!-- Back Button -->
-		<div class="mb-4">
+		<!-- Header with Back Button -->
+		<div class="flex items-center justify-between mb-4">
+			<Heading tag="h1" class="text-3xl font-bold">Order details</Heading>
 			<Button size="sm" color="light" onclick={() => goto(configService.routes.orders)}>
 				<ArrowLeftOutline class="w-4 h-4 me-2" />
 				Back to Orders
 			</Button>
 		</div>
-
-		<div class="flex items-center justify-between mb-4">
-			<Heading tag="h1" class="text-3xl font-bold">
-				Order #{orderId}
-			</Heading>
-			<OrderStatusBadge status={order.status} class="text-base px-4 py-2 font-semibold" />
-		</div>
-		<p class="text-gray-500 dark:text-gray-400 text-lg">{order.hostname}</p>
 	</div>
 
-	<!-- Order Information Grid -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-		<!-- Total URLs -->
-		<Card class="p-6 max-w-none">
-			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total URLs</div>
-			<div class="text-2xl font-bold text-gray-900 dark:text-white">
-				{order.totalUrls || '—'}
-			</div>
-		</Card>
+	<!-- Actions Section -->
+	<OrderActions {order} onUpdate={loadOrder} class="mb-8" />
 
-		<!-- Processed URLs -->
-		<Card class="p-6 max-w-none">
-			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Processed URLs</div>
-			<div class="text-2xl font-bold text-gray-900 dark:text-white">
-				{order.processedUrls}
+	<!-- Order Statistics - Single Card Layout -->
+	<Card class="max-w-none p-6 mb-8">
+		<div class="grid grid-cols-1 md:grid-cols-[120px_140px_120px_1fr_1fr] gap-6 mb-6">
+			<!-- Order Number -->
+			<div class="space-y-2">
+				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Order</div>
+				<div class="text-xl font-bold text-gray-900 dark:text-white">#{orderId}</div>
 			</div>
-			{#if order.totalUrls && order.totalUrls > 0}
-				<div class="mt-2">
-					<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-						<div
-							class="bg-blue-600 h-2 rounded-full transition-all"
-							style="width: {(order.processedUrls / order.totalUrls) * 100}%"
-						></div>
-					</div>
+
+			<!-- Status -->
+			<div class="space-y-2">
+				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</div>
+				<OrderStatusBadge status={order.status} class="text-xs px-2 py-1" />
+			</div>
+
+			<!-- Price -->
+			<div class="space-y-2">
+				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Price</div>
+				<div class="text-lg font-bold text-gray-900 dark:text-white">
+					{#if order.priceTotal !== null}
+						{order.currencySymbol}{order.priceTotal.toFixed(2)}
+					{:else}
+						—
+					{/if}
 				</div>
-			{/if}
-		</Card>
-
-		<!-- Price -->
-		<Card class="p-6 max-w-none">
-			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total Price</div>
-			<div class="text-2xl font-bold text-gray-900 dark:text-white">
-				{#if order.priceTotal !== null}
-					{order.currencySymbol}{order.priceTotal.toFixed(2)}
-				{:else}
-					—
-				{/if}
 			</div>
-		</Card>
-	</div>
 
-	<!-- AI Model Section -->
-	{#if order.currentAiModel}
-		<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800 mb-8">
-			<div class="flex items-center gap-3">
-				<div class="flex-1">
-					<div class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Selected AI Model</div>
-					<div class="text-lg font-semibold text-gray-900 dark:text-white">
-						{order.currentAiModel.displayName}
-					</div>
-					<div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-						{order.currentAiModel.description}
-					</div>
+			<!-- Domain -->
+			<div class="space-y-2">
+				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Domain</div>
+				<div class="text-lg font-semibold text-gray-900 dark:text-white wrap-break-words">
+					{order.hostname}
 				</div>
-				{#if order.currentAiModel.totalPrice}
-					<div class="text-right">
-						<div class="text-sm text-gray-500 dark:text-gray-400">Price per URL</div>
-						<div class="text-lg font-semibold text-gray-900 dark:text-white">
-							{order.currentAiModel.currencySymbol}{order.currentAiModel.totalPrice.toFixed(2)}
+			</div>
+
+			<!-- URLs Progress -->
+			<div class="space-y-2">
+				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">URLs</div>
+				<div class="text-xl font-bold text-gray-900 dark:text-white">
+					{order.processedUrls} / {order.totalUrls || 0}
+				</div>
+				{#if order.totalUrls && order.totalUrls > 0}
+					<div class="space-y-1">
+						<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+							<div
+								class="bg-blue-600 h-2 rounded-full transition-all"
+								style="width: {(order.processedUrls / order.totalUrls) * 100}%"
+							></div>
+						</div>
+						<div class="text-xs text-gray-500 dark:text-gray-400">
+							{Math.round((order.processedUrls / order.totalUrls) * 100)}% completed
 						</div>
 					</div>
 				{/if}
 			</div>
 		</div>
-	{/if}
 
-	<!-- Actions Section -->
-	<div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 mb-8">
-		<Heading tag="h2" class="text-xl font-semibold mb-4">Available Actions</Heading>
-		<OrderActions {order} onUpdate={loadOrder} />
-	</div>
-
-	<!-- Timeline / Metadata -->
-	<div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-		<Heading tag="h2" class="text-xl font-semibold mb-4">Order Timeline</Heading>
-		<div class="space-y-3 text-sm">
-			<div class="flex justify-between">
-				<span class="text-gray-500 dark:text-gray-400">Created</span>
-				<span class="font-medium text-gray-900 dark:text-white">
-					{new Date(order.createdAt).toLocaleString()}
-				</span>
-			</div>
-			{#if order.startedAt}
-				<div class="flex justify-between">
+		<!-- Timeline Section -->
+		<div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Timeline</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+				<div class="flex justify-between md:flex-col md:justify-start">
+					<span class="text-gray-500 dark:text-gray-400">Created</span>
+					<span class="font-medium text-gray-900 dark:text-white">
+						{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
+					</span>
+				</div>
+				<div class="flex justify-between md:flex-col md:justify-start">
+					<span class="text-gray-500 dark:text-gray-400">Updated</span>
+					<span class="font-medium text-gray-900 dark:text-white">
+						{order.updatedAt ? new Date(order.updatedAt).toLocaleString() : '—'}
+					</span>
+				</div>
+				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Started</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{new Date(order.startedAt).toLocaleString()}
+						{order.startedAt ? new Date(order.startedAt).toLocaleString() : '—'}
 					</span>
 				</div>
-			{/if}
-			{#if order.completedAt}
-				<div class="flex justify-between">
+				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Completed</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{new Date(order.completedAt).toLocaleString()}
+						{order.completedAt ? new Date(order.completedAt).toLocaleString() : '—'}
 					</span>
 				</div>
-			{/if}
+			</div>
 		</div>
-	</div>
+	</Card>
+
+	<!-- AI Model Information -->
+	{#if order.currentAiModel}
+		<Card class="p-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+			<Heading tag="h3" class="text-lg font-semibold mb-3">AI Model</Heading>
+			<div class="space-y-2">
+				<div class="text-base font-semibold text-gray-900 dark:text-white">
+					{order.currentAiModel.displayName}
+				</div>
+				<div class="text-sm text-gray-600 dark:text-gray-400">
+					{order.currentAiModel.description}
+				</div>
+				{#if order.currentAiModel.totalPrice}
+					<div class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+						Price per URL: <span class="font-medium text-gray-900 dark:text-white">
+							{order.currentAiModel.currencySymbol}{order.currentAiModel.totalPrice.toFixed(2)}
+						</span>
+					</div>
+				{/if}
+			</div>
+		</Card>
+	{/if}
 {/if}
