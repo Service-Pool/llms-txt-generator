@@ -4,12 +4,13 @@
 	import { onMount } from 'svelte';
 	import { ordersService } from '$lib/services/orders.service';
 	import { configService } from '$lib/services/config.service';
-	import { Spinner, Alert, Heading, Button } from 'flowbite-svelte';
+	import { Alert, Heading, Button, Card } from 'flowbite-svelte';
 	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import OrderStatusBadge from '$lib/components/OrderStatusBadge.svelte';
-	import OrderActions from '$lib/components/OrderActions.svelte';
+	import Spinner from '$lib/components/general/Spinner.svelte';
+	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
+	import OrderActions from '$lib/components/order/OrderActions.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
 	const orderId = $derived(Number(page.params.id));
@@ -47,7 +48,7 @@
 
 {#if loading}
 	<div class="flex justify-center items-center py-20">
-		<Spinner size="12" />
+		<Spinner size="12" delay={500} />
 	</div>
 {:else if error}
 	<Alert color="red">
@@ -76,15 +77,15 @@
 	<!-- Order Information Grid -->
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 		<!-- Total URLs -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+		<Card class="p-6 max-w-none">
 			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total URLs</div>
 			<div class="text-2xl font-bold text-gray-900 dark:text-white">
 				{order.totalUrls || '—'}
 			</div>
-		</div>
+		</Card>
 
 		<!-- Processed URLs -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+		<Card class="p-6 max-w-none">
 			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Processed URLs</div>
 			<div class="text-2xl font-bold text-gray-900 dark:text-white">
 				{order.processedUrls}
@@ -99,10 +100,10 @@
 					</div>
 				</div>
 			{/if}
-		</div>
+		</Card>
 
 		<!-- Price -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+		<Card class="p-6 max-w-none">
 			<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total Price</div>
 			<div class="text-2xl font-bold text-gray-900 dark:text-white">
 				{#if order.priceTotal !== null}
@@ -111,7 +112,7 @@
 					—
 				{/if}
 			</div>
-		</div>
+		</Card>
 	</div>
 
 	<!-- AI Model Section -->
@@ -127,11 +128,11 @@
 						{order.currentAiModel.description}
 					</div>
 				</div>
-				{#if order.currentAiModel.price}
+				{#if order.currentAiModel.totalPrice}
 					<div class="text-right">
 						<div class="text-sm text-gray-500 dark:text-gray-400">Price per URL</div>
 						<div class="text-lg font-semibold text-gray-900 dark:text-white">
-							{order.currentAiModel.currencySymbol}{order.currentAiModel.price.toFixed(2)}
+							{order.currentAiModel.currencySymbol}{order.currentAiModel.totalPrice.toFixed(2)}
 						</div>
 					</div>
 				{/if}

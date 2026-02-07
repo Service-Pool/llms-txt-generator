@@ -46,7 +46,7 @@
 		</div>
 
 		<!-- Navigation -->
-		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="default">
+		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="large">
 			{#snippet prevContent()}
 				<span class="sr-only">Previous</span>
 				<ChevronLeftOutline class="h-5 w-5" />

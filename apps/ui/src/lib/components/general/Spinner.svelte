@@ -3,12 +3,14 @@
 	import { type SpinnerProps } from 'flowbite-svelte';
 
 	interface Props {
+		type?: SpinnerProps['type'];
 		size?: SpinnerProps['size'];
 		color?: SpinnerProps['color'];
 		delay?: number;
+		class?: string;
 	}
 
-	let { size = '6', color = 'primary', delay = 0 }: Props = $props();
+	let { type = 'default', size = '6', color = 'primary', delay = 0, class: className = '' }: Props = $props();
 
 	let isVisible = $state(false);
 
@@ -28,5 +30,5 @@
 </script>
 
 {#if isVisible}
-	<FlowbiteSpinner {size} type="orbit" {color} />
+	<FlowbiteSpinner {size} {type} {color} class={className} />
 {/if}

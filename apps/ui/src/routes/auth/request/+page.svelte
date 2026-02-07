@@ -6,8 +6,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { UIError } from '$lib/errors/ui-error';
+	import { Card, Heading, P, Label, Input, Button, Alert, InputAddon, ButtonGroup } from 'flowbite-svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import { Card, Heading, P, Label, Input, Button, Alert, Spinner, InputAddon, ButtonGroup } from 'flowbite-svelte';
+	import Spinner from '$lib/components/general/Spinner.svelte';
 
 	let redirectUrl = $state('');
 	let email = $state('');
@@ -57,7 +58,7 @@
 <div class="max-w-xl mx-auto mt-20">
 	{#if checkingAuth}
 		<Card class="text-center">
-			<Spinner size="10" />
+			<Spinner size="10" delay={500} />
 			<P class="mt-4">Checking authentication...</P>
 		</Card>
 	{:else}
@@ -99,7 +100,7 @@
 
 				<Button type="submit" class="w-full" disabled={loading || success}>
 					{#if loading}
-						<Spinner class="mr-2" size="4" />
+						<Spinner size="4" delay={500} />
 						Sending...
 					{:else if success}
 						Email Sent

@@ -6,6 +6,7 @@ import {
 	OrderResponseDto,
 	OrdersListResponseDto,
 	AvailableAiModelDto,
+	HateoasAction,
 	OrderStatus,
 	type ApiResponse
 } from '@api/shared';
@@ -18,7 +19,7 @@ interface StatusConfig {
 }
 
 const STATUS_MAP: Record<OrderStatus, StatusConfig> = {
-	[OrderStatus.CREATED]: { label: 'Created', color: 'blue' },
+	[OrderStatus.CREATED]: { label: 'Draft', color: 'blue' },
 	[OrderStatus.CALCULATED]: { label: 'Calculated', color: 'indigo' },
 	[OrderStatus.PENDING_PAYMENT]: { label: 'Pending Payment', color: 'yellow' },
 	[OrderStatus.PAID]: { label: 'Paid', color: 'green' },
@@ -110,7 +111,7 @@ class OrdersService extends HttpClient {
 	/**
 	 * Check if specific action is available for order based on HATEOAS _links
 	 */
-	hasAction(order: OrderResponseDto, action: string): boolean {
+	hasAction(order: OrderResponseDto, action: HateoasAction): boolean {
 		return !!(order._links && action in order._links);
 	}
 
@@ -124,5 +125,5 @@ class OrdersService extends HttpClient {
 }
 
 // Singleton instance
-export const ordersService = new OrdersService();
-export type { StatusColor, StatusConfig };
+const ordersService = new OrdersService();
+export { type StatusColor, type StatusConfig, ordersService };

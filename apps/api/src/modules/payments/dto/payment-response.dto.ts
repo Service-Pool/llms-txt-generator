@@ -1,3 +1,5 @@
+import { HateoasAction } from '../../../enums/hateoas-action.enum';
+
 /**
  * HATEOAS link interface
  */
@@ -12,12 +14,12 @@ interface HateoasLink {
  */
 function buildPaymentLinks(orderId: number): Record<string, HateoasLink> {
 	const links: Record<string, HateoasLink> = {
-		self: {
+		[HateoasAction.SELF]: {
 			href: `/api/orders/${orderId}`,
 			method: 'GET',
 			description: 'Get order details'
 		},
-		run: {
+		[HateoasAction.RUN]: {
 			href: `/api/orders/${orderId}/run`,
 			method: 'POST',
 			description: 'Check payment and start processing'
@@ -33,7 +35,7 @@ function buildPaymentLinks(orderId: number): Record<string, HateoasLink> {
 class CheckoutSessionResponseDto {
 	sessionId: string;
 	orderId: number;
-	_links: Record<string, HateoasLink>;
+	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(orderId: number, sessionId: string): CheckoutSessionResponseDto {
 		const dto = new CheckoutSessionResponseDto();
@@ -51,7 +53,7 @@ class CheckoutSessionResponseDto {
 class PaymentIntentResponseDto {
 	clientSecret: string;
 	orderId: number;
-	_links: Record<string, HateoasLink>;
+	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(orderId: number, clientSecret: string): PaymentIntentResponseDto {
 		const dto = new PaymentIntentResponseDto();

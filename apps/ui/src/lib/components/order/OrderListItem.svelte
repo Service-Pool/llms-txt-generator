@@ -13,10 +13,10 @@
 	import { formatNumber } from '$lib/utils/number-format';
 	import { ordersService } from '$lib/services/orders.service';
 	import { configService } from '$lib/services/config.service';
-	import type { OrderResponseDto } from '@api/shared';
+	import { HateoasAction, type OrderResponseDto } from '@api/shared';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import ProgressBar from '$lib/components/general/ProgressBar.svelte';
-	import OrderStatusBadge from '$lib/components/OrderStatusBadge.svelte';
+	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -80,7 +80,7 @@
 
 		<!-- Action Dropdown -->
 		<div class="shrink-0">
-			<Button size="xs" color="blue" outline class="border-2 p-1"><DotsHorizontalOutline /></Button>
+			<Button size="xs" outline class="border-2 p-1"><DotsHorizontalOutline /></Button>
 
 			<Dropdown simple offset={5} transition={fly} placement="bottom-end" class="w-48">
 				<!-- Open Order -->
@@ -93,14 +93,18 @@
 				<DropdownDivider />
 
 				<!-- Calculate -->
-				<DropdownItem disabled={!ordersService.hasAction(order, 'calculate')} onclick={() => console.log('Calculate')}>
+				<DropdownItem
+					disabled={!ordersService.hasAction(order, HateoasAction.CALCULATE)}
+					onclick={() => console.log('Calculate')}
+				>
 					<ChartMixedDollarSolid size="sm" color="purple" class="me-2 inline" />
-					Calculate Price
+					Select Model
 				</DropdownItem>
 
 				<!-- Payment -->
 				<DropdownItem
-					disabled={!ordersService.hasAction(order, 'checkout') && !ordersService.hasAction(order, 'paymentIntent')}
+					disabled={!ordersService.hasAction(order, HateoasAction.CHECKOUT) &&
+						!ordersService.hasAction(order, HateoasAction.PAYMENT_INTENT)}
 					onclick={() => console.log('Pay')}
 				>
 					<CashSolid size="sm" color="green" class="me-2 inline" />
@@ -108,13 +112,13 @@
 				</DropdownItem>
 
 				<!-- Run -->
-				<DropdownItem disabled={!ordersService.hasAction(order, 'run')} onclick={() => console.log('Run')}>
+				<DropdownItem disabled={!ordersService.hasAction(order, HateoasAction.RUN)} onclick={() => console.log('Run')}>
 					<FireSolid size="sm" color="red" class="me-2 inline" />
 					Start Processing
 				</DropdownItem>
 
 				<!-- Download -->
-				<DropdownItem disabled={!ordersService.hasAction(order, 'download')} onclick={handleDownload}>
+				<DropdownItem disabled={!ordersService.hasAction(order, HateoasAction.DOWNLOAD)} onclick={handleDownload}>
 					<DownloadSolid size="sm" color="blue" class="me-2 inline" />
 					Download Result
 				</DropdownItem>

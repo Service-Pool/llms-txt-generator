@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ordersService } from '$lib/services/orders.service';
-	import { Spinner, Alert, Button, Hr } from 'flowbite-svelte';
+	import { Alert, Button, Hr } from 'flowbite-svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
+	import Spinner from '$lib/components/general/Spinner.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import NewOrderForm from '$lib/components/NewOrderForm.svelte';
-	import OrdersList from '$lib/components/OrdersList.svelte';
+	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
+	import OrdersList from '$lib/components/order/OrdersList.svelte';
 	import Pagination from '$lib/components/general/Pagination.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
@@ -63,7 +64,7 @@
 
 	{#if loading}
 		<div class="flex justify-center py-12">
-			<Spinner size="12" />
+			<Spinner size="12" delay={500} />
 		</div>
 	{:else if error}
 		<Alert color="red">

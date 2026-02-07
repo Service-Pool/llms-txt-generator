@@ -2,6 +2,7 @@ import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto'
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
+import { HateoasAction } from '../../../enums/hateoas-action.enum';
 
 /**
  * HATEOAS link interface
@@ -17,7 +18,7 @@ interface HateoasLink {
  */
 function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 	const links: Record<string, HateoasLink> = {
-		self: {
+		[HateoasAction.SELF]: {
 			href: `/api/orders/${entity.id}`,
 			method: 'GET'
 		}
@@ -25,7 +26,7 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 
 	switch (entity.status) {
 		case OrderStatus.CREATED:
-			links.calculate = {
+			links[HateoasAction.CALCULATE] = {
 				href: `/api/orders/${entity.id}/calculate`,
 				method: 'POST',
 				description: 'Calculate order price and select model'
@@ -35,19 +36,19 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 		case OrderStatus.CALCULATED:
 			if (entity.priceTotal === 0) {
 				// Free model
-				links.run = {
+				links[HateoasAction.RUN] = {
 					href: `/api/orders/${entity.id}/run`,
 					method: 'POST',
 					description: 'Start order processing'
 				};
 			} else {
 				// Paid model
-				links.checkout = {
+				links[HateoasAction.CHECKOUT] = {
 					href: `/api/orders/${entity.id}/payment/checkout`,
 					method: 'POST',
 					description: 'Create Stripe checkout session'
 				};
-				links.paymentIntent = {
+				links[HateoasAction.PAYMENT_INTENT] = {
 					href: `/api/orders/${entity.id}/payment/intent`,
 					method: 'POST',
 					description: 'Create Stripe payment intent'
@@ -56,17 +57,17 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 			break;
 
 		case OrderStatus.PENDING_PAYMENT:
-			links.run = {
+			links[HateoasAction.RUN] = {
 				href: `/api/orders/${entity.id}/run`,
 				method: 'POST',
 				description: 'Check payment and start processing'
 			};
-			links.checkout = {
+			links[HateoasAction.CHECKOUT] = {
 				href: `/api/orders/${entity.id}/payment/checkout`,
 				method: 'POST',
 				description: 'Get or create checkout session'
 			};
-			links.paymentIntent = {
+			links[HateoasAction.PAYMENT_INTENT] = {
 				href: `/api/orders/${entity.id}/payment/intent`,
 				method: 'POST',
 				description: 'Get or create payment intent'
@@ -74,7 +75,7 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 			break;
 
 		case OrderStatus.PAID:
-			links.run = {
+			links[HateoasAction.RUN] = {
 				href: `/api/orders/${entity.id}/run`,
 				method: 'POST',
 				description: 'Start order processing'
@@ -88,7 +89,7 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 
 		case OrderStatus.COMPLETED:
 			if (entity.output) {
-				links.download = {
+				links[HateoasAction.DOWNLOAD] = {
 					href: `/api/orders/${entity.id}/output`,
 					method: 'GET',
 					description: 'Download generated llms.txt'
@@ -98,7 +99,7 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 
 		case OrderStatus.FAILED:
 			if (entity.stripePaymentIntentSecret) {
-				links.refund = {
+				links[HateoasAction.REFUND] = {
 					href: `/api/orders/${entity.id}/payment/refund`,
 					method: 'POST',
 					description: 'Request refund'
@@ -107,12 +108,12 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 			break;
 
 		case OrderStatus.PAYMENT_FAILED:
-			links.checkout = {
+			links[HateoasAction.CHECKOUT] = {
 				href: `/api/orders/${entity.id}/payment/checkout`,
 				method: 'POST',
 				description: 'Retry payment with checkout'
 			};
-			links.paymentIntent = {
+			links[HateoasAction.PAYMENT_INTENT] = {
 				href: `/api/orders/${entity.id}/payment/intent`,
 				method: 'POST',
 				description: 'Retry payment with payment intent'
@@ -145,7 +146,7 @@ class CreateOrderResponseDto {
 	// completedAt: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
-	_links: Record<string, HateoasLink>;
+	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
@@ -223,7 +224,7 @@ class OrderResponseDto {
 	completedAt: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
-	_links: Record<string, HateoasLink>;
+	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(entity: Order): OrderResponseDto {
 		const dto = new OrderResponseDto();

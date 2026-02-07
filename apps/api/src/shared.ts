@@ -1,5 +1,6 @@
 // Enums
 export * from './enums/currency.enum';
+export * from './enums/hateoas-action.enum';
 export * from './enums/order-status.enum';
 export * from './enums/response-code.enum';
 export * from './enums/stripe-session-status.enum';

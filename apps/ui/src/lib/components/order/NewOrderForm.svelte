@@ -5,6 +5,7 @@
 	import { configService } from '$lib/services/config.service';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import Spinner from '$lib/components/general/Spinner.svelte';
 
 	let hostname = $state('');
 	let submitting = $state(false);
@@ -64,7 +65,12 @@
 		{/if}
 
 		<Button type="submit" disabled={!canCreate} class="w-full">
-			{submitting ? 'Creating...' : 'Create Order'}
+			{#if submitting}
+				Creating
+				<Spinner type="dots" size="5" class="mx-4 fill-white" />
+			{:else}
+				Create Order
+			{/if}
 		</Button>
 	</form>
 </Card>
