@@ -1,6 +1,7 @@
 {
 	"editor.formatOnSave": true,
 	"editor.formatOnSaveMode": "file",
+	"css.lint.unknownAtRules": "ignore",
 	"[svelte]": {
 		"editor.defaultFormatter": "svelte.svelte-vscode"
 	},

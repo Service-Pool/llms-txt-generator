@@ -83,29 +83,29 @@ class HttpClient {
 					default:
 						throw new Error('Unexpected response code');
 				}
-			} catch (error) {
-				if (error instanceof UIError) {
-					throw error;
+			} catch (exception) {
+				if (exception instanceof UIError) {
+					throw exception;
 				}
 
 				const code = ((json as Record<string, unknown>).code as number) || 0;
-				const message = error instanceof Error ? error.message : 'Unknown error';
+				const message = exception instanceof Error ? exception.message : 'Unknown error';
 				throw new UIError(code, message);
 			}
-		} catch (error) {
+		} catch (exception) {
 			clearTimeout(timeoutId);
 
-			if (error instanceof UIError) {
-				throw error;
+			if (exception instanceof UIError) {
+				throw exception;
 			}
 
 			// AbortError
-			if (error instanceof Error && error.name === 'AbortError') {
+			if (exception instanceof Error && exception.name === 'AbortError') {
 				throw new UIError(ResponseCode.ERROR, 'Request timeout');
 			}
 
 			// Network errors, JSON parse errors, etc.
-			throw new UIError(ResponseCode.ERROR, error instanceof Error ? error.message : 'Network error');
+			throw new UIError(ResponseCode.ERROR, exception instanceof Error ? exception.message : 'Network error');
 		}
 	}
 }

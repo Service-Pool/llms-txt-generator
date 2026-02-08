@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import { FireSolid } from 'flowbite-svelte-icons';
+	import { getActionConfig } from '$lib/config/order-actions.config';
 	import type { OrderResponseDto } from '@api/shared';
+
+	const config = getActionConfig('run')!;
 
 	interface Props {
 		order: OrderResponseDto;
@@ -16,27 +18,26 @@
 		isRunning = true;
 		try {
 			// TODO: Implement run API call
-			console.log('Start processing');
 			onUpdate?.();
-		} catch (error) {
-			console.error('Run failed:', error);
+		} catch (exception) {
+			throw exception;
 		} finally {
 			isRunning = false;
 		}
 	};
 </script>
 
-<div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+<div class="p-4 rounded-lg border {config.cardBgClass}">
 	<div class="flex items-center justify-between">
 		<div>
 			<div class="font-semibold text-gray-900 dark:text-white">
-				<FireSolid class="w-4 h-4 inline me-2 text-red-600 dark:text-red-400" />
-				Ready to Process
+				<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+				{config.description}
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Start generating LLMs.txt file</p>
 		</div>
-		<Button color="red" disabled={isRunning} onclick={handleRun}>
-			{isRunning ? 'Starting...' : 'Start Processing'}
+		<Button onclick={handleRun} color={config.color} size="sm" class="min-w-25 whitespace-nowrap" disabled={isRunning}>
+			{isRunning ? 'Starting...' : config.label}
 		</Button>
 	</div>
 </div>

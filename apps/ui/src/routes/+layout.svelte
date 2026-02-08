@@ -10,10 +10,7 @@
 
 	const theme = {
 		card: {
-			base: 'shadow-sm rounded-lg'
-		},
-		button: {
-			base: 'rounded-sm'
+			base: 'shadow-none rounded-lg'
 		}
 	};
 	const THEME_PREFERENCE_KEY = 'THEME_PREFERENCE_KEY';

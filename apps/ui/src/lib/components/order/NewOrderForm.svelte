@@ -6,10 +6,20 @@
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import Spinner from '$lib/components/general/Spinner.svelte';
+	import CalculateAction from './actions/CalculateAction.svelte';
+	import type { CreateOrderResponseDto, OrderResponseDto } from '@api/shared';
+
+	interface Props {
+		onCreate?: (order: OrderResponseDto) => void;
+	}
+
+	let { onCreate }: Props = $props();
 
 	let hostname = $state('');
 	let submitting = $state(false);
 	let error = $state<string[] | string | null>(null);
+	let createdOrder = $state<CreateOrderResponseDto | null>(null);
+	let showModelSelection = $state(false);
 
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(hostname));
 	const canCreate = $derived(isUrlValid && !submitting);
@@ -24,10 +34,17 @@
 			error = null;
 
 			const response = await ordersService.create({ hostname });
-			const order = response.getData();
+			createdOrder = response.getData();
 
-			// Redirect to order page
-			goto(configService.routes.orderById(order.id));
+			// Load full order data and notify parent
+			const fullOrderResponse = await ordersService.getById(createdOrder.id);
+			const fullOrder = fullOrderResponse.getData();
+			onCreate?.(fullOrder);
+
+			// Reset form
+			resetForm();
+
+			showModelSelection = true;
 		} catch (exception) {
 			if (exception instanceof UIError) {
 				error = exception.context;
@@ -38,6 +55,17 @@
 		} finally {
 			submitting = false;
 		}
+	};
+
+	const handleModelSelected = () => {
+		if (createdOrder) {
+			goto(configService.routes.orderById(createdOrder.id));
+		}
+	};
+
+	const resetForm = () => {
+		hostname = '';
+		error = null;
 	};
 </script>
 
@@ -74,3 +102,7 @@
 		</Button>
 	</form>
 </Card>
+
+{#if createdOrder}
+	<CalculateAction order={createdOrder} bind:open={showModelSelection} showButton={false} onUpdate={handleModelSelected} />
+{/if}

@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import { DownloadSolid } from 'flowbite-svelte-icons';
+	import { getActionConfig } from '$lib/config/order-actions.config';
 	import { ordersService } from '$lib/services/orders.service';
 	import type { OrderResponseDto } from '@api/shared';
+
+	const config = getActionConfig('download')!;
 
 	interface Props {
 		order: OrderResponseDto;
@@ -23,21 +25,23 @@
 			a.click();
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
-		} catch (error) {
-			console.error('Download failed:', error);
+		} catch (exception) {
+			throw exception;
 		}
 	};
 </script>
 
-<div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+<div class="p-4 rounded-lg border {config.cardBgClass}">
 	<div class="flex items-center justify-between">
 		<div>
 			<div class="font-semibold text-gray-900 dark:text-white">
-				<DownloadSolid class="w-4 h-4 inline me-2 text-blue-600 dark:text-blue-400" />
-				File Ready
+				<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+				{config.description}
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>
 		</div>
-		<Button color="blue" onclick={handleDownload}>Download Result</Button>
+		<Button onclick={handleDownload} color={config.color} size="sm" class="min-w-25 whitespace-nowrap"
+			>{config.label}</Button
+		>
 	</div>
 </div>

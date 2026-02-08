@@ -14,6 +14,26 @@ interface HateoasLink {
 }
 
 /**
+ * Truncate text to specified number of words
+ */
+function truncateToWords(text: string | null, maxWords: number): string | null {
+	if (!text) {
+		return text;
+	}
+
+	const wordMatches = [...text.matchAll(/\S+/g)];
+
+	if (wordMatches.length <= maxWords) {
+		return text;
+	}
+
+	const lastWordMatch = wordMatches[maxWords - 1];
+	const truncatePosition = lastWordMatch.index + lastWordMatch[0].length;
+
+	return `${text.substring(0, truncatePosition)}...`;
+}
+
+/**
  * Build HATEOAS links based on order status
  */
 function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
@@ -34,6 +54,13 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 			break;
 
 		case OrderStatus.CALCULATED:
+			// Allow model change before payment/execution
+			links[HateoasAction.CALCULATE] = {
+				href: `/api/orders/${entity.id}/calculate`,
+				method: 'POST',
+				description: 'Change AI model and recalculate price'
+			};
+
 			if (entity.priceTotal === 0) {
 				// Free model
 				links[HateoasAction.RUN] = {
@@ -236,7 +263,7 @@ class OrderResponseDto {
 		dto.errors = entity.errors;
 		dto.hostname = entity.hostname;
 		// dto.jobId = entity.jobId;
-		dto.output = entity.output;
+		dto.output = truncateToWords(entity.output, 300);
 		dto.pricePerUrl = entity.pricePerUrl;
 		dto.priceTotal = entity.priceTotal;
 		dto.processedUrls = entity.processedUrls;

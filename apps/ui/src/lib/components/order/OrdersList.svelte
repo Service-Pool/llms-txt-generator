@@ -9,6 +9,12 @@
 	}
 
 	let { items = [] }: Props = $props();
+
+	let openOrderId = $state<number | null>(null);
+
+	const toggleOrder = (orderId: number) => {
+		openOrderId = openOrderId === orderId ? null : orderId;
+	};
 </script>
 
 <div class="space-y-4">
@@ -22,7 +28,7 @@
 	{:else}
 		<div class="space-y-3">
 			{#each items as order (order.id)}
-				<OrderListItem {order} />
+				<OrderListItem {order} isOpen={openOrderId === order.id} onToggle={() => toggleOrder(order.id)} />
 			{/each}
 		</div>
 	{/if}

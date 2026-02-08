@@ -62,6 +62,16 @@ class OrdersService extends HttpClient {
 	}
 
 	/**
+	 * Calculate order with selected AI model
+	 */
+	async calculate(id: number, modelId: string): Promise<ApiResponse<OrderResponseDto>> {
+		return this.fetch(configService.endpoints.orders.calculate(id), OrderResponseDto, {
+			method: 'POST',
+			body: JSON.stringify({ modelId })
+		});
+	}
+
+	/**
 	 * Get all user orders (history)
 	 */
 	async getAll(page: number = 1, limit: number = 5): Promise<ApiResponse<OrdersListResponseDto>> {

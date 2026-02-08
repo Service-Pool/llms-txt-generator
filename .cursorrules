@@ -1,0 +1,9 @@
+Error Handling:
+- NEVER use console.error() or console.log() in components
+- in case using try catch - exception must be thrown further
+- ErrorToast automatically displays all errors to users
+
+Code Style:
+- Svelte 5 runes mode ($state, $props, $effect)
+- Flowbite-Svelte for UI components
+- TypeScript strict mode

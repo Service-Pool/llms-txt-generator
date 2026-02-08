@@ -49,6 +49,12 @@
 		loadOrders();
 	};
 
+	const handleOrderCreated = (order: OrderResponseDto) => {
+		// Add new order to the beginning of the list
+		orders = [order, ...orders];
+		total += 1;
+	};
+
 	onMount(async () => {
 		await statsStore.init();
 		await loadOrders();
@@ -60,7 +66,7 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto space-y-6">
-	<NewOrderForm />
+	<NewOrderForm onCreate={handleOrderCreated} />
 
 	{#if loading}
 		<div class="flex justify-center py-12">

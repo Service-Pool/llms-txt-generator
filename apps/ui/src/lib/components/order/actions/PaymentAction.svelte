@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import { CashSolid } from 'flowbite-svelte-icons';
+	import { getActionConfig } from '$lib/config/order-actions.config';
 	import type { OrderResponseDto } from '@api/shared';
+
+	const config = getActionConfig('payment')!;
 
 	interface Props {
 		order: OrderResponseDto;
@@ -16,29 +18,28 @@
 		isPaying = true;
 		try {
 			// TODO: Implement payment flow (Stripe checkout)
-			console.log('Initiate payment');
 			onUpdate?.();
-		} catch (error) {
-			console.error('Payment failed:', error);
+		} catch (exception) {
+			throw exception;
 		} finally {
 			isPaying = false;
 		}
 	};
 </script>
 
-<div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+<div class="p-4 rounded-lg border {config.cardBgClass}">
 	<div class="flex items-center justify-between">
 		<div>
 			<div class="font-semibold text-gray-900 dark:text-white">
-				<CashSolid class="w-4 h-4 inline me-2 text-green-600 dark:text-green-400" />
-				Payment Required
+				<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+				{config.description}
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
 				Total: <span class="font-semibold">{order.currencySymbol}{order.priceTotal?.toFixed(2)}</span>
 			</p>
 		</div>
-		<Button color="green" disabled={isPaying} onclick={handlePay}>
-			{isPaying ? 'Processing...' : 'Checkout & Pay'}
+		<Button onclick={handlePay} color={config.color} size="sm" class="min-w-25 whitespace-nowrap" disabled={isPaying}>
+			{isPaying ? 'Processing...' : config.label}
 		</Button>
 	</div>
 </div>

@@ -21,13 +21,23 @@ class Order {
 	@Column({ type: 'varchar', nullable: true })
 	modelId: string | null;
 
-	@Column({ type: 'decimal', precision: 11, scale: 6, nullable: true })
+	@Column({
+		type: 'decimal', precision: 11, scale: 6, nullable: true, transformer: {
+			to: (value: number | null) => value,
+			from: (value: string | null) => value ? parseFloat(value) : null
+		}
+	})
 	priceTotal: number | null;
 
 	@Column({ type: 'enum', enum: Currency, nullable: true })
 	priceCurrency: Currency | null;
 
-	@Column({ type: 'decimal', precision: 11, scale: 6, nullable: true })
+	@Column({
+		type: 'decimal', precision: 11, scale: 6, nullable: true, transformer: {
+			to: (value: number | null) => value,
+			from: (value: string | null) => value ? parseFloat(value) : null
+		}
+	})
 	pricePerUrl: number | null;
 
 	@Column({ type: 'varchar', nullable: true })
