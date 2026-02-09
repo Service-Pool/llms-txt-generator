@@ -3,7 +3,6 @@
 	import { Button, Hr, Clipboard } from 'flowbite-svelte';
 	import { CheckOutline, ClipboardSolid, DownloadSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
-	import './OrderStats.css';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -17,6 +16,10 @@
 	let displayedOutput = $derived(downloadData?.content ?? order.output ?? '');
 	let isLoadingOutput = $state(false);
 	let copySuccess = $state(false);
+
+	// Check if download action is enabled in configuration
+	// const enabledActions = $derived(ordersService.getEnabledActions(order));
+	// const hasDownloadAction = $derived(enabledActions.some((action) => action.id === 'download'));
 
 	const loadFullOutput = async () => {
 		if (downloadData !== null || isLoadingOutput) {
@@ -156,3 +159,23 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	@reference "tailwindcss";
+
+	.stat-label {
+		@apply mt-1 text-gray-500;
+	}
+
+	.stat-value {
+		@apply mt-1 font-medium text-gray-900;
+	}
+
+	:global(.dark) .stat-label {
+		@apply text-gray-400;
+	}
+
+	:global(.dark) .stat-value {
+		@apply font-medium text-white;
+	}
+</style>
