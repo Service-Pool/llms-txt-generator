@@ -5,8 +5,7 @@
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { authService } from '$lib/services/auth.service';
 	import { configService } from '$lib/services/config.service';
-	import Spinner from './Spinner.svelte';
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode, Spinner } from 'flowbite-svelte';
 
 	const navItems = [
 		// { href: configService.routes.home, label: 'Home' },

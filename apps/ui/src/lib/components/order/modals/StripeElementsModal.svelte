@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Modal, Button } from 'flowbite-svelte';
+	import { Modal, Button, Spinner } from 'flowbite-svelte';
 	import { slide } from 'svelte/transition';
-	import Spinner from '$lib/components/general/Spinner.svelte';
+	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 	import { onMount, tick } from 'svelte';
 
@@ -88,7 +88,9 @@
 	<!-- Loading State -->
 	{#if isLoading}
 		<div class="flex justify-center items-center py-12">
-			<Spinner size="12" />
+			<DelayedRender>
+				<Spinner size="12" />
+			</DelayedRender>
 		</div>
 	{:else}
 		<!-- Payment Form -->
