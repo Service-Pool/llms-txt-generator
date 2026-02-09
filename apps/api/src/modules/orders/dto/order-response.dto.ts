@@ -279,7 +279,7 @@ class OrderResponseDto {
 
 		// Build currentAiModel from entity data (no intermediate conversions)
 		// entity.aiModelConfig is a synthetic property populated by OrderSubscriber based on entity.modelId
-		if (entity.modelId) {
+		if (entity.modelId && entity.aiModelConfig) {
 			const aiModelDto = new AvailableAiModelDto();
 			aiModelDto.id = entity.aiModelConfig.id;
 			aiModelDto.available = true;

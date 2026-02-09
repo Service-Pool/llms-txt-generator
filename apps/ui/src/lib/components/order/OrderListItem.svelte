@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { slide } from 'svelte/transition';
+	import { slide, fly } from 'svelte/transition';
 	import {
 		Card,
 		Alert,
@@ -10,7 +10,7 @@
 		SpeedDialTrigger,
 		Listgroup
 	} from 'flowbite-svelte';
-	import { ChevronDownOutline, PlusOutline } from 'flowbite-svelte-icons';
+	import { ChevronDownOutline, PlusOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { formatNumber } from '$lib/utils/number-format';
 	import { type OrderResponseDto } from '@api/shared';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
@@ -18,30 +18,23 @@
 	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
 	import OrderActions from '$lib/components/order/OrderActions.svelte';
 	import OrderStats from '$lib/components/order/OrderStats.svelte';
-	import CalculateAction from '$lib/components/order/actions/CalculateAction.svelte';
-	import { getAvailableActionButtons } from '$lib/config/order-actions.config';
 
 	interface Props {
 		order: OrderResponseDto;
 		isOpen?: boolean;
+		anyOrderOpen?: boolean;
 		onToggle?: () => void;
-		onUpdate?: () => void;
 	}
 
-	let { order, isOpen = false, onToggle, onUpdate }: Props = $props();
+	let { order, isOpen = false, anyOrderOpen = false, onToggle }: Props = $props();
+
+	const cardOpacity = $derived(anyOrderOpen ? (isOpen ? 'opacity-100' : 'opacity-60') : null);
+	const cardShadow = $derived(anyOrderOpen ? (isOpen ? 'shadow-md' : 'shadow-none') : null);
 
 	let speedDialOpen = $state(false);
 	let speedDialHover = $state(false);
 	let calculateModalOpen = $state(false);
-
-	const availableActions = $derived(getAvailableActionButtons(order._links));
-
-	const handleActionClick = (actionId: string) => {
-		if (actionId === 'calculate') {
-			calculateModalOpen = true;
-		}
-		// TODO: Add handlers for other actions
-	};
+	let actionInProgress = $state<string | null>(null);
 
 	const handleToggle = () => {
 		if (onToggle) {
@@ -71,7 +64,7 @@
 	});
 </script>
 
-<Card class="max-w-none p-4">
+<Card class="max-w-none p-4 transition-opacity-shadow duration-100 {cardOpacity} {cardShadow}">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<!-- Header -->
 		<div class="flex-1">
@@ -86,7 +79,7 @@
 
 		<!-- Action Buttons -->
 		<div class="shrink-0 flex gap-2">
-			<!-- Expand Details Button -->
+			<!-- Expand Card Button -->
 			<Button
 				size="xs"
 				color="light"
@@ -111,20 +104,21 @@
 							/>
 						{/snippet}
 					</SpeedDialTrigger>
-					<SpeedDial bind:isOpen={speedDialOpen} placement="top-end" tooltip="none">
-						<Listgroup class="divide-none space-y-2 bg-transparent border-none" active>
-							{#each availableActions as action}
-								<Button
-									size="xs"
-									color={action.color}
-									pill
-									class="justify-start shadow-md whitespace-nowrap"
-									onclick={() => handleActionClick(action.id)}
-								>
-									<action.icon class="w-5 h-5 me-2" />
-									{action.label}
-								</Button>
-							{/each}
+					<SpeedDial
+						trigger="click"
+						placement="top-end"
+						tooltip="none"
+						transition={fly}
+						transitionParams={{ duration: 100 }}
+					>
+						<Listgroup class="divide-none space-y-2 bg-transparent border-none" active={false}>
+							<OrderActions
+								{order}
+								mode="button"
+								disabled={actionInProgress !== null}
+								loadingAction={actionInProgress}
+								bind:calculateModalOpen
+							/>
 						</Listgroup>
 					</SpeedDial>
 				</div>
@@ -163,7 +157,7 @@
 		<AccordionItem
 			open={isOpen}
 			transitionType={slide}
-			transitionParams={{ duration: 300 }}
+			transitionParams={{ duration: 100 }}
 			classes={{
 				button: 'hidden',
 				content: 'border-b-0 py-0',
@@ -175,6 +169,13 @@
 				<!-- Actions Section -->
 				<OrderActions {order} class="pb-4" />
 
+				<!-- Divider with Info Icon -->
+				<div class="flex items-center gap-3 mb-4">
+					<div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+					<InfoCircleOutline class="w-6 h-6 text-gray-400 dark:text-gray-500" />
+					<div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+				</div>
+
 				<!-- Stats Section -->
 				<OrderStats
 					{order}
@@ -184,8 +185,3 @@
 		</AccordionItem>
 	</Accordion>
 </Card>
-
-<!-- Calculate Action Modal -->
-{#if order._links?.calculate}
-	<CalculateAction {order} bind:open={calculateModalOpen} showButton={false} {onUpdate} />
-{/if}

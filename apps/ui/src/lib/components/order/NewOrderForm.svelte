@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { Card, Input, Label, Button, Helper, Alert } from 'flowbite-svelte';
-	import { goto } from '$app/navigation';
+	import { Card, Input, Label, Button, Helper, Alert, Badge } from 'flowbite-svelte';
 	import { ordersService } from '$lib/services/orders.service';
-	import { configService } from '$lib/services/config.service';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import Spinner from '$lib/components/general/Spinner.svelte';
 	import CalculateAction from './actions/CalculateAction.svelte';
+	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import type { CreateOrderResponseDto, OrderResponseDto } from '@api/shared';
 
 	interface Props {
@@ -20,6 +18,16 @@
 	let error = $state<string[] | string | null>(null);
 	let createdOrder = $state<CreateOrderResponseDto | null>(null);
 	let showModelSelection = $state(false);
+	let completed = $state<number | null>();
+
+	// Subscribe to completedCount store
+	$effect(() => {
+		const unsubscribe = statsStore.completedCount.subscribe((value) => {
+			completed = value;
+		});
+
+		return () => unsubscribe();
+	});
 
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(hostname));
 	const canCreate = $derived(isUrlValid && !submitting);
@@ -57,12 +65,6 @@
 		}
 	};
 
-	const handleModelSelected = () => {
-		if (createdOrder) {
-			goto(configService.routes.orderById(createdOrder.id));
-		}
-	};
-
 	const resetForm = () => {
 		hostname = '';
 		error = null;
@@ -70,8 +72,12 @@
 </script>
 
 <Card size="xl" class="p-4 sm:p-6 md:p-8">
-	<h2 class="text-2xl font-bold mb-4">Create New Order</h2>
-
+	<div class="flex items-center justify-between mb-4">
+		<h2 class="text-2xl font-bold">Create New Order</h2>
+		<span class="text-sm text-gray-600 dark:text-gray-400">
+			ATM generated <Badge color="indigo">{completed?.toLocaleString() ?? '—'} llms.txt</Badge> files
+		</span>
+	</div>
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
 			<Label for="hostname" class="mb-2">Website URL</Label>
@@ -92,17 +98,17 @@
 			<Alert color="red"><ErrorList {error} /></Alert>
 		{/if}
 
-		<Button type="submit" disabled={!canCreate} class="w-full">
-			{#if submitting}
-				Creating
-				<Spinner type="dots" size="5" class="mx-4 fill-white" />
-			{:else}
-				Create Order
-			{/if}
+		<Button
+			type="submit"
+			disabled={!canCreate}
+			class="w-full"
+			spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}
+			loading={submitting}
+			>Create Order
 		</Button>
 	</form>
 </Card>
 
 {#if createdOrder}
-	<CalculateAction order={createdOrder} bind:open={showModelSelection} showButton={false} onUpdate={handleModelSelected} />
+	<CalculateAction order={createdOrder} bind:open={showModelSelection} showButton={false} />
 {/if}

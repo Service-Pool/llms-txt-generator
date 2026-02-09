@@ -9,7 +9,7 @@
 	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
 
 	const navItems = [
-		{ href: configService.routes.home, label: 'Home' },
+		// { href: configService.routes.home, label: 'Home' },
 		{ href: configService.routes.orders, label: 'Generate' },
 		{ href: configService.routes.about, label: 'About' }
 	];
@@ -31,7 +31,10 @@
 
 <Navbar fluid={true} class="sm:px-0 px-0">
 	<NavBrand href="/" class="mb-1">
-		<span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"> LLMs.txt Generator </span>
+		<img src="/favicon.svg" class="me-3 h-6 sm:h-9" alt="Flowbite Logo" />
+		<span class="self-center whitespace-nowrap text-sm sm:text-xl font-semibold dark:text-white">
+			LLMs.txt Generator
+		</span>
 	</NavBrand>
 	<div class="flex items-center mb-1">
 		<NavUl transition={fly} activeUrl={currentPath}>

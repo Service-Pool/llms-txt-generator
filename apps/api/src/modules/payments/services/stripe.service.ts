@@ -20,7 +20,7 @@ class StripeService {
 	 * Создаёт Stripe Checkout Session для оплаты
 	 * Используется для редиректа пользователя на страницу оплаты Stripe
 	 */
-	public async createCheckoutSession(orderId: number, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<string> {
+	public async createCheckoutSession(orderId: number, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
 		try {
 			// Валидация redirect URLs
 			this.validateRedirectUrl(successUrl);
@@ -51,7 +51,7 @@ class StripeService {
 
 			this.logger.log(`Created Checkout Session ${session.id} for Order ${orderId}`);
 
-			return session.id;
+			return { sessionId: session.id, url: session.url };
 		} catch (error) {
 			this.logger.error(
 				`Failed to create Checkout Session for Order ${orderId}:`,
@@ -111,6 +111,23 @@ class StripeService {
 				error
 			);
 			throw new Error(`Stripe Session status check failed: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
+
+	/**
+	 * Get Checkout Session URL
+	 * Retrieves URL for an existing session
+	 */
+	public async getSessionUrl(sessionId: string): Promise<string> {
+		try {
+			const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+			return session.url;
+		} catch (error) {
+			this.logger.error(
+				`Failed to get Session URL ${sessionId}:`,
+				error
+			);
+			throw new Error(`Stripe Session URL retrieval failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 

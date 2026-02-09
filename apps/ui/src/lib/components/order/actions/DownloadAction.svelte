@@ -8,12 +8,17 @@
 
 	interface Props {
 		order: OrderResponseDto;
-		onUpdate?: () => void;
+		mode?: 'card' | 'button';
+		disabled?: boolean;
+		loading?: boolean;
 	}
 
-	let { order, onUpdate }: Props = $props();
+	let { order, mode = 'card', disabled = false, loading = false }: Props = $props();
+
+	let isDownloading = $state(false);
 
 	const handleDownload = async () => {
+		isDownloading = true;
 		try {
 			const blob = await ordersService.download(order.id);
 			const url = window.URL.createObjectURL(blob);
@@ -27,21 +32,45 @@
 			document.body.removeChild(a);
 		} catch (exception) {
 			throw exception;
+		} finally {
+			isDownloading = false;
 		}
 	};
 </script>
 
-<div class="p-4 rounded-lg border {config.cardBgClass}">
-	<div class="flex items-center justify-between">
-		<div>
-			<div class="font-semibold text-gray-900 dark:text-white">
-				<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
-				{config.description}
+{#if mode === 'button'}
+	<!-- Button mode for SpeedDial -->
+	<Button
+		size="xs"
+		color={config.color}
+		pill
+		class="justify-start shadow-md whitespace-nowrap"
+		onclick={handleDownload}
+		disabled={disabled || isDownloading}
+		loading={loading || isDownloading}
+	>
+		<config.icon class="w-5 h-5 me-2" />
+		{config.label}
+	</Button>
+{:else}
+	<!-- Card mode for accordion -->
+	<div class="p-4 rounded-lg border {config.cardBgClass}">
+		<div class="flex items-center justify-between">
+			<div>
+				<div class="font-semibold text-gray-900 dark:text-white">
+					<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+					{config.description}
+				</div>
+				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>
 			</div>
-			<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>
+			<Button
+				onclick={handleDownload}
+				color={config.color}
+				size="sm"
+				class="min-w-25 whitespace-nowrap"
+				disabled={disabled || isDownloading}
+				loading={loading || isDownloading}>{config.label}</Button
+			>
 		</div>
-		<Button onclick={handleDownload} color={config.color} size="sm" class="min-w-25 whitespace-nowrap"
-			>{config.label}</Button
-		>
 	</div>
-</div>
+{/if}

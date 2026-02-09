@@ -7,7 +7,7 @@ import { WebSocketMessage, StatsUpdateEvent, WebSocketEvent } from '@api/shared'
  * Stats Store with WebSocket real-time updates
  */
 class StatsStore {
-	public readonly completedCount = writable<number>(0);
+	public readonly completedCount = writable<number | null>(null);
 	private socket: WebSocket | null = null;
 	private reconnectTimeout: number | null = null;
 	private isInitialized = false;

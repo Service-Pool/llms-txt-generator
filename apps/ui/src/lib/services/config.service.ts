@@ -11,6 +11,11 @@ class ConfigService {
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT)
 	};
 
+	// Stripe config
+	public readonly stripe: { paymentMethod: 'checkout' | 'elements' } = {
+		paymentMethod: (String(env.PUBLIC_STRIPE_PAYMENT_METHOD)) as 'checkout' | 'elements'
+	};
+
 	// Endpoints config - centralized route definitions
 	public readonly endpoints = {
 		orders: {
@@ -20,6 +25,11 @@ class ConfigService {
 			calculate: (id: number) => `/api/orders/${id}/calculate`,
 			run: (id: number) => `/api/orders/${id}/run`,
 			download: (id: number) => `/api/orders/${id}/download`
+		},
+		payments: {
+			checkout: (orderId: number) => `/api/orders/${orderId}/payment/checkout`,
+			intent: (orderId: number) => `/api/orders/${orderId}/payment/intent`,
+			refund: (orderId: number) => `/api/orders/${orderId}/payment/refund`
 		},
 		stats: {
 			completed: '/api/stats/completed'

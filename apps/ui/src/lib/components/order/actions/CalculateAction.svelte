@@ -2,19 +2,31 @@
 	import { Button, Card, Modal } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import Spinner from '$lib/components/general/Spinner.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AvailableAiModelDto } from '@api/shared';
 	import { getActionConfig } from '$lib/config/order-actions.config';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
-		onUpdate?: () => void;
 		open?: boolean;
+		mode?: 'card' | 'button';
+		disabled?: boolean;
+		loading?: boolean;
 		showButton?: boolean;
 	}
 
-	let { order, onUpdate, open = $bindable(false), showButton = true }: Props = $props();
+	let {
+		order,
+		open = $bindable(false),
+		mode = 'card',
+		disabled = false,
+		loading = false,
+		showButton = true
+	}: Props = $props();
 
 	const config = getActionConfig('calculate')!;
+	const label = $derived('currentAiModel' in order && order.currentAiModel ? config.labelAlternative : config.label);
 
 	let availableModels = $state<AvailableAiModelDto[]>([]);
 	let isLoadingModels = $state(false);
@@ -44,15 +56,18 @@
 	};
 
 	const handleCalculate = async () => {
-		if (!selectedModelId) return;
+		if (!selectedModelId) {
+			return;
+		}
+
 		isCalculating = true;
+
 		try {
 			const response = await ordersService.calculate(order.id, selectedModelId);
 			const updatedOrder = response.getData();
-			if (updatedOrder) {
-				open = false;
-				onUpdate?.();
-			}
+
+			ordersStore.updateOrder(updatedOrder);
+			open = false;
 		} catch (exception) {
 			throw exception;
 		} finally {
@@ -70,35 +85,61 @@
 </script>
 
 {#if showButton}
-	<div class="p-4 rounded-lg border {config.cardBgClass}">
-		<div class="flex items-center justify-between">
-			<div>
-				<div class="font-semibold text-gray-900 dark:text-white">
-					<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
-					{config.description}
+	{#if mode === 'button'}
+		<!-- Button mode for SpeedDial -->
+		<Button
+			size="xs"
+			color={config.color}
+			pill
+			class="justify-start shadow-md whitespace-nowrap"
+			onclick={() => (open = true)}
+			{disabled}
+			{loading}
+		>
+			<config.icon class="w-5 h-5 me-2" />
+			{label}
+		</Button>
+	{:else}
+		<!-- Card mode for accordion -->
+		<div class="p-4 rounded-lg border {config.cardBgClass}">
+			<div class="flex items-center justify-between">
+				<div>
+					<div class="font-semibold text-gray-900 dark:text-white">
+						<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+						{config.description}
+					</div>
+					<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+						Current: <span class="font-semibold">
+							{'currentAiModel' in order ? (order.currentAiModel?.displayName ?? '—') : '—'}
+						</span>
+					</p>
 				</div>
-				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-					Current: <span class="font-semibold">{order.currentAiModel?.displayName ?? '—'}</span>
-				</p>
+				<Button
+					onclick={() => (open = true)}
+					color={config.color}
+					{disabled}
+					{loading}
+					size="sm"
+					class="min-w-25 whitespace-nowrap">{label}</Button
+				>
 			</div>
-			<Button onclick={() => (open = true)} color={config.color} size="sm" class="min-w-25 whitespace-nowrap"
-				>{config.label}</Button
-			>
 		</div>
-	</div>
+	{/if}
 {/if}
 
 <Modal
 	form
 	permanent
-	title="{config.label} - Select AI Model"
+	title="{label} - Select AI Model{isLoadingModels ? ' - Loading...' : ''}"
 	size="lg"
 	bind:open
 	onaction={handleAction}
 	class="max-w-[min(1024px,calc(100vw-2rem))]!"
 >
 	{#if isLoadingModels}
-		<p class="text-sm text-gray-500">Loading available models...</p>
+		<div class="flex justify-center py-8">
+			<Spinner size="10" delay={300} />
+		</div>
 	{:else if availableModels.length === 0}
 		<p class="text-sm text-gray-500">No models available</p>
 	{:else}

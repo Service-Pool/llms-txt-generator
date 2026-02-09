@@ -51,7 +51,10 @@ class OrdersService {
 		order.priceCurrency = pricing.priceCurrency;
 		order.status = OrderStatus.CALCULATED;
 
-		return this.orderRepository.save(order);
+		await this.orderRepository.save(order);
+
+		// Reload entity to populate synthetic fields (aiModelConfig) via subscriber
+		return this.getUserOrder(orderId);
 	}
 
 	/**
@@ -316,7 +319,7 @@ class OrdersService {
 	 * Get existing or create new Checkout Session
 	 * Checks if order has active session, returns existing or creates new one
 	 */
-	public async getOrCreateCheckoutSession(orderId: number, successUrl: string, cancelUrl: string): Promise<string> {
+	public async getOrCreateCheckoutSession(orderId: number, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
 		const order = await this.ensureOrderPayable(orderId);
 
 		// Check if order already has an active Checkout Session
@@ -325,12 +328,13 @@ class OrdersService {
 
 			// If session is still open, return existing sessionId
 			if (existingStatus === StripeSessionStatus.OPEN) {
-				return order.stripeSessionId;
+				const url = await this.stripeService.getSessionUrl(order.stripeSessionId);
+				return { sessionId: order.stripeSessionId, url };
 			}
 		}
 
 		// Create new Checkout Session
-		const sessionId = await this.stripeService.createCheckoutSession(
+		const session = await this.stripeService.createCheckoutSession(
 			orderId,
 			order.priceTotal,
 			order.priceCurrency,
@@ -339,9 +343,9 @@ class OrdersService {
 		);
 
 		// Save sessionId to Order
-		await this.updateStripeSession(orderId, sessionId);
+		await this.updateStripeSession(orderId, session.sessionId);
 
-		return sessionId;
+		return session;
 	}
 
 	/**

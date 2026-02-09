@@ -15,15 +15,11 @@
 	<div class="text-center max-w-md mx-auto px-4">
 		<!-- Error Code -->
 		<div class="mb-8">
-			<span
-				class="text-8xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary-600 to-primary-400"
-			>
-				{status}
-			</span>
+			<span class="text-9xl font-bold text-gray-300 dark:text-gray-700 mb-4">{status}</span>
 		</div>
 
 		<!-- Error Title -->
-		<Heading tag="h1" class="mb-12">
+		<Heading tag="h1" size="md" class="text-gray-600 dark:text-gray-400 mb-12">
 			{error?.message || 'Something Went Wrong'}
 		</Heading>
 

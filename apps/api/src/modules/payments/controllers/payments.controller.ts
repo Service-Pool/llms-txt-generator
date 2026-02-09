@@ -14,6 +14,7 @@ import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/pay
 import { StripeService } from '../services/stripe.service';
 import { OrdersService } from '../../orders/services/orders.service';
 import { UsersService } from '../../users/services/users.service';
+import { AppConfigService } from '../../../config/config.service';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { ApiResponse } from '../../../utils/response/api-response';
 import type { FastifyRequest } from 'fastify';
@@ -23,7 +24,8 @@ class PaymentsController {
 	constructor(
 		private readonly stripeService: StripeService,
 		private readonly ordersService: OrdersService,
-		private readonly usersService: UsersService
+		private readonly usersService: UsersService,
+		private readonly configService: AppConfigService
 	) { }
 
 	/**
@@ -35,13 +37,13 @@ class PaymentsController {
 		@Param('orderId', ParseIntPipe) orderId: number,
 		@Body() dto: CreateCheckoutRequestDto
 	): Promise<ApiResponse<CheckoutSessionResponseDto>> {
-		const sessionId = await this.ordersService.getOrCreateCheckoutSession(
+		const session = await this.ordersService.getOrCreateCheckoutSession(
 			orderId,
 			dto.successUrl,
 			dto.cancelUrl
 		);
 
-		return ApiResponse.success(CheckoutSessionResponseDto.create(orderId, sessionId));
+		return ApiResponse.success(CheckoutSessionResponseDto.create(orderId, session.sessionId, session.url));
 	}
 
 	/**
@@ -51,8 +53,9 @@ class PaymentsController {
 	@Post('intent')
 	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<PaymentIntentResponseDto>> {
 		const clientSecret = await this.ordersService.getOrCreatePaymentIntent(orderId);
+		const publishableKey = this.configService.stripe.publishableKey;
 
-		return ApiResponse.success(PaymentIntentResponseDto.create(orderId, clientSecret));
+		return ApiResponse.success(PaymentIntentResponseDto.create(orderId, clientSecret, publishableKey));
 	}
 
 	/**

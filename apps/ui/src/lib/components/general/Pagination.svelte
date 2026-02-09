@@ -21,8 +21,8 @@
 </script>
 
 <div class="flex items-center justify-between">
-	<div class="text-sm opacity-75">
-		Page {page} of {totalPages} ({total} total)
+	<div class="text-sm">
+		<span class="text-sm opacity-75 whitespace-nowrap">Page {page} of {totalPages} ({total} total)</span>
 	</div>
 
 	<div class="flex items-center gap-4">

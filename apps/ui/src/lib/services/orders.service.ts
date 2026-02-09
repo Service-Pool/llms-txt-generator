@@ -88,7 +88,7 @@ class OrdersService extends HttpClient {
 	/**
 	 * Start order processing with selected model
 	 */
-	async start(id: number, modelId: number): Promise<ApiResponse<OrderResponseDto>> {
+	async start(id: number, modelId: string): Promise<ApiResponse<OrderResponseDto>> {
 		return this.fetch(configService.endpoints.orders.run(id), OrderResponseDto, {
 			method: 'POST',
 			body: JSON.stringify({ modelId })

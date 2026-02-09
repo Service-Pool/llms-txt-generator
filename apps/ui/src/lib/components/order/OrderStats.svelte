@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type OrderResponseDto } from '@api/shared';
-	import { Button, Hr } from 'flowbite-svelte';
-	import { ClipboardSolid, DownloadSolid } from 'flowbite-svelte-icons';
+	import { Button, Hr, Clipboard } from 'flowbite-svelte';
+	import { CheckOutline, ClipboardSolid, DownloadSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
 	import './OrderStats.css';
 
@@ -15,12 +15,13 @@
 	let outputElement: HTMLPreElement | null = null;
 	let displayedOutput = $state<string>(order.output || '');
 	let isLoadingOutput = $state(false);
+	let copySuccess = $state(false);
 
 	const loadFullOutput = async () => {
 		if (displayedOutput !== (order.output || '') || isLoadingOutput) {
 			return;
 		}
-		
+
 		isLoadingOutput = true;
 		try {
 			const response = await ordersService.download(order.id);
@@ -33,16 +34,13 @@
 		}
 	};
 
-	const handleCopy = async () => {
+	const handleCopyClick = async () => {
 		if (!order.output) {
 			return;
 		}
-		
+
 		try {
 			await loadFullOutput();
-			if (outputElement?.textContent) {
-				await navigator.clipboard.writeText(outputElement.textContent);
-			}
 		} catch (exception) {
 			throw exception;
 		}
@@ -139,16 +137,29 @@
 			<div class="flex items-center justify-between mb-2">
 				<span class="stat-label">Output</span>
 				<div class="flex gap-1">
-					<Button size="xs" color="light" class="p-1.5!" onclick={handleCopy}>
-						<ClipboardSolid class="w-4 h-4" />
-					</Button>
+					<Clipboard
+						bind:value={displayedOutput}
+						bind:success={copySuccess}
+						class="p-1.5!"
+						color="light"
+						size="xs"
+						onclick={handleCopyClick}
+					>
+						{#if copySuccess}
+							<CheckOutline class="w-4 h-4" />
+						{:else}
+							<ClipboardSolid class="w-4 h-4" />
+						{/if}
+					</Clipboard>
 					<Button size="xs" color="light" class="p-1.5!" onclick={handleDownload}>
 						<DownloadSolid class="w-4 h-4" />
 					</Button>
 				</div>
 			</div>
 			<Hr class="my-0.5" />
-			<pre bind:this={outputElement} class="output-content">{displayedOutput}</pre>
+			<pre
+				bind:this={outputElement}
+				class="text-xs pt-2 overflow-auto whitespace-pre-wrap wrap-break-word max-h-120 leading-normal dark:text-white">{displayedOutput}</pre>
 			<Hr class="my-0.5" />
 		</div>
 	{/if}

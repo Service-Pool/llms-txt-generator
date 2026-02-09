@@ -14,6 +14,7 @@ export interface ActionButtonConfig {
 	id: string;
 	icon: Component;
 	label: string;
+	labelAlternative?: string;
 	description?: string;
 	color: ButtonColor;
 	cardBgClass?: string;
@@ -26,6 +27,7 @@ export const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		id: 'calculate',
 		icon: ChartMixedDollarSolid,
 		label: 'Set Model',
+		labelAlternative: 'Change Model',
 		description: 'Select preferable AI Model',
 		color: 'purple',
 		cardBgClass: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
@@ -45,7 +47,7 @@ export const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 	{
 		id: 'payment',
 		icon: CreditCardSolid,
-		label: 'Pay',
+		label: 'Pay Now',
 		description: 'Complete payment to start processing',
 		color: 'blue',
 		cardBgClass: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',

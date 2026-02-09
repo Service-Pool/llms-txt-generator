@@ -28,7 +28,12 @@
 	{:else}
 		<div class="space-y-3">
 			{#each items as order (order.id)}
-				<OrderListItem {order} isOpen={openOrderId === order.id} onToggle={() => toggleOrder(order.id)} />
+				<OrderListItem
+					{order}
+					isOpen={openOrderId === order.id}
+					anyOrderOpen={openOrderId !== null}
+					onToggle={() => toggleOrder(order.id)}
+				/>
 			{/each}
 		</div>
 	{/if}

@@ -14,6 +14,8 @@ class HttpClient {
 	protected readonly baseUrl: string;
 	protected readonly timeout: number;
 
+	private readonly DELAY = 0;
+
 	constructor() {
 		this.baseUrl = configService.api.baseUrl;
 		this.timeout = configService.http.timeout;
@@ -44,6 +46,9 @@ class HttpClient {
 			if (options?.body && typeof headers === 'object' && !Array.isArray(headers)) {
 				(headers as Record<string, string>)['Content-Type'] = 'application/json';
 			}
+
+			// Emulate 3 second delay
+			await new Promise(resolve => setTimeout(resolve, this.DELAY));
 
 			const fetchFunction = fetchFn || fetch;
 			const response = await fetchFunction(url, {

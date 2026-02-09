@@ -34,15 +34,26 @@ function buildPaymentLinks(orderId: number): Record<string, HateoasLink> {
  */
 class CheckoutSessionResponseDto {
 	sessionId: string;
+	paymentUrl: string;
 	orderId: number;
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
-	public static create(orderId: number, sessionId: string): CheckoutSessionResponseDto {
+	public static create(orderId: number, sessionId: string, paymentUrl: string): CheckoutSessionResponseDto {
 		const dto = new CheckoutSessionResponseDto();
 		dto.sessionId = sessionId;
+		dto.paymentUrl = paymentUrl;
 		dto.orderId = orderId;
 		dto._links = buildPaymentLinks(orderId);
 
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): CheckoutSessionResponseDto {
+		const dto = new CheckoutSessionResponseDto();
+		dto.sessionId = json.sessionId as string;
+		dto.paymentUrl = json.paymentUrl as string;
+		dto.orderId = json.orderId as number;
+		dto._links = json._links as Partial<Record<HateoasAction, HateoasLink>>;
 		return dto;
 	}
 }
@@ -52,15 +63,26 @@ class CheckoutSessionResponseDto {
  */
 class PaymentIntentResponseDto {
 	clientSecret: string;
+	publishableKey: string;
 	orderId: number;
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
-	public static create(orderId: number, clientSecret: string): PaymentIntentResponseDto {
+	public static create(orderId: number, clientSecret: string, publishableKey: string): PaymentIntentResponseDto {
 		const dto = new PaymentIntentResponseDto();
 		dto.clientSecret = clientSecret;
+		dto.publishableKey = publishableKey;
 		dto.orderId = orderId;
 		dto._links = buildPaymentLinks(orderId);
 
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): PaymentIntentResponseDto {
+		const dto = new PaymentIntentResponseDto();
+		dto.clientSecret = json.clientSecret as string;
+		dto.publishableKey = json.publishableKey as string;
+		dto.orderId = json.orderId as number;
+		dto._links = json._links as Partial<Record<HateoasAction, HateoasLink>>;
 		return dto;
 	}
 }

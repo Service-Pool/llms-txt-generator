@@ -1,58 +1,41 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ordersService } from '$lib/services/orders.service';
-	import { Alert, Button, Hr } from 'flowbite-svelte';
+	import { Alert, Button, Hr, Skeleton, Card } from 'flowbite-svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
-	import Spinner from '$lib/components/general/Spinner.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import Hero from '$lib/components/general/Hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
 	import OrdersList from '$lib/components/order/OrdersList.svelte';
 	import Pagination from '$lib/components/general/Pagination.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
-	let orders = $state<OrderResponseDto[]>([]);
-	let loading = $state(true);
 	let error = $state<string[] | string | null>(null);
-	let page = $state(1);
-	let limit = $state(5);
-	let total = $state(0);
 
 	const loadOrders = async () => {
 		try {
-			loading = true;
 			error = null;
-			const response = await ordersService.getAll(page, limit);
-			const data = response.getData();
-			orders = data.items;
-			total = data.total;
+			await ordersStore.loadOrders();
 		} catch (exception) {
 			if (exception instanceof UIError) {
 				error = exception.context;
 			} else if (exception instanceof Error) {
 				error = exception.message;
 			}
-			throw exception;
-		} finally {
-			loading = false;
 		}
 	};
 
 	const handlePageChange = (newPage: number) => {
-		page = newPage;
-		loadOrders();
+		ordersStore.setPage(newPage);
 	};
 
 	const handleLimitChange = (newLimit: number) => {
-		limit = newLimit;
-		page = 1; // Reset to first page when changing limit
-		loadOrders();
+		ordersStore.setLimit(newLimit);
 	};
 
 	const handleOrderCreated = (order: OrderResponseDto) => {
-		// Add new order to the beginning of the list
-		orders = [order, ...orders];
-		total += 1;
+		ordersStore.addOrder(order);
 	};
 
 	onMount(async () => {
@@ -66,11 +49,16 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto space-y-6">
+	<Hero />
 	<NewOrderForm onCreate={handleOrderCreated} />
 
-	{#if loading}
-		<div class="flex justify-center py-12">
-			<Spinner size="12" delay={500} />
+	{#if ordersStore.items === null || ordersStore.loading}
+		<div class="space-y-3">
+			{#each Array(3) as _, i (i)}
+				<Card class="max-w-none p-4">
+					<Skeleton size="xl" class="my-8" />
+				</Card>
+			{/each}
 		</div>
 	{:else if error}
 		<Alert color="red">
@@ -78,14 +66,26 @@
 			<Button onclick={() => loadOrders()} size="xs" color="red" class="mt-2">Try again</Button>
 		</Alert>
 	{:else}
-		{#if total > limit}
-			<Pagination {page} {limit} {total} onPageChange={handlePageChange} onLimitChange={handleLimitChange} />
+		{#if ordersStore.total > ordersStore.limit}
+			<Pagination
+				page={ordersStore.page}
+				limit={ordersStore.limit}
+				total={ordersStore.total}
+				onPageChange={handlePageChange}
+				onLimitChange={handleLimitChange}
+			/>
 		{/if}
 		<Hr class="my-8" />
-		<OrdersList items={orders} />
+		<OrdersList items={ordersStore.items ?? []} />
 		<Hr class="my-8" />
-		{#if total > limit}
-			<Pagination {page} {limit} {total} onPageChange={handlePageChange} onLimitChange={handleLimitChange} />
+		{#if ordersStore.total > ordersStore.limit}
+			<Pagination
+				page={ordersStore.page}
+				limit={ordersStore.limit}
+				total={ordersStore.total}
+				onPageChange={handlePageChange}
+				onLimitChange={handleLimitChange}
+			/>
 		{/if}
 	{/if}
 </div>
