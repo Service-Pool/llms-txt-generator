@@ -12,21 +12,21 @@
 
 	let { order, class: className = '' }: Props = $props();
 
-	let outputElement: HTMLPreElement | null = null;
-	let displayedOutput = $state<string>(order.output || '');
+	let outputElement = $state<HTMLPreElement | null>(null);
+	let downloadData = $state<{ content: string; filename: string } | null>(null);
+	let displayedOutput = $derived(downloadData?.content ?? order.output ?? '');
 	let isLoadingOutput = $state(false);
 	let copySuccess = $state(false);
 
 	const loadFullOutput = async () => {
-		if (displayedOutput !== (order.output || '') || isLoadingOutput) {
+		if (downloadData !== null || isLoadingOutput) {
 			return;
 		}
 
 		isLoadingOutput = true;
 		try {
 			const response = await ordersService.download(order.id);
-			const text = await response.text();
-			displayedOutput = text;
+			downloadData = response.getData();
 		} catch (exception) {
 			throw exception;
 		} finally {
@@ -54,13 +54,12 @@
 		try {
 			await loadFullOutput();
 			const content = outputElement?.textContent;
-			if (content) {
+			if (content && downloadData?.filename) {
 				const blob = new Blob([content], { type: 'text/plain' });
 				const url = window.URL.createObjectURL(blob);
 				const a = document.createElement('a');
 				a.href = url;
-				const domain = new URL(order.hostname).hostname;
-				a.download = `llms-${domain}.txt`;
+				a.download = downloadData.filename;
 				document.body.appendChild(a);
 				a.click();
 				window.URL.revokeObjectURL(url);

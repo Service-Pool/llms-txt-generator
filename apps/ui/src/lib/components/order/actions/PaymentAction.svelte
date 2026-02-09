@@ -4,30 +4,33 @@
 	import { paymentsService } from '$lib/services/payments.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { configService } from '$lib/services/config.service';
-	import StripeElementsModal from '$lib/components/payment/StripeElementsModal.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
 	const config = getActionConfig('payment')!;
 
 	interface Props {
 		order: OrderResponseDto;
+		open?: boolean;
+		clientSecret?: string | null;
+		publishableKey?: string | null;
 		mode?: 'card' | 'button';
 		disabled?: boolean;
 		loading?: boolean;
 	}
 
-	let { order, mode = 'card', disabled = false, loading = false }: Props = $props();
+	let {
+		order,
+		open = $bindable(false),
+		clientSecret = $bindable(null),
+		publishableKey = $bindable(null),
+		mode = 'card',
+		disabled = false,
+		loading = false
+	}: Props = $props();
 
-	let isPaying = $state(false);
-	let showPaymentModal = $state(false);
-	let clientSecret = $state<string | null>(null);
-	let publishableKey = $state<string | null>(null);
-
-	const isProcessing = $derived(isPaying || loading);
+	const isProcessing = $derived(loading || open);
 
 	const handlePay = async () => {
-		isPaying = true;
-
 		try {
 			switch (configService.stripe.paymentMethod) {
 				case 'elements': {
@@ -37,8 +40,7 @@
 
 					clientSecret = data.clientSecret;
 					publishableKey = data.publishableKey;
-					showPaymentModal = true;
-					// Don't reset isPaying here - wait for modal to close
+					open = true;
 					break;
 				}
 
@@ -50,7 +52,6 @@
 						await ordersStore.refreshOrder(order.id);
 						window.location.href = data.paymentUrl;
 					}
-					isPaying = false;
 					break;
 				}
 
@@ -58,22 +59,8 @@
 					throw new Error(`Unsupported payment method: ${configService.stripe.paymentMethod}`);
 			}
 		} catch (exception) {
-			isPaying = false;
 			throw exception;
 		}
-	};
-
-	const handlePaymentSuccess = async () => {
-		showPaymentModal = false;
-		await ordersStore.refreshOrder(order.id);
-		isPaying = false;
-	};
-
-	const handlePaymentClose = () => {
-		showPaymentModal = false;
-		clientSecret = null;
-		publishableKey = null;
-		isPaying = false;
 	};
 </script>
 
@@ -117,8 +104,4 @@
 			</Button>
 		</div>
 	</div>
-{/if}
-
-{#if showPaymentModal && clientSecret && publishableKey}
-	<StripeElementsModal {clientSecret} {publishableKey} onSuccess={handlePaymentSuccess} onClose={handlePaymentClose} />
 {/if}

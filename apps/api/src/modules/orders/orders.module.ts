@@ -12,6 +12,7 @@ import { OrdersService } from './services/orders.service';
 import { OrderSubscriber } from './subscribers/order.subscriber';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '../../validators/host.validator';
 import { AiModelValidator } from '../../validators/ai-model.validator';
+import { OrderHasOutputValidator } from '../../validators/order.validator';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -31,7 +32,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 		OrderSubscriber,
 		RobotsAccessibleValidator,
 		SitemapAccessibleValidator,
-		AiModelValidator
+		AiModelValidator,
+		OrderHasOutputValidator
 	],
 	exports: [OrdersService]
 })

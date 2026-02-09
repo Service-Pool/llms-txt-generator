@@ -6,6 +6,7 @@ import {
 	OrderResponseDto,
 	OrdersListResponseDto,
 	AvailableAiModelDto,
+	DownloadOrderResponseDto,
 	HateoasAction,
 	OrderStatus,
 	type ApiResponse
@@ -97,18 +98,10 @@ class OrdersService extends HttpClient {
 
 	/**
 	 * Download generated LLMs.txt file
-	 * Returns Blob for file download
+	 * Returns file content and filename from API
 	 */
-	async download(id: number): Promise<Blob> {
-		const response = await fetch(`${this.baseUrl}${configService.endpoints.orders.download(id)}`, {
-			credentials: 'include'
-		});
-
-		if (!response.ok) {
-			throw new Error('Failed to download file');
-		}
-
-		return response.blob();
+	async download(id: number): Promise<ApiResponse<DownloadOrderResponseDto>> {
+		return this.fetch(configService.endpoints.orders.download(id), DownloadOrderResponseDto);
 	}
 
 	/**

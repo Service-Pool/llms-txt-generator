@@ -1,10 +1,9 @@
 import { ApiResponse } from '../../../utils/response/api-response';
-import { Controller, Post, Get, Query, Body, Param, HttpCode, HttpStatus, Res, ParseIntPipe } from '@nestjs/common';
-import { CreateOrderRequestDto, CalculateOrderRequestDto } from '../dto/order-request.dto';
-import { FastifyReply } from 'fastify';
+import { Controller, Post, Get, Query, Body, Param, HttpCode, HttpStatus, ParseIntPipe } from '@nestjs/common';
+import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto } from '../dto/order-request.dto';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto } from '../dto/order-response.dto';
+import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
 
 @Controller('api/orders')
@@ -98,25 +97,10 @@ class OrdersController {
 	 * GET /api/orders/:id/download
 	 */
 	@Get(':id/download')
-	public async downloadLlmsTxt(
-		@Param('id', ParseIntPipe) id: number,
-		@Res() res: FastifyReply
-	): Promise<void> {
-		const order = await this.ordersService.getUserOrder(id);
-
-		if (!order.output) {
-			res.code(404).send({
-				statusCode: 404,
-				message: 'Order output not available yet'
-			});
-			return;
-		}
-
-		// Set headers for file download
-		res.header('Content-Type', 'text/plain');
-		res.header('Content-Disposition', `attachment; filename="llms-${order.hostname}.txt"`);
-
-		res.send(order.output);
+	@HttpCode(HttpStatus.OK)
+	public async downloadLlmsTxt(@Param() dto: DownloadOrderRequestDto): Promise<ApiResponse<DownloadOrderResponseDto>> {
+		const order = await this.ordersService.getUserOrder(dto.id);
+		return ApiResponse.success(DownloadOrderResponseDto.create(`llms-${order.hostname}.txt`, order.output));
 	}
 }
 

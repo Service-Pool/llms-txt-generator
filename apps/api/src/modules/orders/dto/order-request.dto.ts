@@ -1,5 +1,6 @@
 import { IsString, IsNotEmpty, IsUrl } from 'class-validator';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '../../../validators/host.validator';
+import { OrderHasOutputValidator } from '../../../validators/order.validator';
 import { AiModelValidator } from '../../../validators/ai-model.validator';
 import { Validate } from 'class-validator';
 
@@ -19,4 +20,9 @@ class CalculateOrderRequestDto {
 	modelId: string;
 }
 
-export { CreateOrderRequestDto, CalculateOrderRequestDto };
+class DownloadOrderRequestDto {
+	@Validate(OrderHasOutputValidator)
+	id: number;
+}
+
+export { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto };

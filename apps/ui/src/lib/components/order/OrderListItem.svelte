@@ -3,6 +3,7 @@
 	import {
 		Card,
 		Alert,
+		Badge,
 		Accordion,
 		AccordionItem,
 		Button,
@@ -18,6 +19,9 @@
 	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
 	import OrderActions from '$lib/components/order/OrderActions.svelte';
 	import OrderStats from '$lib/components/order/OrderStats.svelte';
+	import CalculateModal from '$lib/components/order/modals/CalculateModal.svelte';
+	import StripeElementsModal from '$lib/components/order/modals/StripeElementsModal.svelte';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -34,7 +38,21 @@
 	let speedDialOpen = $state(false);
 	let speedDialHover = $state(false);
 	let calculateModalOpen = $state(false);
+	let paymentModalOpen = $state(false);
+	let paymentClientSecret = $state<string | null>(null);
+	let paymentPublishableKey = $state<string | null>(null);
 	let actionInProgress = $state<string | null>(null);
+
+	const handlePaymentSuccess = async () => {
+		paymentModalOpen = false;
+		await ordersStore.refreshOrder(order.id);
+	};
+
+	const handlePaymentClose = () => {
+		paymentModalOpen = false;
+		paymentClientSecret = null;
+		paymentPublishableKey = null;
+	};
 
 	const handleToggle = () => {
 		if (onToggle) {
@@ -71,7 +89,7 @@
 			<!-- Hostname with Status -->
 			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
 				<h3 class="text-sm font-semibold truncate">
-					{order.hostname}
+					<Badge color="gray" class="px-2 mr-1">#{order.id}</Badge>{order.hostname}
 				</h3>
 				<OrderStatusBadge status={order.status} />
 			</div>
@@ -111,13 +129,16 @@
 						transition={fly}
 						transitionParams={{ duration: 100 }}
 					>
-						<Listgroup class="divide-none space-y-2 bg-transparent border-none" active={false}>
+						<Listgroup class="divide-none space-y-2 bg-transparent border-none flex flex-col" active={false}>
 							<OrderActions
 								{order}
 								mode="button"
 								disabled={actionInProgress !== null}
 								loadingAction={actionInProgress}
 								bind:calculateModalOpen
+								bind:paymentModalOpen
+								bind:paymentClientSecret
+								bind:paymentPublishableKey
 							/>
 						</Listgroup>
 					</SpeedDial>
@@ -167,7 +188,14 @@
 		>
 			<div class="pb-2">
 				<!-- Actions Section -->
-				<OrderActions {order} class="pb-4" />
+				<OrderActions
+					{order}
+					class="pb-4"
+					bind:calculateModalOpen
+					bind:paymentModalOpen
+					bind:paymentClientSecret
+					bind:paymentPublishableKey
+				/>
 
 				<!-- Divider with Info Icon -->
 				<div class="flex items-center gap-3 mb-4">
@@ -185,3 +213,18 @@
 		</AccordionItem>
 	</Accordion>
 </Card>
+
+<!-- Calculate Modal (rendered outside SpeedDial to prevent unmounting) -->
+{#if calculateModalOpen}
+	<CalculateModal {order} bind:open={calculateModalOpen} />
+{/if}
+
+<!-- Payment Modal (rendered outside SpeedDial to prevent unmounting) -->
+{#if paymentModalOpen && paymentClientSecret && paymentPublishableKey}
+	<StripeElementsModal
+		clientSecret={paymentClientSecret}
+		publishableKey={paymentPublishableKey}
+		onSuccess={handlePaymentSuccess}
+		onClose={handlePaymentClose}
+	/>
+{/if}

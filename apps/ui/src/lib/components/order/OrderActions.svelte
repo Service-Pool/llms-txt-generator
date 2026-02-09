@@ -13,6 +13,9 @@
 		disabled?: boolean;
 		loadingAction?: string | null;
 		calculateModalOpen?: boolean;
+		paymentModalOpen?: boolean;
+		paymentClientSecret?: string | null;
+		paymentPublishableKey?: string | null;
 	}
 
 	let {
@@ -21,7 +24,10 @@
 		mode = 'card',
 		disabled = false,
 		loadingAction = null,
-		calculateModalOpen = $bindable(false)
+		calculateModalOpen = $bindable(false),
+		paymentModalOpen = $bindable(false),
+		paymentClientSecret = $bindable(null),
+		paymentPublishableKey = $bindable(null)
 	}: Props = $props();
 
 	const hasAction = (action: HateoasAction) => ordersService.hasAction(order, action);
@@ -35,7 +41,15 @@
 
 	<!-- Payment Action -->
 	{#if hasAction(HateoasAction.CHECKOUT) || hasAction(HateoasAction.PAYMENT_INTENT)}
-		<PaymentAction {order} {mode} {disabled} loading={loadingAction === 'payment'} />
+		<PaymentAction
+			{order}
+			{mode}
+			{disabled}
+			loading={loadingAction === 'payment'}
+			bind:open={paymentModalOpen}
+			bind:clientSecret={paymentClientSecret}
+			bind:publishableKey={paymentPublishableKey}
+		/>
 	{/if}
 
 	<!-- Run Processing Action -->

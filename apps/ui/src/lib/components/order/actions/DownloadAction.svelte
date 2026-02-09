@@ -17,15 +17,19 @@
 
 	let isDownloading = $state(false);
 
-	const handleDownload = async () => {
+	const handleDownload = async (e: MouseEvent) => {
+		e.stopPropagation();
 		isDownloading = true;
 		try {
-			const blob = await ordersService.download(order.id);
+			const response = await ordersService.download(order.id);
+			const data = response.getData();
+			const blob = new Blob([data.content], { type: 'text/plain' });
 			const url = window.URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			const domain = new URL(order.hostname).hostname;
-			a.download = `llms-${domain}.txt`;
+			a.download = data.filename;
+			a.style.display = 'none';
+			a.addEventListener('click', (e) => e.stopPropagation());
 			document.body.appendChild(a);
 			a.click();
 			window.URL.revokeObjectURL(url);

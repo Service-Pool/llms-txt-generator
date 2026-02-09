@@ -355,4 +355,23 @@ class OrdersListResponseDto {
 	}
 }
 
-export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto };
+class DownloadOrderResponseDto {
+	filename: string;
+	content: string;
+
+	public static create(filename: string, content: string): DownloadOrderResponseDto {
+		const dto = new DownloadOrderResponseDto();
+		dto.filename = filename;
+		dto.content = content;
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): DownloadOrderResponseDto {
+		const dto = new DownloadOrderResponseDto();
+		dto.filename = json.filename as string;
+		dto.content = json.content as string;
+		return dto;
+	}
+}
+
+export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto };
