@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type OrderResponseDto } from '@api/shared';
-	import { Button, Hr, Clipboard } from 'flowbite-svelte';
-	import { CheckOutline, ClipboardSolid, DownloadSolid } from 'flowbite-svelte-icons';
+	import { Button, Tooltip, Hr } from 'flowbite-svelte';
+	import { CheckOutline, DownloadSolid, ClipboardSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
 
 	interface Props {
@@ -15,7 +15,10 @@
 	let downloadData = $state<{ content: string; filename: string } | null>(null);
 	let displayedOutput = $derived(downloadData?.content ?? order.output ?? '');
 	let isLoadingOutput = $state(false);
+	let isCopying = $state(false);
+	let isDownloading = $state(false);
 	let copySuccess = $state(false);
+	let downloadSuccess = $state(false);
 
 	// Check if download action is enabled in configuration
 	// const enabledActions = $derived(ordersService.getEnabledActions(order));
@@ -42,7 +45,18 @@
 			return;
 		}
 
-		await loadFullOutput();
+		isCopying = true;
+		try {
+			await loadFullOutput();
+			const content = downloadData?.content ?? displayedOutput;
+			await navigator.clipboard.writeText(content);
+			copySuccess = true;
+			setTimeout(() => (copySuccess = false), 2000);
+		} catch (exception) {
+			throw exception;
+		} finally {
+			isCopying = false;
+		}
 	};
 
 	const handleDownloadClick = async () => {
@@ -50,19 +64,28 @@
 			return;
 		}
 
-		await loadFullOutput();
-		const content = outputElement?.textContent;
+		isDownloading = true;
+		try {
+			await loadFullOutput();
+			const content = outputElement?.textContent;
 
-		if (content && downloadData?.filename) {
-			const blob = new Blob([content], { type: 'text/plain' });
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = downloadData.filename;
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
+			if (content && downloadData?.filename) {
+				const blob = new Blob([content], { type: 'text/plain' });
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = downloadData.filename;
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+				downloadSuccess = true;
+				setTimeout(() => (downloadSuccess = false), 2000);
+			}
+		} catch (exception) {
+			throw exception;
+		} finally {
+			isDownloading = false;
 		}
 	};
 </script>
@@ -132,23 +155,28 @@
 			<div class="flex items-center justify-between mb-2">
 				<span class="stat-label">Output</span>
 				<div class="flex gap-1">
-					<Clipboard
-						bind:value={displayedOutput}
-						bind:success={copySuccess}
-						class="p-1.5!"
-						color="light"
-						size="xs"
-						onclick={handleCopyClick}
-					>
+					<Button size="sm" color="light" class="rounded-full p-2!" onclick={handleCopyClick} loading={isCopying}>
 						{#if copySuccess}
-							<CheckOutline class="w-4 h-4" />
+							<CheckOutline class="w-5 h-5" />
 						{:else}
-							<ClipboardSolid class="w-4 h-4" />
+							<ClipboardSolid class="w-5 h-5" />
 						{/if}
-					</Clipboard>
-					<Button size="xs" color="light" class="p-1.5!" onclick={handleDownloadClick}>
-						<DownloadSolid class="w-4 h-4" />
 					</Button>
+					<Tooltip>Copy content</Tooltip>
+					<Button
+						size="sm"
+						color="light"
+						class="rounded-full p-2!"
+						onclick={handleDownloadClick}
+						loading={isDownloading}
+					>
+						{#if downloadSuccess}
+							<CheckOutline class="w-5 h-5" />
+						{:else}
+							<DownloadSolid class="w-5 h-5" />
+						{/if}
+					</Button>
+					<Tooltip>Download content</Tooltip>
 				</div>
 			</div>
 			<Hr class="my-0.5" />

@@ -3,7 +3,7 @@
 	import { ordersService } from '$lib/services/orders.service';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import CalculateAction from './actions/CalculateAction.svelte';
+	import CalculateModal from './modals/CalculateModal.svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import type { CreateOrderResponseDto, OrderResponseDto } from '@api/shared';
 
@@ -110,5 +110,5 @@
 </Card>
 
 {#if createdOrder}
-	<CalculateAction order={createdOrder} bind:open={showModelSelection} showButton={false} />
+	<CalculateModal bind:open={showModelSelection} order={createdOrder} />
 {/if}
