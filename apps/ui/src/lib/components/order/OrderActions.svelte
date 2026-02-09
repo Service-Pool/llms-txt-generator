@@ -10,7 +10,6 @@
 		order: OrderResponseDto;
 		class?: string;
 		mode?: 'card' | 'button';
-		disabled?: boolean;
 		loadingAction?: string | null;
 		calculateModalOpen?: boolean;
 		paymentModalOpen?: boolean;
@@ -22,7 +21,6 @@
 		order,
 		class: className = '',
 		mode = 'card',
-		disabled = false,
 		loadingAction = null,
 		calculateModalOpen = $bindable(false),
 		paymentModalOpen = $bindable(false),
@@ -37,27 +35,20 @@
 <div class="{mode === 'button' ? 'flex flex-col gap-2' : 'space-y-4'} {className}">
 	{#each enabledActions as action}
 		{#if action.id === 'calculate'}
-			<CalculateAction
-				{order}
-				{mode}
-				{disabled}
-				loading={loadingAction === 'calculate'}
-				bind:open={calculateModalOpen}
-			/>
+			<CalculateAction {order} {mode} loading={loadingAction === 'calculate'} bind:open={calculateModalOpen} />
 		{:else if action.id === 'payment'}
 			<PaymentAction
 				{order}
 				{mode}
-				{disabled}
 				loading={loadingAction === 'payment'}
 				bind:open={paymentModalOpen}
 				bind:clientSecret={paymentClientSecret}
 				bind:publishableKey={paymentPublishableKey}
 			/>
 		{:else if action.id === 'run'}
-			<RunAction {order} {mode} {disabled} loading={loadingAction === 'run'} />
+			<RunAction {order} {mode} loading={loadingAction === 'run'} />
 		{:else if action.id === 'download'}
-			<DownloadAction {order} {mode} {disabled} loading={loadingAction === 'download'} />
+			<DownloadAction {order} {mode} loading={loadingAction === 'download'} />
 		{/if}
 	{/each}
 

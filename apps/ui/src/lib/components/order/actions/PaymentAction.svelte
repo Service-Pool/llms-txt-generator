@@ -14,7 +14,6 @@
 		clientSecret?: string | null;
 		publishableKey?: string | null;
 		mode?: 'card' | 'button';
-		disabled?: boolean;
 		loading?: boolean;
 	}
 
@@ -24,7 +23,6 @@
 		clientSecret = $bindable(null),
 		publishableKey = $bindable(null),
 		mode = 'card',
-		disabled = false,
 		loading = false
 	}: Props = $props();
 
@@ -72,7 +70,6 @@
 		pill
 		class="justify-start shadow-md whitespace-nowrap"
 		onclick={handlePay}
-		disabled={disabled || isProcessing}
 		loading={isProcessing}
 	>
 		<config.icon class="w-5 h-5 me-2" />
@@ -98,7 +95,6 @@
 				class="min-w-25 whitespace-nowrap"
 				spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}
 				loading={isProcessing}
-				{disabled}
 			>
 				{config.label}
 			</Button>

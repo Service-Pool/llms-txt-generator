@@ -7,19 +7,11 @@
 		order: OrderResponseDto | CreateOrderResponseDto;
 		open?: boolean;
 		mode?: 'card' | 'button';
-		disabled?: boolean;
 		loading?: boolean;
 		showButton?: boolean;
 	}
 
-	let {
-		order,
-		open = $bindable(false),
-		mode = 'card',
-		disabled = false,
-		loading = false,
-		showButton = true
-	}: Props = $props();
+	let { order, open = $bindable(false), mode = 'card', loading = false, showButton = true }: Props = $props();
 
 	const config = getActionConfig('calculate')!;
 	const label = $derived('currentAiModel' in order && order.currentAiModel ? config.labelAlternative : config.label);
@@ -34,7 +26,6 @@
 			pill
 			class="justify-start shadow-md whitespace-nowrap"
 			onclick={() => (open = true)}
-			{disabled}
 			loading={loading || open}
 		>
 			<config.icon class="w-5 h-5 me-2" />
@@ -58,7 +49,6 @@
 				<Button
 					onclick={() => (open = true)}
 					color={config.color}
-					{disabled}
 					loading={loading || open}
 					size="sm"
 					class="min-w-25 whitespace-nowrap">{label}</Button

@@ -9,11 +9,10 @@
 	interface Props {
 		order: OrderResponseDto;
 		mode?: 'card' | 'button';
-		disabled?: boolean;
 		loading?: boolean;
 	}
 
-	let { order, mode = 'card', disabled = false, loading = false }: Props = $props();
+	let { order, mode = 'card', loading = false }: Props = $props();
 
 	let isDownloading = $state(false);
 
@@ -50,7 +49,6 @@
 		pill
 		class="justify-start shadow-md whitespace-nowrap"
 		onclick={handleDownload}
-		disabled={disabled || isDownloading}
 		loading={loading || isDownloading}
 	>
 		<config.icon class="w-5 h-5 me-2" />
@@ -72,7 +70,6 @@
 				color={config.color}
 				size="sm"
 				class="min-w-25 whitespace-nowrap"
-				disabled={disabled || isDownloading}
 				loading={loading || isDownloading}>{config.label}</Button
 			>
 		</div>

@@ -100,16 +100,6 @@
 
 		<!-- Action Buttons -->
 		<div class="shrink-0 flex gap-2">
-			<!-- Expand Card Button -->
-			<Button
-				size="xs"
-				color="light"
-				class="rounded-full p-1 w-8 h-8 {isOpen ? 'rotate-180' : ''} transition-transform duration-200"
-				onclick={handleToggle}
-			>
-				<ChevronDownOutline class="w-4 h-4" />
-			</Button>
-
 			<!-- Speed Dial Actions -->
 			{#if hasAvailableActions}
 				<div class="relative">
@@ -136,7 +126,6 @@
 							<OrderActions
 								{order}
 								mode="button"
-								disabled={actionInProgress !== null}
 								loadingAction={actionInProgress}
 								bind:calculateModalOpen
 								bind:paymentModalOpen
@@ -147,6 +136,16 @@
 					</SpeedDial>
 				</div>
 			{/if}
+
+			<!-- Expand Card Button -->
+			<Button
+				size="xs"
+				color="light"
+				class="rounded-full p-1 w-8 h-8 {isOpen ? 'rotate-180' : ''} transition-transform duration-200"
+				onclick={handleToggle}
+			>
+				<ChevronDownOutline class="w-4 h-4" />
+			</Button>
 		</div>
 	</div>
 

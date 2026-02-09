@@ -10,11 +10,10 @@
 	interface Props {
 		order: OrderResponseDto;
 		mode?: 'card' | 'button';
-		disabled?: boolean;
 		loading?: boolean;
 	}
 
-	let { order, mode = 'card', disabled = false, loading = false }: Props = $props();
+	let { order, mode = 'card', loading = false }: Props = $props();
 
 	let isRunning = $state(false);
 
@@ -42,7 +41,6 @@
 		pill
 		class="justify-start shadow-md whitespace-nowrap"
 		onclick={handleRun}
-		disabled={disabled || isRunning}
 		loading={loading || isRunning}
 	>
 		<config.icon class="w-5 h-5 me-2" />
@@ -59,14 +57,7 @@
 				</div>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Start generating LLMs.txt file</p>
 			</div>
-			<Button
-				onclick={handleRun}
-				color={config.color}
-				size="sm"
-				class="min-w-25 whitespace-nowrap"
-				disabled={isRunning}
-				loading={isRunning}
-			>
+			<Button onclick={handleRun} color={config.color} size="sm" class="min-w-25 whitespace-nowrap" loading={isRunning}>
 				{config.label}
 			</Button>
 		</div>
