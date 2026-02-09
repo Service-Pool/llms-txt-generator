@@ -44,7 +44,7 @@
 	let paymentPublishableKey = $state<string | null>(null);
 	let actionInProgress = $state<string | null>(null);
 
-	const hasAvailableActions = $derived(ordersService.getEnabledActions(order).hasAnyAction);
+	const hasAvailableActions = $derived(ordersService.getEnabledActions(order).length > 0);
 
 	const handlePaymentSuccess = async () => {
 		paymentModalOpen = false;

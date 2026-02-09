@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Modal, Button, Card } from 'flowbite-svelte';
+	import { Modal, Button, Card, Spinner } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
-	import Spinner from '$lib/components/general/Spinner.svelte';
+	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AvailableAiModelDto } from '@api/shared';
 	import { getActionConfig } from '$lib/config/order-actions.config';
 
@@ -102,7 +102,9 @@
 >
 	{#if isLoadingModels}
 		<div class="flex justify-center py-8">
-			<Spinner size="10" delay={300} />
+			<DelayedRender>
+				<Spinner size="10" />
+			</DelayedRender>
 		</div>
 	{:else if availableModels.length === 0}
 		<p class="text-sm text-gray-500">No models available</p>

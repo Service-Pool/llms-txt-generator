@@ -6,9 +6,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { UIError } from '$lib/errors/ui-error';
-	import { Card, Heading, P, Label, Input, Button, Alert, InputAddon, ButtonGroup } from 'flowbite-svelte';
+	import { Card, Heading, P, Label, Input, Button, Alert, InputAddon, ButtonGroup, Spinner } from 'flowbite-svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import Spinner from '$lib/components/general/Spinner.svelte';
+	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 
 	let redirectUrl = $state('');
 	let email = $state('');
@@ -58,7 +58,9 @@
 <div class="max-w-xl mx-auto mt-20">
 	{#if checkingAuth}
 		<Card class="text-center">
-			<Spinner size="10" delay={500} />
+			<DelayedRender>
+				<Spinner size="10" />
+			</DelayedRender>
 			<P class="mt-4">Checking authentication...</P>
 		</Card>
 	{:else}
@@ -100,7 +102,9 @@
 
 				<Button type="submit" class="w-full" disabled={loading || success}>
 					{#if loading}
-						<Spinner size="4" delay={500} />
+						<DelayedRender>
+							<Spinner size="4" />
+						</DelayedRender>
 						Sending...
 					{:else if success}
 						Email Sent

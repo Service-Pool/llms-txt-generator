@@ -4,6 +4,7 @@
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
+	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import Hero from '$lib/components/general/Hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
@@ -55,9 +56,11 @@
 	{#if ordersStore.items === null || ordersStore.loading}
 		<div class="space-y-3">
 			{#each Array(3) as _, i (i)}
-				<Card class="max-w-none p-4">
-					<Skeleton size="xl" class="my-8" />
-				</Card>
+				<DelayedRender>
+					<Card class="max-w-none p-4">
+						<Skeleton size="xl" class="my-8" />
+					</Card>
+				</DelayedRender>
 			{/each}
 		</div>
 	{:else if error}

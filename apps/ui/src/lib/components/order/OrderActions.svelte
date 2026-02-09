@@ -31,41 +31,35 @@
 	}: Props = $props();
 
 	const enabledActions = $derived(ordersService.getEnabledActions(order));
-	const hasCalculate = $derived(enabledActions.hasCalculate);
-	const hasPayment = $derived(enabledActions.hasPayment);
-	const hasRun = $derived(enabledActions.hasRun);
-	const hasDownload = $derived(enabledActions.hasDownload);
-	const hasAnyAction = $derived(enabledActions.hasAnyAction);
+	const hasAnyAction = $derived(enabledActions.length > 0);
 </script>
 
 <div class="{mode === 'button' ? 'flex flex-col gap-2' : 'space-y-4'} {className}">
-	<!-- Calculate Price Action -->
-	{#if hasCalculate}
-		<CalculateAction {order} {mode} {disabled} loading={loadingAction === 'calculate'} bind:open={calculateModalOpen} />
-	{/if}
-
-	<!-- Payment Action -->
-	{#if hasPayment}
-		<PaymentAction
-			{order}
-			{mode}
-			{disabled}
-			loading={loadingAction === 'payment'}
-			bind:open={paymentModalOpen}
-			bind:clientSecret={paymentClientSecret}
-			bind:publishableKey={paymentPublishableKey}
-		/>
-	{/if}
-
-	<!-- Run Processing Action -->
-	{#if hasRun}
-		<RunAction {order} {mode} {disabled} loading={loadingAction === 'run'} />
-	{/if}
-
-	<!-- Download Action -->
-	{#if hasDownload}
-		<DownloadAction {order} {mode} {disabled} loading={loadingAction === 'download'} />
-	{/if}
+	{#each enabledActions as action}
+		{#if action.id === 'calculate'}
+			<CalculateAction
+				{order}
+				{mode}
+				{disabled}
+				loading={loadingAction === 'calculate'}
+				bind:open={calculateModalOpen}
+			/>
+		{:else if action.id === 'payment'}
+			<PaymentAction
+				{order}
+				{mode}
+				{disabled}
+				loading={loadingAction === 'payment'}
+				bind:open={paymentModalOpen}
+				bind:clientSecret={paymentClientSecret}
+				bind:publishableKey={paymentPublishableKey}
+			/>
+		{:else if action.id === 'run'}
+			<RunAction {order} {mode} {disabled} loading={loadingAction === 'run'} />
+		{:else if action.id === 'download'}
+			<DownloadAction {order} {mode} {disabled} loading={loadingAction === 'download'} />
+		{/if}
+	{/each}
 
 	<!-- No Actions Available -->
 	{#if mode === 'card' && !hasAnyAction}
