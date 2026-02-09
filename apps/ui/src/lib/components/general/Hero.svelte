@@ -6,7 +6,7 @@
 </script>
 
 <Card
-	class="max-w-none py-4 text-center bg-linear-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
+	class="max-w-none p-8 text-center bg-linear-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
 >
 	<Heading
 		tag="h1"

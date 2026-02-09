@@ -14,7 +14,7 @@ class HttpClient {
 	protected readonly baseUrl: string;
 	protected readonly timeout: number;
 
-	private readonly DELAY = 600;
+	private readonly DELAY = 0;
 
 	constructor() {
 		this.baseUrl = configService.api.baseUrl;

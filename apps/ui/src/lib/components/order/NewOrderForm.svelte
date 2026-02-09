@@ -72,9 +72,9 @@
 </script>
 
 <Card size="xl" class="p-4 sm:p-6 md:p-8">
-	<div class="flex items-center justify-between mb-4">
-		<h2 class="text-2xl font-bold">Create New Order</h2>
-		<span class="text-sm text-gray-600 dark:text-gray-400">
+	<div class="flex flex-wrap gap-2 items-center justify-between mb-4">
+		<h2 class="text-2xl font-bold whitespace-nowrap">Create New Order</h2>
+		<span class="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400">
 			ATM generated <Badge color="indigo">{completed?.toLocaleString() ?? '—'} llms.txt</Badge> files
 		</span>
 	</div>

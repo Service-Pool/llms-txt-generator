@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type OrderResponseDto } from '@api/shared';
+	import { type OrderResponseDto, HateoasAction } from '@api/shared';
 	import { Button, Tooltip, Hr } from 'flowbite-svelte';
 	import { CheckOutline, DownloadSolid, ClipboardSolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
@@ -20,9 +20,8 @@
 	let copySuccess = $state(false);
 	let downloadSuccess = $state(false);
 
-	// Check if download action is enabled in configuration
-	// const enabledActions = $derived(ordersService.getEnabledActions(order));
-	// const hasDownloadAction = $derived(enabledActions.some((action) => action.id === 'download'));
+	// Check if download action is available in HATEOAS links (backend permission)
+	const hasDownloadAction = $derived(ordersService.hasAction(order, HateoasAction.DOWNLOAD));
 
 	const loadFullOutput = async () => {
 		if (downloadData !== null || isLoadingOutput) {
@@ -150,7 +149,7 @@
 		</div>
 	</div>
 
-	{#if order.output}
+	{#if hasDownloadAction}
 		<div class="mt-4">
 			<div class="flex items-center justify-between mb-2">
 				<span class="stat-label">Output</span>
