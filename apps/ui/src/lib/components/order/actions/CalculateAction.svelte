@@ -40,6 +40,13 @@
 		}
 	});
 
+	// Reset calculating state when modal closes
+	$effect(() => {
+		if (!open) {
+			isCalculating = false;
+		}
+	});
+
 	const loadAvailableModels = async () => {
 		isLoadingModels = true;
 		try {
@@ -69,9 +76,8 @@
 			ordersStore.updateOrder(updatedOrder);
 			open = false;
 		} catch (exception) {
-			throw exception;
-		} finally {
 			isCalculating = false;
+			throw exception;
 		}
 	};
 
@@ -94,7 +100,7 @@
 			class="justify-start shadow-md whitespace-nowrap"
 			onclick={() => (open = true)}
 			{disabled}
-			{loading}
+			loading={loading || isLoadingModels || isCalculating || open}
 		>
 			<config.icon class="w-5 h-5 me-2" />
 			{label}
@@ -118,7 +124,7 @@
 					onclick={() => (open = true)}
 					color={config.color}
 					{disabled}
-					{loading}
+					loading={loading || isLoadingModels || isCalculating || open}
 					size="sm"
 					class="min-w-25 whitespace-nowrap">{label}</Button
 				>
@@ -220,12 +226,14 @@
 	{/if}
 
 	{#snippet footer()}
-		<Button type="submit" value="calculate" disabled={!selectedModelId || isCalculating} color={config.color}>
-			{#if isCalculating}
-				Calculating...
-			{:else}
-				{config.label}
-			{/if}
+		<Button
+			type="submit"
+			value="calculate"
+			disabled={!selectedModelId || isCalculating}
+			loading={isCalculating}
+			color={config.color}
+		>
+			{config.label}
 		</Button>
 		<Button type="submit" value="cancel" color="alternative">Cancel</Button>
 	{/snippet}

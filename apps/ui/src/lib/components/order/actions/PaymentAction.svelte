@@ -38,6 +38,7 @@
 					clientSecret = data.clientSecret;
 					publishableKey = data.publishableKey;
 					showPaymentModal = true;
+					// Don't reset isPaying here - wait for modal to close
 					break;
 				}
 
@@ -49,6 +50,7 @@
 						await ordersStore.refreshOrder(order.id);
 						window.location.href = data.paymentUrl;
 					}
+					isPaying = false;
 					break;
 				}
 
@@ -56,21 +58,22 @@
 					throw new Error(`Unsupported payment method: ${configService.stripe.paymentMethod}`);
 			}
 		} catch (exception) {
-			throw exception;
-		} finally {
 			isPaying = false;
+			throw exception;
 		}
 	};
 
 	const handlePaymentSuccess = async () => {
 		showPaymentModal = false;
 		await ordersStore.refreshOrder(order.id);
+		isPaying = false;
 	};
 
 	const handlePaymentClose = () => {
 		showPaymentModal = false;
 		clientSecret = null;
 		publishableKey = null;
+		isPaying = false;
 	};
 </script>
 

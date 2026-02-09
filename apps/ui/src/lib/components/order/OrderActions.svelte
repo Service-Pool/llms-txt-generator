@@ -30,7 +30,7 @@
 <div class="{mode === 'button' ? 'flex flex-col gap-2' : 'space-y-4'} {className}">
 	<!-- Calculate Price Action -->
 	{#if hasAction(HateoasAction.CALCULATE)}
-		<CalculateAction {order} {mode} {disabled} bind:open={calculateModalOpen} />
+		<CalculateAction {order} {mode} {disabled} loading={loadingAction === 'calculate'} bind:open={calculateModalOpen} />
 	{/if}
 
 	<!-- Payment Action -->
