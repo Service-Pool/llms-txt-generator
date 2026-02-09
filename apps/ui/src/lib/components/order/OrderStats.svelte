@@ -39,34 +39,27 @@
 			return;
 		}
 
-		try {
-			await loadFullOutput();
-		} catch (exception) {
-			throw exception;
-		}
+		await loadFullOutput();
 	};
 
-	const handleDownload = async () => {
+	const handleDownloadClick = async () => {
 		if (!order.output) {
 			return;
 		}
 
-		try {
-			await loadFullOutput();
-			const content = outputElement?.textContent;
-			if (content && downloadData?.filename) {
-				const blob = new Blob([content], { type: 'text/plain' });
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = url;
-				a.download = downloadData.filename;
-				document.body.appendChild(a);
-				a.click();
-				window.URL.revokeObjectURL(url);
-				document.body.removeChild(a);
-			}
-		} catch (exception) {
-			throw exception;
+		await loadFullOutput();
+		const content = outputElement?.textContent;
+
+		if (content && downloadData?.filename) {
+			const blob = new Blob([content], { type: 'text/plain' });
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = downloadData.filename;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
 		}
 	};
 </script>
@@ -150,7 +143,7 @@
 							<ClipboardSolid class="w-4 h-4" />
 						{/if}
 					</Clipboard>
-					<Button size="xs" color="light" class="p-1.5!" onclick={handleDownload}>
+					<Button size="xs" color="light" class="p-1.5!" onclick={handleDownloadClick}>
 						<DownloadSolid class="w-4 h-4" />
 					</Button>
 				</div>

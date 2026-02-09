@@ -8,9 +8,9 @@ import {
 import { HateoasAction } from '@api/shared';
 import type { Component } from 'svelte';
 
-export type ButtonColor = 'purple' | 'green' | 'blue' | 'red' | 'yellow' | 'indigo' | 'gray';
+type ButtonColor = 'purple' | 'green' | 'blue' | 'red' | 'yellow' | 'indigo' | 'gray';
 
-export interface ActionButtonConfig {
+interface ActionButtonConfig {
 	id: string;
 	icon: Component;
 	label: string;
@@ -22,7 +22,7 @@ export interface ActionButtonConfig {
 	hateoasActions: HateoasAction[];
 }
 
-export const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
+const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 	{
 		id: 'calculate',
 		icon: ChartMixedDollarSolid,
@@ -79,7 +79,7 @@ export const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 /**
  * Get available action buttons for an order based on its HATEOAS links
  */
-export function getAvailableActionButtons(orderLinks: Partial<Record<HateoasAction, unknown>> | undefined): ActionButtonConfig[] {
+function getAvailableActionButtons(orderLinks: Partial<Record<HateoasAction, unknown>> | undefined): ActionButtonConfig[] {
 	if (!orderLinks) return [];
 
 	return ORDER_ACTION_BUTTONS.filter(action => action.hateoasActions.some(hateoasAction => hateoasAction in orderLinks));
@@ -88,6 +88,8 @@ export function getAvailableActionButtons(orderLinks: Partial<Record<HateoasActi
 /**
  * Get action config by id
  */
-export function getActionConfig(id: string): ActionButtonConfig | undefined {
+function getActionConfig(id: string): ActionButtonConfig | undefined {
 	return ORDER_ACTION_BUTTONS.find(action => action.id === id);
 }
+
+export { getAvailableActionButtons, getActionConfig };
