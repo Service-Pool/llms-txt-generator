@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ordersService } from '$lib/services/orders.service';
-	import { HateoasAction, type OrderResponseDto } from '@api/shared';
+	import type { OrderResponseDto } from '@api/shared';
 	import CalculateAction from './actions/CalculateAction.svelte';
 	import PaymentAction from './actions/PaymentAction.svelte';
 	import RunAction from './actions/RunAction.svelte';
@@ -30,17 +30,22 @@
 		paymentPublishableKey = $bindable(null)
 	}: Props = $props();
 
-	const hasAction = (action: HateoasAction) => ordersService.hasAction(order, action);
+	const enabledActions = $derived(ordersService.getEnabledActions(order));
+	const hasCalculate = $derived(enabledActions.hasCalculate);
+	const hasPayment = $derived(enabledActions.hasPayment);
+	const hasRun = $derived(enabledActions.hasRun);
+	const hasDownload = $derived(enabledActions.hasDownload);
+	const hasAnyAction = $derived(enabledActions.hasAnyAction);
 </script>
 
 <div class="{mode === 'button' ? 'flex flex-col gap-2' : 'space-y-4'} {className}">
 	<!-- Calculate Price Action -->
-	{#if hasAction(HateoasAction.CALCULATE)}
+	{#if hasCalculate}
 		<CalculateAction {order} {mode} {disabled} loading={loadingAction === 'calculate'} bind:open={calculateModalOpen} />
 	{/if}
 
 	<!-- Payment Action -->
-	{#if hasAction(HateoasAction.CHECKOUT) || hasAction(HateoasAction.PAYMENT_INTENT)}
+	{#if hasPayment}
 		<PaymentAction
 			{order}
 			{mode}
@@ -53,17 +58,17 @@
 	{/if}
 
 	<!-- Run Processing Action -->
-	{#if hasAction(HateoasAction.RUN)}
+	{#if hasRun}
 		<RunAction {order} {mode} {disabled} loading={loadingAction === 'run'} />
 	{/if}
 
 	<!-- Download Action -->
-	{#if hasAction(HateoasAction.DOWNLOAD)}
+	{#if hasDownload}
 		<DownloadAction {order} {mode} {disabled} loading={loadingAction === 'download'} />
 	{/if}
 
 	<!-- No Actions Available -->
-	{#if mode === 'card' && !hasAction(HateoasAction.CALCULATE) && !hasAction(HateoasAction.CHECKOUT) && !hasAction(HateoasAction.PAYMENT_INTENT) && !hasAction(HateoasAction.RUN) && !hasAction(HateoasAction.DOWNLOAD)}
+	{#if mode === 'card' && !hasAnyAction}
 		<p class="text-gray-500 dark:text-gray-400 text-center py-4">No actions available for this order at the moment.</p>
 	{/if}
 </div>

@@ -14,6 +14,7 @@
 	import { ChevronDownOutline, PlusOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
 	import { formatNumber } from '$lib/utils/number-format';
 	import { type OrderResponseDto } from '@api/shared';
+	import { ordersService } from '$lib/services/orders.service';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import ProgressBar from '$lib/components/general/ProgressBar.svelte';
 	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
@@ -42,6 +43,8 @@
 	let paymentClientSecret = $state<string | null>(null);
 	let paymentPublishableKey = $state<string | null>(null);
 	let actionInProgress = $state<string | null>(null);
+
+	const hasAvailableActions = $derived(ordersService.getEnabledActions(order).hasAnyAction);
 
 	const handlePaymentSuccess = async () => {
 		paymentModalOpen = false;
@@ -108,7 +111,7 @@
 			</Button>
 
 			<!-- Speed Dial Actions -->
-			{#if order._links && Object.keys(order._links).length > 1}
+			{#if hasAvailableActions}
 				<div class="relative">
 					<SpeedDialTrigger
 						color="dark"

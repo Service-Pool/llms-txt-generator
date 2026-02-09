@@ -1,5 +1,6 @@
 import { HttpClient } from './api.service';
 import { configService } from './config.service';
+import { isActionEnabled } from '$lib/config/order-actions.config';
 import {
 	CreateOrderRequestDto,
 	CreateOrderResponseDto,
@@ -124,6 +125,28 @@ class OrdersService extends HttpClient {
 	getAvailableActions(order: OrderResponseDto): string[] {
 		if (!order._links) return [];
 		return Object.keys(order._links);
+	}
+
+	/**
+	 * Get enabled actions for order (checks both HATEOAS links and frontend config)
+	 */
+	getEnabledActions(order: OrderResponseDto): {
+		hasCalculate: boolean;
+		hasPayment: boolean;
+		hasRun: boolean;
+		hasDownload: boolean;
+		hasAnyAction: boolean;
+	} {
+		const actions = this.getAvailableActions(order);
+		const hasCalculate = actions.includes(HateoasAction.CALCULATE) && isActionEnabled(HateoasAction.CALCULATE);
+		const hasCheckout = actions.includes(HateoasAction.CHECKOUT) && isActionEnabled(HateoasAction.CHECKOUT);
+		const hasPaymentIntent = actions.includes(HateoasAction.PAYMENT_INTENT) && isActionEnabled(HateoasAction.PAYMENT_INTENT);
+		const hasPayment = hasCheckout || hasPaymentIntent;
+		const hasRun = actions.includes(HateoasAction.RUN) && isActionEnabled(HateoasAction.RUN);
+		const hasDownload = actions.includes(HateoasAction.DOWNLOAD) && isActionEnabled(HateoasAction.DOWNLOAD);
+		const hasAnyAction = hasCalculate || hasPayment || hasRun || hasDownload;
+
+		return { hasCalculate, hasPayment, hasRun, hasDownload, hasAnyAction };
 	}
 }
 
