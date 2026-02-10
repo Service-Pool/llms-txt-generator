@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
 	import { configService } from '$lib/services/config.service';
 	import { Alert, Heading, Button, Card, Spinner } from 'flowbite-svelte';
 	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
@@ -28,6 +29,12 @@
 			if (!ordersStore.getById(orderId)) {
 				await ordersStore.refreshOrder(orderId);
 			}
+
+			// Subscribe to WebSocket updates for this specific order
+			const currentOrder = ordersStore.getById(orderId);
+			if (currentOrder && ['pending', 'processing'].includes(currentOrder.status)) {
+				orderWebSocketStore.subscribeToOrder(orderId);
+			}
 		} catch (exception) {
 			error = exception instanceof Error ? exception.message : 'Failed to load order';
 		} finally {
@@ -36,7 +43,13 @@
 	};
 
 	onMount(() => {
+		orderWebSocketStore.init(); // Initialize WebSocket connection
 		void loadOrderIfNeeded();
+	});
+
+	onDestroy(() => {
+		// Clean up WebSocket subscription for this order when leaving the page
+		orderWebSocketStore.unsubscribeFromOrder(orderId);
 	});
 </script>
 

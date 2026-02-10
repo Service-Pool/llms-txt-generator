@@ -1,14 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OrderStatus } from '../../../enums/order-status.enum';
 import { WebSocketEvent } from '../../../enums/websocket-event.enum';
 import type { WebSocket } from '@fastify/websocket';
-import {
-	OrderQueueEvent,
-	OrderProgressEvent,
-	OrderCompletionEvent,
-	StatsUpdateEvent,
-	WebSocketMessage
-} from '../websocket.events';
+import { StatsUpdateEvent, WebSocketResponse } from '../websocket.events';
+import { OrderResponseDto } from '../../orders/dto/order-response.dto';
 
 /**
  * WebSocket Service
@@ -119,31 +113,11 @@ class WebSocketService {
 	}
 
 	/**
-	 * Send queue position update
+	 * Send order update (unified method)
 	 */
-	sendQueuePosition(orderId: number, position: number, queueType: string): void {
-		const event = OrderQueueEvent.create(orderId, position, queueType);
-		const wsMessage = WebSocketMessage.create(WebSocketEvent.ORDER_QUEUE, event);
-		this.sendToOrder(orderId, JSON.stringify(wsMessage));
-	}
-
-	/**
-	 * Send progress update
-	 */
-	sendProgress(orderId: number, processedUrls: number, totalUrls: number, stage: 'processing' | 'generating_description'): void {
-		const percentage = totalUrls > 0 ? Math.round((processedUrls / totalUrls) * 100) : 0;
-		const event = OrderProgressEvent.create(orderId, processedUrls, totalUrls, stage, percentage);
-		const wsMessage = WebSocketMessage.create(WebSocketEvent.ORDER_PROGRESS, event);
-		this.sendToOrder(orderId, JSON.stringify(wsMessage));
-	}
-
-	/**
-	 * Send completion update
-	 */
-	sendCompletion(orderId: number, status: OrderStatus): void {
-		const event = OrderCompletionEvent.create(orderId, status);
-		const wsMessage = WebSocketMessage.create(WebSocketEvent.ORDER_COMPLETION, event);
-		this.sendToOrder(orderId, JSON.stringify(wsMessage));
+	sendOrderUpdate(orderDto: OrderResponseDto): void {
+		const wsMessage = WebSocketResponse.create(WebSocketEvent.ORDER_UPDATE, orderDto);
+		this.sendToOrder(orderDto.id, JSON.stringify(wsMessage));
 	}
 
 	/**
@@ -155,7 +129,7 @@ class WebSocketService {
 		}
 
 		const event = StatsUpdateEvent.create(count);
-		const wsMessage = WebSocketMessage.create(WebSocketEvent.STATS_UPDATE, event);
+		const wsMessage = WebSocketResponse.create(WebSocketEvent.STATS_UPDATE, event);
 		const message = JSON.stringify(wsMessage);
 		let sent = 0;
 

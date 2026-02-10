@@ -6,7 +6,7 @@ import {
 	UnauthorizedException
 } from '@nestjs/common';
 import { CrawlersService } from '../../crawlers/services/crawlers.service';
-import { QueueService } from '../../queue/services/queue.service';
+import { QueueManagerService } from '../../queue/services/queue-manager.service';
 import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
 import { UsersService } from '../../users/services/users.service';
 import { StripeService } from '../../payments/services/stripe.service';
@@ -26,7 +26,7 @@ class OrdersService {
 		private readonly orderRepository: Repository<Order>,
 		private readonly crawlersService: CrawlersService,
 		private readonly usersService: UsersService,
-		private readonly queueService: QueueService,
+		private readonly queueManagerService: QueueManagerService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly stripeService: StripeService,
 		private readonly dataSource: DataSource
@@ -146,7 +146,7 @@ class OrdersService {
 		await this.orderRepository.save(order);
 
 		try {
-			const jobId = await this.queueService.addOrderToQueue(order.id, modelConfig.queueName);
+			const jobId = await this.queueManagerService.addOrderToQueue(order.id, modelConfig.queueName);
 			await this.orderRepository.update(order.id, { jobId });
 		} catch (error) {
 			await this.orderRepository.update(order.id, {
@@ -237,17 +237,6 @@ class OrdersService {
 	}
 
 	/**
-	 * Get available AI models for an order based on its context
-	 * Models are calculated based on totalUrls and user authentication status
-	 */
-	public getAvailableAiModels(order: Order): AvailableAiModelDto[] {
-		return this.aiModelsConfigService.getAvailableModels(
-			order.totalUrls,
-			!!order.userId
-		);
-	}
-
-	/**
 	 * Get paginated orders for current user/session
 	 * Validates ownership via SQL where clause
 	 */
@@ -268,6 +257,17 @@ class OrdersService {
 		});
 
 		return { orders, total };
+	}
+
+	/**
+	 * Get available AI models for an order based on its context
+	 * Models are calculated based on totalUrls and user authentication status
+	 */
+	public getAvailableAiModels(order: Order): AvailableAiModelDto[] {
+		return this.aiModelsConfigService.getAvailableModels(
+			order.totalUrls,
+			!!order.userId
+		);
 	}
 
 	/**

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 
-	let count = $state(0);
+	let count = $state<number | null>();
 
 	// Subscribe to completedCount store
 	$effect(() => {
@@ -18,7 +18,7 @@
 >
 	<div class="text-center">
 		<div class="text-xl font-bold text-green-600 dark:text-green-400">
-			At the moment we've generated {count.toLocaleString()} llms.txt files
+			At the moment we've generated {count?.toLocaleString() ?? '—'} llms.txt files
 		</div>
 	</div>
 </div>

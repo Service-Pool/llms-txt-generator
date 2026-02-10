@@ -8,9 +8,9 @@ import { AiModelsConfigService } from '../../ai-models/services/ai-models-config
  * Динамически создает очереди на основе конфигурации моделей (AiModelsConfigService)
  */
 @Injectable()
-class QueueService implements OnModuleInit, OnModuleDestroy {
+class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 	private readonly queues = new Map<string, Queue>();
-	private readonly logger = new Logger(QueueService.name);
+	private readonly logger = new Logger(QueueManagerService.name);
 	private readonly jobOptions: JobsOptions;
 	private readonly redisConnection: ConnectionOptions;
 
@@ -235,4 +235,4 @@ class QueueService implements OnModuleInit, OnModuleDestroy {
 	}
 }
 
-export { QueueService };
+export { QueueManagerService };

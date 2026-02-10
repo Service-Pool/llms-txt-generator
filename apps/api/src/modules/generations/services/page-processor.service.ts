@@ -56,13 +56,14 @@ class PageBatchProcessor {
 	}
 
 	/**
-	 * Генерирует саммари для всех страниц в батче с использованием кэша
+	 * Генерирует саммари для всех страниц в батче с использованием кэша и очищает батч
 	 * @param modelId ID модели для кэша и генерации
 	 * @param provider LLM провайдер для генерации саммари
+	 * @returns Копия обработанных страниц
 	 */
-	public async process(modelId: string, provider: LLMProviderService): Promise<void> {
+	public async process(modelId: string, provider: LLMProviderService): Promise<PageContent[]> {
 		if (this.pages.length === 0) {
-			return;
+			return [];
 		}
 
 		try {
@@ -104,11 +105,14 @@ class PageBatchProcessor {
 					await this.cacheService.set(hashKey, path, summary);
 				}
 			}
+
+			// Возвращаем обработанные страницы перед очисткой
+			return this.pages.slice();
 		} catch (error) {
 			this.logger.error(`Failed to process batch:`, error);
 			throw new Error(`Failed to process batch: ${error instanceof Error ? error.message : String(error)}`);
 		} finally {
-			// Очистить батч после обработки (success или error)
+			// Всегда очищаем батч после обработки
 			this.clear();
 		}
 	}

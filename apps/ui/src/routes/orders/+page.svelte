@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { Alert, Button, Hr, Skeleton, Card } from 'flowbite-svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
 	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
@@ -18,6 +19,9 @@
 		try {
 			error = null;
 			await ordersStore.loadOrders();
+
+			// Subscribe to WebSocket updates for all loaded orders
+			subscribeToLoadedOrders();
 		} catch (exception) {
 			if (exception instanceof UIError) {
 				error = exception.context;
@@ -27,21 +31,43 @@
 		}
 	};
 
+	const subscribeToLoadedOrders = () => {
+		if (ordersStore.items) {
+			// Subscribe to ALL orders on the page - we can't predict which ones will be updated
+			const allOrderIds = ordersStore.items.map((order) => order.id);
+
+			if (allOrderIds.length > 0) {
+				orderWebSocketStore.subscribeToOrders(allOrderIds);
+			}
+		}
+	};
+
 	const handlePageChange = (newPage: number) => {
 		ordersStore.setPage(newPage);
+		// Orders will be loaded in ordersStore.setPage, so subscribeToLoadedOrders will be called from loadOrders
 	};
 
 	const handleLimitChange = (newLimit: number) => {
 		ordersStore.setLimit(newLimit);
+		// Orders will be loaded in ordersStore.setLimit, so subscribeToLoadedOrders will be called from loadOrders
 	};
 
 	const handleOrderCreated = (order: OrderResponseDto) => {
 		ordersStore.addOrder(order);
+
+		// Subscribe to the new order for real-time updates
+		orderWebSocketStore.subscribeToOrder(order.id);
 	};
 
 	onMount(async () => {
 		await statsStore.init();
+		orderWebSocketStore.init(); // Initialize WebSocket for order updates
 		await loadOrders();
+	});
+
+	onDestroy(() => {
+		// Clean up WebSocket subscriptions when leaving the page
+		orderWebSocketStore.unsubscribeFromAllOrders();
 	});
 </script>
 

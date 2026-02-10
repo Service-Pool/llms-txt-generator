@@ -1,16 +1,16 @@
+import { AppConfigService } from '../../../config/config.service';
+import { HttpAdapterHost } from '@nestjs/core';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { HttpAdapterHost } from '@nestjs/core';
-import { WebSocketService } from '../services/websocket.service';
-import { StatsService } from '../../stats/services/stats.service';
-import { AppConfigService } from '../../../config/config.service';
-import { Session } from '../../auth/entities/session.entity';
 import { Order } from '../../orders/entities/order.entity';
+import { Repository } from 'typeorm';
+import { Session } from '../../auth/entities/session.entity';
+import { StatsService } from '../../stats/services/stats.service';
+import { StatsUpdateEvent, WebSocketResponse } from '../websocket.events';
 import { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { type WebSocket } from 'ws';
 import { WebSocketEvent } from '../../../enums/websocket-event.enum';
-import { StatsUpdateEvent, WebSocketMessage, SubscriptionAckEvent } from '../websocket.events';
+import { WebSocketService } from '../services/websocket.service';
 
 interface SessionData {
 	userId: number | null;
@@ -25,6 +25,10 @@ interface SessionData {
 class WebSocketGateway implements OnModuleInit {
 	private readonly logger = new Logger(WebSocketGateway.name);
 
+	// WebSocket action constants
+	private static readonly ACTION_SUBSCRIBE = 'subscribe';
+	private static readonly ACTION_UNSUBSCRIBE = 'unsubscribe';
+
 	constructor(
 		private readonly wsService: WebSocketService,
 		private readonly statsService: StatsService,
@@ -37,20 +41,24 @@ class WebSocketGateway implements OnModuleInit {
 	onModuleInit() {
 		const instance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>();
 
-		instance.get('/ws/orders', { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
+		// Register orders WebSocket endpoint
+		const ordersPath = `${this.configService.websocket.path}/orders`;
+		instance.get(ordersPath, { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
 			await this.handleOrdersWebSocket(socket, request);
 		});
+		this.logger.log(`WebSocket endpoint registered: ${ordersPath}`);
 
-		instance.get('/ws/stats', { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
+		// Register stats WebSocket endpoint
+		const statsPath = `${this.configService.websocket.path}/stats`;
+		instance.get(statsPath, { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
 			await this.handleStatsWebSocket(socket, request);
 		});
-
-		this.logger.log('WebSocket endpoints registered: /ws/orders, /ws/stats');
+		this.logger.log(`WebSocket endpoint registered: ${statsPath}`);
 	}
 
 	/**
 	 * WebSocket endpoint for order updates
-	 * /ws/orders
+	 * {websocket.path}/orders
 	 */
 	private async handleOrdersWebSocket(socket: WebSocket, request: FastifyRequest): Promise<void> {
 		// Authenticate connection
@@ -79,25 +87,19 @@ class WebSocketGateway implements OnModuleInit {
 
 	/**
 	 * WebSocket endpoint for stats updates
-	 * /ws/stats
+	 * {websocket.path}/stats
 	 */
-	private async handleStatsWebSocket(socket: WebSocket, _request: FastifyRequest): Promise<void> {
-		this.logger.log('New WebSocket connection for stats');
+	private async handleStatsWebSocket(socket: WebSocket, request: FastifyRequest): Promise<void> {
+		// Authenticate connection
+		const sessionData = await this.authenticateConnection(socket, request);
+		if (!sessionData) return;
 
-		// Auto-subscribe to stats (public endpoint)
-		this.wsService.subscribeToStats(socket);
-
-		// Send current stats immediately
-		const count = await this.statsService.getCompletedCount();
-
-		const statsEvent = StatsUpdateEvent.create(count);
-		const statsMessage = WebSocketMessage.create(WebSocketEvent.STATS_UPDATE, statsEvent);
-		socket.send(JSON.stringify(statsMessage));
-
-		// Send acknowledgment
-		const ackEvent = SubscriptionAckEvent.create(undefined, 'stats');
-		const ackMessage = WebSocketMessage.create(WebSocketEvent.SUBSCRIPTION_ACK, ackEvent);
-		socket.send(JSON.stringify(ackMessage));
+		// Handle incoming messages
+		socket.on('message', (message: Buffer) => {
+			this.handleStatsMessage(socket, message, sessionData).catch((error: Error) => {
+				this.logger.error(`Unhandled stats message error: ${error.message}`);
+			});
+		});
 
 		// Handle connection close
 		socket.on('close', () => {
@@ -113,52 +115,97 @@ class WebSocketGateway implements OnModuleInit {
 	}
 
 	/**
-	 * Handle incoming WebSocket message for orders
+	 * Handle incoming WebSocket message for stats
 	 */
-	private async handleOrderMessage(socket: WebSocket, message: Buffer, sessionData: SessionData): Promise<void> {
+	private async handleStatsMessage(socket: WebSocket, message: Buffer, _sessionData: SessionData): Promise<void> {
 		try {
-			const data = JSON.parse(message.toString()) as { action?: string; orderId?: number };
+			const data = JSON.parse(message.toString()) as { action?: string };
 
-			if (data.action === 'subscribe' && data.orderId) {
-				// Verify ownership before subscribing
-				const hasAccess = await this.checkOrderAccess(
-					data.orderId,
-					sessionData.userId,
-					sessionData.sessionId
-				);
+			switch (data.action) {
+				case WebSocketGateway.ACTION_SUBSCRIBE: {
+					// Subscribe to stats updates
+					this.wsService.subscribeToStats(socket);
 
-				if (hasAccess) {
-					// User has access to this order
-					this.wsService.subscribe(data.orderId, socket);
-
-					// Send acknowledgment
-					socket.send(JSON.stringify({
-						event: 'subscribed',
-						data: { orderId: data.orderId }
-					}));
-				} else {
-					// Access denied
-					socket.send(JSON.stringify({
-						event: 'error',
-						data: {
-							message: 'Access denied: Order not found or you don\'t have permission',
-							orderId: data.orderId
-						}
-					}));
-					this.logger.warn(`Unauthorized subscribe attempt to order ${data.orderId} by userId=${sessionData.userId}`);
+					// Send current stats immediately
+					const count = await this.statsService.getCompletedCount();
+					const statsEvent = StatsUpdateEvent.create(count);
+					const statsMessage = WebSocketResponse.create(WebSocketEvent.STATS_UPDATE, statsEvent);
+					socket.send(JSON.stringify(statsMessage));
+					break;
 				}
-			} else if (data.action === 'unsubscribe' && data.orderId) {
-				this.wsService.unsubscribe(data.orderId, socket);
 
-				// Send acknowledgment
-				socket.send(JSON.stringify({
-					event: 'unsubscribed',
-					data: { orderId: data.orderId }
-				}));
+				case WebSocketGateway.ACTION_UNSUBSCRIBE: {
+					this.wsService.unsubscribeFromStats(socket);
+					break;
+				}
+
+				default:
+					throw new Error(`Unknown action: ${data.action}`);
 			}
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			this.logger.error(`Error processing WebSocket message: ${errorMessage}`);
+			this.logger.error(`Error processing stats WebSocket message: ${error}`, error);
+			socket.send(JSON.stringify({
+				event: 'error',
+				data: { message: 'Invalid message format' }
+			}));
+		}
+	}
+
+	private async handleOrderMessage(socket: WebSocket, message: Buffer, sessionData: SessionData): Promise<void> {
+		try {
+			const data = JSON.parse(message.toString()) as {
+				action?: string;
+				orderIds?: number[];
+			};
+
+			const orders = data.orderIds;
+
+			if (!orders.length) {
+				throw new Error('orderIds array is required for subscribe/unsubscribe action');
+			}
+
+			switch (data.action) {
+				case WebSocketGateway.ACTION_SUBSCRIBE: {
+					// Subscribe to multiple orders
+					for (const orderId of orders) {
+						// Verify ownership before subscribing
+						const hasAccess = await this.checkOrderAccess(
+							orderId,
+							sessionData.userId,
+							sessionData.sessionId
+						);
+
+						if (hasAccess) {
+							// User has access to this order
+							this.wsService.subscribe(orderId, socket);
+						} else {
+							// Access denied
+							socket.send(JSON.stringify({
+								event: 'error',
+								data: {
+									message: 'Access denied: Order not found or you don\'t have permission',
+									orderId: orderId
+								}
+							}));
+							this.logger.warn(`Unauthorized subscribe attempt to order ${orderId} by userId=${sessionData.userId}`);
+						}
+					}
+					break;
+				}
+
+				case WebSocketGateway.ACTION_UNSUBSCRIBE: {
+					// Unsubscribe from multiple orders
+					for (const orderId of orders) {
+						this.wsService.unsubscribe(orderId, socket);
+					}
+					break;
+				}
+
+				default:
+					throw new Error(`Unknown action: ${data.action}`);
+			}
+		} catch (error) {
+			this.logger.error(`Error processing WebSocket message: ${error}`, error);
 			socket.send(JSON.stringify({
 				event: 'error',
 				data: { message: 'Invalid message format' }

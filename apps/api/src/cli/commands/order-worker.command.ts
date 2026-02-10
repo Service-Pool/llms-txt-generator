@@ -1,7 +1,7 @@
 import { Command, CommandRunner } from 'nest-commander';
 import { Logger } from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
-import { QueueService } from '../../modules/queue/services/queue.service';
+import { QueueManagerService } from '../../modules/queue/services/queue-manager.service';
 import { AiModelsConfigService } from '../../modules/ai-models/services/ai-models-config.service';
 import { OrderJobHandler } from '../../modules/queue/handlers/order-job.handler';
 
@@ -24,7 +24,7 @@ class OrderWorkerCommand extends CommandRunner {
 	private isShuttingDown = false;
 
 	constructor(
-		private readonly queueService: QueueService,
+		private readonly queueManagerService: QueueManagerService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly orderJobHandler: OrderJobHandler
 	) {
@@ -39,7 +39,7 @@ class OrderWorkerCommand extends CommandRunner {
 
 		// Создать worker для каждой очереди
 		for (const queueName of queueNames) {
-			const worker = this.queueService.createWorker(queueName, this.processJob);
+			const worker = this.queueManagerService.createWorker(queueName, this.processJob);
 			this.workers.push(worker);
 			this.logger.log(`Worker started for ${queueName} queue`);
 		}

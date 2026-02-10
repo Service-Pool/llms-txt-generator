@@ -12,7 +12,6 @@ import { PageContent } from '../../generations/services/llm-provider.service';
 import { PageBatchProcessor } from '../../generations/services/page-processor.service';
 import { LlmsTxtFormatter } from '../../generations/utils/llms-txt-formatter';
 import { OrdersService } from '../../orders/services/orders.service';
-import { WebSocketService } from '../../websocket/services/websocket.service';
 import { StatsService } from '../../stats/services/stats.service';
 
 /**
@@ -45,7 +44,6 @@ class OrderJobHandler {
 		private readonly llmProviderFactory: LLMProviderFactory,
 		private readonly pageBatchProcessor: PageBatchProcessor,
 		private readonly ordersService: OrdersService,
-		private readonly webSocketService: WebSocketService,
 		private readonly statsService: StatsService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>,
 		private readonly dataSource: DataSource
@@ -106,27 +104,16 @@ class OrderJobHandler {
 
 				if (this.pageBatchProcessor.count >= batchSize) {
 					// Сгенерировать саммари для батча
-					await this.pageBatchProcessor.process(order.modelId, provider);
-					allPages.push(...this.pageBatchProcessor.getPages());
-
-					// Обновить прогресс через BullMQ job
-					await job.updateProgress({
-						processedUrls: allPages.length,
-						totalUrls
-					});
+					const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
+					allPages.push(...processedPages);
 
 					// Обновить processedUrls в Order
 					await this.orderRepository.update(orderId, {
 						processedUrls: allPages.length
 					});
 
-					// Отправить прогресс через WebSocket
-					this.webSocketService.sendProgress(
-						orderId,
-						allPages.length,
-						totalUrls,
-						'processing'
-					);
+					// Отправить прогресс через BullMQ события
+					await job.updateProgress({});
 
 					this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
 				}
@@ -134,20 +121,14 @@ class OrderJobHandler {
 
 			// Обработать оставшийся батч
 			if (this.pageBatchProcessor.count > 0) {
-				await this.pageBatchProcessor.process(order.modelId, provider);
-				allPages.push(...this.pageBatchProcessor.getPages());
-				await job.updateProgress({ processedUrls: allPages.length, totalUrls });
+				const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
+				allPages.push(...processedPages);
 
 				// Обновить processedUrls в Order
 				await this.ordersService.updateProgress(orderId, allPages.length);
 
-				// Отправить прогресс через WebSocket
-				this.webSocketService.sendProgress(
-					orderId,
-					allPages.length,
-					totalUrls,
-					'processing'
-				);
+				// Отправить прогресс через BullMQ события
+				await job.updateProgress({});
 
 				this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed (final batch)`);
 			}
@@ -155,13 +136,8 @@ class OrderJobHandler {
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
 
-			// Отправить статус через WebSocket
-			this.webSocketService.sendProgress(
-				orderId,
-				allPages.length,
-				totalUrls,
-				'generating_description'
-			);
+			// Отправить статус через BullMQ события
+			await job.updateProgress({});
 
 			const { hostname } = this.cacheService.parseUrl(order.hostname);
 			const hashKey = this.cacheService.buildHashKey(order.modelId, hostname);
@@ -182,12 +158,8 @@ class OrderJobHandler {
 
 			await queryRunner.commitTransaction();
 
-			// Отправить уведомление о завершении через WebSocket
-			this.webSocketService.sendCompletion(orderId, OrderStatus.COMPLETED);
-
-			// Broadcast обновленную статистику
-			const count = await this.statsService.getCompletedCount();
-			this.webSocketService.broadcastStatsUpdate(count);
+			// WebSocket события о завершении и статистике будут отправлены
+			// через QueueEventsService при получении BullMQ 'completed' события
 
 			this.logger.log(`Order ${orderId} completed successfully with ${allPages.length} pages`);
 		} catch (error) {
@@ -198,8 +170,8 @@ class OrderJobHandler {
 			await this.ordersService.updateOrderStatus(orderId, OrderStatus.FAILED);
 			await this.ordersService.addError(orderId, errorMessage);
 
-			// Отправить уведомление об ошибке через WebSocket
-			this.webSocketService.sendCompletion(orderId, OrderStatus.FAILED);
+			// WebSocket события об ошибке будут отправлены через QueueEventsService
+			// при получении BullMQ 'failed' события
 
 			this.logger.error(`Order ${orderId} failed: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
 			throw error; // Пробросить для retry BullMQ

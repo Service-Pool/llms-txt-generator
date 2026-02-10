@@ -1,4 +1,5 @@
 import { WebSocketEvent } from '../../enums/websocket-event.enum';
+import { type Deserializable } from '../../utils/response/types';
 
 /**
  * WebSocket Events
@@ -32,61 +33,6 @@ class OrderQueueEvent {
 }
 
 /**
- * Order Progress Event
- * Отправляется при обработке каждого батча страниц
- */
-class OrderProgressEvent {
-	orderId: number;
-	processedUrls: number;
-	totalUrls: number;
-	stage: 'processing' | 'generating_description';
-	percentage: number;
-
-	static create(orderId: number, processedUrls: number, totalUrls: number, stage: 'processing' | 'generating_description', percentage: number): OrderProgressEvent {
-		const event = new OrderProgressEvent();
-		event.orderId = orderId;
-		event.processedUrls = processedUrls;
-		event.totalUrls = totalUrls;
-		event.stage = stage;
-		event.percentage = percentage;
-		return event;
-	}
-
-	static fromJSON(json: Record<string, unknown>): OrderProgressEvent {
-		const event = new OrderProgressEvent();
-		event.orderId = json.orderId as number;
-		event.processedUrls = json.processedUrls as number;
-		event.totalUrls = json.totalUrls as number;
-		event.stage = json.stage as 'processing' | 'generating_description';
-		event.percentage = json.percentage as number;
-		return event;
-	}
-}
-
-/**
- * Order Completion Event
- * Отправляется при завершении обработки заказа (успех или ошибка)
- */
-class OrderCompletionEvent {
-	orderId: number;
-	status: string; // OrderStatus enum value
-
-	static create(orderId: number, status: string): OrderCompletionEvent {
-		const event = new OrderCompletionEvent();
-		event.orderId = orderId;
-		event.status = status;
-		return event;
-	}
-
-	static fromJSON(json: Record<string, unknown>): OrderCompletionEvent {
-		const event = new OrderCompletionEvent();
-		event.orderId = json.orderId as number;
-		event.status = json.status as string;
-		return event;
-	}
-}
-
-/**
  * Stats Update Event
  * Отправляется при изменении статистики (например, при завершении заказа)
  */
@@ -107,56 +53,52 @@ class StatsUpdateEvent {
 }
 
 /**
- * Subscription Acknowledgment Event
- * Подтверждение подписки на события
+ * WebSocket Response class
+ * Used on both backend (with DI) and frontend (for deserialization)
+ *
+ * Analogue of ApiResponse for WebSocket communications
+ * All syntax must be compatible with ES6
  */
-class SubscriptionAckEvent {
-	orderId?: number;
-	type?: 'stats' | 'order';
+class WebSocketResponse<T = unknown> {
+	private event: WebSocketEvent;
+	private data: T;
 
-	static create(orderId?: number, type?: 'stats' | 'order'): SubscriptionAckEvent {
-		const event = new SubscriptionAckEvent();
-		event.orderId = orderId;
-		event.type = type;
-		return event;
+	private constructor(event: WebSocketEvent) {
+		this.event = event;
 	}
 
-	static fromJSON(json: Record<string, unknown>): SubscriptionAckEvent {
-		const event = new SubscriptionAckEvent();
-		event.orderId = json.orderId as number | undefined;
-		event.type = json.type as 'stats' | 'order' | undefined;
-		return event;
-	}
-}
-
-/**
- * WebSocket message wrapper
- */
-class WebSocketMessage<T = unknown> {
-	event: WebSocketEvent;
-	data: T;
-
-	static create<T>(event: WebSocketEvent, data: T): WebSocketMessage<T> {
-		const message = new WebSocketMessage<T>();
-		message.event = event;
-		message.data = data;
-		return message;
+	public getEvent(): WebSocketEvent {
+		return this.event;
 	}
 
-	static fromJSON<T>(json: Record<string, unknown>, DataClass?: { fromJSON(json: Record<string, unknown>): T }): WebSocketMessage<T> {
-		const message = new WebSocketMessage<T>();
+	public getData(): T {
+		return this.data;
+	}
+
+	/**
+	 * Create WebSocket response
+	 */
+	public static create<T>(event: WebSocketEvent, data: T): WebSocketResponse<T> {
+		const response = new WebSocketResponse<T>(event);
+		response.data = data;
+		return response;
+	}
+
+	/**
+	 * Deserialize from JSON
+	 */
+	public static fromJSON<T>(json: Record<string, unknown>, DataClass?: Deserializable<T>): WebSocketResponse<T> {
 		const eventStr = json.event as string;
-		message.event = Object.values(WebSocketEvent).find(e => e === eventStr as WebSocketEvent) as WebSocketEvent;
+		const event = Object.values(WebSocketEvent).find(e => e === eventStr as WebSocketEvent) as WebSocketEvent;
+		const response = new WebSocketResponse<T>(event);
 
-		if (DataClass) {
-			message.data = DataClass.fromJSON(json.data as Record<string, unknown>);
-		} else {
-			message.data = json.data as T;
+		if (json.data !== undefined) {
+			response.data = DataClass ? DataClass.fromJSON(json.data) : (json.data as T);
 		}
 
-		return message;
+		return response;
 	}
 }
 
 // Export
-export { WebSocketEvent, OrderQueueEvent, OrderProgressEvent, OrderCompletionEvent, StatsUpdateEvent, SubscriptionAckEvent, WebSocketMessage };
+export { WebSocketEvent, OrderQueueEvent, StatsUpdateEvent, WebSocketResponse };

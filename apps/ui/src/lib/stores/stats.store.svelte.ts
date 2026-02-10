@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { configService } from '$lib/services/config.service';
 import { statsService } from '$lib/services/stats.service';
-import { WebSocketMessage, StatsUpdateEvent, WebSocketEvent } from '@api/shared';
+import { WebSocketResponse, StatsUpdateEvent, WebSocketEvent } from '@api/shared';
 
 /**
  * Stats Store with WebSocket real-time updates
@@ -37,30 +37,27 @@ class StatsStore {
 		this.socket = new WebSocket(wsUrl);
 
 		this.socket.onopen = () => {
-			console.log('[StatsStore] WebSocket connected');
 			if (this.reconnectTimeout) {
 				clearTimeout(this.reconnectTimeout);
 				this.reconnectTimeout = null;
 			}
 		};
 
-		this.socket.onmessage = (event) => {
+		this.socket.onmessage = (event: MessageEvent) => {
 			const json = JSON.parse(event.data as string) as Record<string, unknown>;
-			const message = WebSocketMessage.fromJSON(json);
+			const message = WebSocketResponse.fromJSON(json);
 
-			if (message.event === WebSocketEvent.STATS_UPDATE) {
-				const statsEvent = StatsUpdateEvent.fromJSON(message.data as Record<string, unknown>);
+			if (message.getEvent() === WebSocketEvent.STATS_UPDATE) {
+				const statsEvent = StatsUpdateEvent.fromJSON(message.getData() as Record<string, unknown>);
 				this.completedCount.set(statsEvent.count);
-				console.log('[StatsStore] Updated count:', statsEvent.count);
 			}
 		};
 
-		this.socket.onerror = (error) => {
-			console.error('[StatsStore] WebSocket error:', error);
+		this.socket.onerror = (_event: Event) => {
+			throw new Error('[StatsStore] WebSocket connection error');
 		};
 
 		this.socket.onclose = () => {
-			console.log('[StatsStore] WebSocket disconnected, reconnecting in 5s...');
 			this.socket = null;
 
 			// Reconnect after 5 seconds
