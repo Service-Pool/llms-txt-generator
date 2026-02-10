@@ -23,6 +23,7 @@
 	import CalculateModal from '$lib/components/order/modals/CalculateModal.svelte';
 	import StripeElementsModal from '$lib/components/order/modals/StripeElementsModal.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { OrderStatus } from '@api/shared';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -169,9 +170,15 @@
 	{/if}
 
 	<!-- Progress Bar for Active Generations -->
-	{#if true}
+	{#if order.status === OrderStatus.PROCESSING}
 		<div class="mt-3">
-			<ProgressBar label="URLs" current={3} total={44} size="h-1.5" showNumbers={true} />
+			<ProgressBar
+				label="URLs"
+				current={order.processedUrls}
+				total={order.totalUrls!}
+				size="h-1.5"
+				showNumbers={true}
+			/>
 		</div>
 	{/if}
 
