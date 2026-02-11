@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
@@ -152,27 +153,51 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 }
 
 class CreateOrderResponseDto {
+	@ApiProperty({ description: 'Order ID', example: 123 })
 	id: number;
-	// userId: number | null;
+
+	@ApiProperty({
+		description: 'Available AI models for this order',
+		type: [AvailableAiModelDto],
+		isArray: true
+	})
 	availableAiModels: AvailableAiModelDto[];
-	// currency: string;
-	// currencySymbol: string;
-	// errors: string[] | null;
+
+	@ApiProperty({ description: 'Website hostname', example: 'example.com' })
 	hostname: string;
-	// jobId: string | null;
+
+	@ApiProperty({
+		description: 'Selected AI model ID',
+		example: 'gpt-4'
+	})
 	modelId: string | null;
-	// output: string | null;
-	// pricePerUrl: number | null;
-	// priceTotal: number | null;
-	// processedUrls: number;
-	// startedAt: Date | null;
+
+	@ApiProperty({
+		description: 'Order status',
+		enum: OrderStatus,
+		example: OrderStatus.CREATED
+	})
 	status: OrderStatus;
-	// stripePaymentIntentSecret: string | null;
-	// stripeSessionId: string | null;
+
+	@ApiProperty({
+		description: 'Total number of URLs to process',
+		example: 150
+	})
 	totalUrls: number | null;
-	// completedAt: Date | null;
+
+	@ApiProperty({ description: 'Order creation date' })
 	createdAt: Date;
+
+	@ApiProperty({ description: 'Order last update date' })
 	updatedAt: Date;
+
+	@ApiProperty({
+		description: 'HATEOAS navigation links',
+		example: {
+			self: { href: '/api/orders/123', method: 'GET' },
+			calculate: { href: '/api/orders/123/calculate', method: 'POST' }
+		}
+	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
@@ -231,26 +256,105 @@ class CreateOrderResponseDto {
 }
 
 class OrderResponseDto {
+	@ApiProperty({ description: 'Order ID', example: 123 })
 	id: number;
+
 	// userId: number | null;
+
+	@ApiProperty({
+		description: 'Currently selected AI model with pricing details',
+		type: AvailableAiModelDto
+	})
 	currentAiModel: AvailableAiModelDto | null;
+
+	@ApiProperty({ description: 'Currency code', example: 'USD' })
 	currency: string;
+
+	@ApiProperty({ description: 'Currency symbol', example: '$' })
 	currencySymbol: string;
+
+	@ApiProperty({
+		description: 'Processing errors if any',
+		type: [String],
+		isArray: true,
+		example: null
+	})
 	errors: string[] | null;
+
+	@ApiProperty({
+		description: 'Website hostname',
+		example: 'example.com'
+	})
 	hostname: string;
+
 	// jobId: string | null;
+
+	@ApiProperty({
+		description: 'Generated llms.txt content (truncated to 300 words)',
+		example: 'Generated content for example.com...'
+	})
 	output: string | null;
+
+	@ApiProperty({
+		description: 'Price per URL in selected currency',
+		example: 0.01
+	})
 	pricePerUrl: number | null;
+
+	@ApiProperty({
+		description: 'Total order price in selected currency',
+		example: 1.50
+	})
 	priceTotal: number | null;
+
+	@ApiProperty({
+		description: 'Number of URLs processed',
+		example: 125
+	})
 	processedUrls: number;
+
+	@ApiProperty({ description: 'Order processing start date' })
 	startedAt: Date | null;
+
+	@ApiProperty({
+		description: 'Order status',
+		enum: OrderStatus,
+		example: OrderStatus.COMPLETED
+	})
 	status: OrderStatus;
+
+	@ApiProperty({
+		description: 'Stripe payment intent client secret for payment processing'
+	})
 	stripePaymentIntentSecret: string | null;
+
+	@ApiProperty({
+		description: 'Stripe checkout session ID'
+	})
 	stripeSessionId: string | null;
+
+	@ApiProperty({
+		description: 'Total number of URLs to process',
+		example: 150
+	})
 	totalUrls: number | null;
+
+	@ApiProperty({ description: 'Order completion date' })
 	completedAt: Date | null;
+
+	@ApiProperty({ description: 'Order creation date' })
 	createdAt: Date;
+
+	@ApiProperty({ description: 'Order last update date' })
 	updatedAt: Date;
+
+	@ApiProperty({
+		description: 'HATEOAS navigation links based on order status',
+		example: {
+			self: { href: '/api/orders/123', method: 'GET' },
+			download: { href: '/api/orders/123/output', method: 'GET' }
+		}
+	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
 	public static create(entity: Order): OrderResponseDto {
@@ -329,9 +433,29 @@ class OrderResponseDto {
 }
 
 class OrdersListResponseDto {
+	@ApiProperty({
+		description: 'List of orders',
+		type: [OrderResponseDto],
+		isArray: true
+	})
 	items: OrderResponseDto[];
+
+	@ApiProperty({
+		description: 'Total number of orders',
+		example: 25
+	})
 	total: number;
+
+	@ApiProperty({
+		description: 'Current page number',
+		example: 1
+	})
 	page: number;
+
+	@ApiProperty({
+		description: 'Number of items per page',
+		example: 5
+	})
 	limit: number;
 
 	public static create(orders: Order[], total: number, page: number, limit: number): OrdersListResponseDto {
@@ -356,7 +480,16 @@ class OrdersListResponseDto {
 }
 
 class DownloadOrderResponseDto {
+	@ApiProperty({
+		description: 'Downloaded file name',
+		example: 'llms-example.com.txt'
+	})
 	filename: string;
+
+	@ApiProperty({
+		description: 'File content',
+		example: 'Generated llms.txt content...'
+	})
 	content: string;
 
 	public static create(filename: string, content: string): DownloadOrderResponseDto {

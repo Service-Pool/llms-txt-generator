@@ -3,13 +3,12 @@ import {
 	ExceptionFilter,
 	ArgumentsHost,
 	HttpException,
-	HttpStatus,
 	Logger
 } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
 import { ApiResponse } from '../utils/response/api-response';
 import { ValidationException } from '../exceptions/validation.exception';
-import { ResponseCode, resolveResponseCode } from '../enums/response-code.enum';
+import { HttpStatus, ResponseCode, resolveResponseCode } from '../enums/response-code.enum';
 
 @Catch()
 class GlobalExceptionFilter implements ExceptionFilter {

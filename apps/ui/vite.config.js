@@ -22,6 +22,7 @@ const stubServerImports = {
 	resolveId(id) {
 		switch (true) {
 			case id === '@nestjs/common':
+			case id === '@nestjs/swagger':
 			case id === 'class-validator':
 				return id;
 
@@ -33,6 +34,21 @@ const stubServerImports = {
 		switch (true) {
 			case id === '@nestjs/common':
 				return `export const Injectable = () => () => {};`;
+
+			case id === '@nestjs/swagger': {
+				// Декораторы для OpenAPI/Swagger
+				const swaggerDecorators = [
+					'ApiProperty', 'ApiPropertyOptional', 'ApiTags', 'ApiOperation',
+					'ApiResponse', 'ApiParam', 'ApiQuery', 'ApiBody', 'ApiBasicAuth',
+					'ApiBearerAuth', 'ApiCookieAuth', 'ApiOAuth2', 'ApiSecurity',
+					'ApiConsumes', 'ApiProduces', 'ApiBadRequestResponse',
+					'ApiUnauthorizedResponse', 'ApiForbiddenResponse', 'ApiNotFoundResponse',
+					'ApiConflictResponse', 'ApiInternalServerErrorResponse', 'ApiExtraModels'
+				];
+				const decoratorExports = swaggerDecorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				const functionExports = `export const getSchemaPath = (cls) => \`#/components/schemas/\${cls.name}\`;`;
+				return decoratorExports + '\n' + functionExports;
+			}
 
 			case id === 'class-validator': {
 				// Все популярные декораторы class-validator

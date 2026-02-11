@@ -1,19 +1,29 @@
+import {
+	CreateOrderResponseDto,
+	OrderResponseDto,
+	OrdersListResponseDto,
+	DownloadOrderResponseDto
+} from '../modules/orders/dto/order-response.dto';
+import { AvailableAiModelDto } from '../modules/ai-models/dto/available-ai-model.dto';
 import { AppConfigService } from '../config/config.service';
 import { AppModule } from './app.module';
 import { createWinstonLogger } from '../config/config.logger';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { GlobalExceptionFilter } from '../filters/global-exception.filter';
+import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { HttpStatus, ResponseCode } from '../enums/response-code.enum';
+import { SessionService } from '../modules/auth/services/session.service';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { TypeOrmSessionStore } from '../modules/auth/stores/typeorm-session.store';
+import { ValidationError, useContainer } from 'class-validator';
+import { ValidationException } from '../exceptions/validation.exception';
+import { ValidationPipe } from '@nestjs/common';
+import { ApiResponse } from '../utils/response/api-response';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifySession from '@fastify/session';
 import fastifyWebsocket from '@fastify/websocket';
-import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
-import { GlobalExceptionFilter } from '../filters/global-exception.filter';
-import { ValidationException } from '../exceptions/validation.exception';
-import { ValidationError, useContainer } from 'class-validator';
-import { SessionService } from '../modules/auth/services/session.service';
-import { TypeOrmSessionStore } from '../modules/auth/stores/typeorm-session.store';
 
 /**
  * Create and configure the NestJS application
@@ -102,6 +112,36 @@ export async function createApp(): Promise<NestFastifyApplication> {
 
 	// Global exception filter
 	app.useGlobalFilters(new GlobalExceptionFilter());
+
+	// OpenAPI specification - только JSON endpoint, без UI
+	const config = new DocumentBuilder()
+		.setTitle('LLMs.txt Generator API')
+		.setDescription('API for generating llms.txt files from websites')
+		.setVersion('1.0')
+		.addCookieAuth(configService.session.cookieName)
+		.addGlobalResponse(
+			{
+				status: HttpStatus.BAD_REQUEST,
+				description: 'Validation error - invalid input data',
+				schema: ApiResponse.getErrorSchema(ResponseCode.INVALID, 'Request validation failed')
+			},
+			{
+				status: HttpStatus.INTERNAL_SERVER_ERROR,
+				description: 'Internal server error',
+				schema: ApiResponse.getErrorSchema(ResponseCode.ERROR, 'Internal server error')
+			}
+		)
+		.build();
+
+	const document = SwaggerModule.createDocument(app, config, {
+		extraModels: [CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto, AvailableAiModelDto]
+	});
+
+	// Endpoint для получения OpenAPI спецификации в JSON формате
+	app.getHttpAdapter().get('/api/openapi.json', (req, res) => {
+		res.header('Content-Type', 'application/json');
+		res.send(document);
+	});
 
 	// Health check endpoint
 	app.getHttpAdapter().get('/health', (req, res) => {

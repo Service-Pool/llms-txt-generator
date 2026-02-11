@@ -10,7 +10,8 @@
 	const navItems = [
 		// { href: configService.routes.home, label: 'Home' },
 		{ href: configService.routes.orders, label: 'Generate' },
-		{ href: configService.routes.about, label: 'About' }
+		{ href: configService.routes.about, label: 'About' },
+		{ href: configService.routes.api, label: 'API' }
 	];
 
 	let currentPath = $derived(page.url.pathname);

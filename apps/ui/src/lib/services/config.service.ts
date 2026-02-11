@@ -46,6 +46,7 @@ class ConfigService {
 	public readonly routes = {
 		home: '/',
 		about: '/about',
+		api: '/api',
 		orders: '/orders',
 		orderById: (id: number) => `/orders/${id}`,
 		auth: {

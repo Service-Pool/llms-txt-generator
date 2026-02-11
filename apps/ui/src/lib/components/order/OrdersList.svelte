@@ -3,6 +3,9 @@
 	import OrderListItem from './OrderListItem.svelte';
 	import { Heading } from 'flowbite-svelte';
 	import { FileLinesOutline } from 'flowbite-svelte-icons';
+	import { flip } from 'svelte/animate';
+	import { scale, fly } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
 
 	interface Props {
 		items: OrderResponseDto[];
@@ -28,12 +31,18 @@
 	{:else}
 		<div class="space-y-3">
 			{#each items as order (order.id)}
-				<OrderListItem
-					{order}
-					isOpen={openOrderId === order.id}
-					anyOrderOpen={openOrderId !== null}
-					onToggle={() => toggleOrder(order.id)}
-				/>
+				<div
+					animate:flip={{ duration: 400, easing: quintOut }}
+					in:scale={{ duration: 500, start: 0, easing: quintOut }}
+					out:fly={{ y: -50, duration: 200 }}
+				>
+					<OrderListItem
+						{order}
+						isOpen={openOrderId === order.id}
+						anyOrderOpen={openOrderId !== null}
+						onToggle={() => toggleOrder(order.id)}
+					/>
+				</div>
 			{/each}
 		</div>
 	{/if}

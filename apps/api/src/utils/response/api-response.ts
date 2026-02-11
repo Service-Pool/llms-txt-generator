@@ -1,5 +1,6 @@
 import { ResponseCode } from '../../enums/response-code.enum';
 import { type Deserializable } from './types';
+import { getSchemaPath } from '@nestjs/swagger';
 
 /**
  * API Response class
@@ -12,6 +13,10 @@ class ApiResponse<T = unknown> {
 	private message: string;
 	private data: T;
 	private violations: string[];
+
+	private static readonly DEFAULT_SUCCESS_MESSAGE = 'Success';
+	private static readonly DEFAULT_INVALID_MESSAGE = 'Request validation failed';
+	private static readonly DEFAULT_ERROR_MESSAGE = 'Internal server error';
 
 	private constructor(code: ResponseCode, message: string) {
 		this.code = code;
@@ -37,7 +42,10 @@ class ApiResponse<T = unknown> {
 	/**
 	 * Create successful response
 	 */
-	public static success<T>(data: T, message: string = 'Success'): ApiResponse<T> {
+	public static success<T>(
+		data: T,
+		message: typeof ApiResponse.DEFAULT_SUCCESS_MESSAGE = ApiResponse.DEFAULT_SUCCESS_MESSAGE
+	): ApiResponse<T> {
 		const response = new ApiResponse<T>(ResponseCode.SUCCESS, message);
 		response.data = data;
 		return response;
@@ -46,7 +54,10 @@ class ApiResponse<T = unknown> {
 	/**
 	 * Create validation error response
 	 */
-	public static invalid(violations: string[], message: string = 'Request validation failed'): ApiResponse<never> {
+	public static invalid(
+		violations: string[],
+		message: typeof ApiResponse.DEFAULT_INVALID_MESSAGE = ApiResponse.DEFAULT_INVALID_MESSAGE
+	): ApiResponse<never> {
 		const response = new ApiResponse<never>(ResponseCode.INVALID, message);
 		response.violations = violations;
 		return response;
@@ -55,7 +66,10 @@ class ApiResponse<T = unknown> {
 	/**
 	 * Create error response
 	 */
-	public static error(code: ResponseCode = ResponseCode.ERROR, message: string = 'Internal server error'): ApiResponse<never> {
+	public static error(
+		code: ResponseCode = ResponseCode.ERROR,
+		message: typeof ApiResponse.DEFAULT_ERROR_MESSAGE = ApiResponse.DEFAULT_ERROR_MESSAGE
+	): ApiResponse<never> {
 		return new ApiResponse<never>(code, message);
 	}
 
@@ -71,6 +85,72 @@ class ApiResponse<T = unknown> {
 		}
 
 		return response;
+	}
+
+	/**
+	 * Generate OpenAPI schema for error responses
+	 */
+	public static getErrorSchema(
+		code: ResponseCode,
+		message: typeof ApiResponse.DEFAULT_SUCCESS_MESSAGE
+			| typeof ApiResponse.DEFAULT_INVALID_MESSAGE
+			| typeof ApiResponse.DEFAULT_ERROR_MESSAGE
+	) {
+		const baseSchema = {
+			type: 'object' as const,
+			properties: {
+				code: {
+					type: 'number' as const,
+					enum: Object.entries(ResponseCode),
+					example: code
+				},
+				message: { type: 'string' as const, example: message }
+			} as Record<string, unknown>,
+			required: ['code', 'message']
+		};
+
+		// Добавляем violations только для validation errors
+		if (code === ResponseCode.INVALID) {
+			baseSchema.properties.violations = {
+				type: 'array' as const,
+				items: { type: 'string' as const },
+				example: ['Field name is required', 'Email must be valid']
+			};
+			baseSchema.required = [...baseSchema.required, 'violations'];
+		}
+
+		return baseSchema;
+	}
+
+	/**
+	 * Generate OpenAPI schema for success responses
+	 */
+	public static getSuccessSchema(
+		dtoClass?: new (...args: unknown[]) => object,
+		isArray: boolean = false,
+		message: string = ApiResponse.DEFAULT_SUCCESS_MESSAGE
+	) {
+		const dataSchema = dtoClass
+			? isArray
+				? { type: 'array' as const, items: { $ref: getSchemaPath(dtoClass) } }
+				: { $ref: getSchemaPath(dtoClass) }
+			: { type: 'null' as const, example: null };
+
+		return {
+			type: 'object' as const,
+			properties: {
+				code: {
+					type: 'number' as const,
+					example: ResponseCode.SUCCESS
+				},
+				message: {
+					type: 'string' as const,
+					example: message
+				},
+				data: dataSchema
+			},
+			required: ['code', 'message', 'data']
+		};
 	}
 }
 

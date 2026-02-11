@@ -16,7 +16,8 @@
 	"dependencies": {
 		"@google/genai": "^1.30.0",
 		"@stripe/stripe-js": "^8.6.3",
-		"@tailwindcss/postcss": "^4.1.11"
+		"@tailwindcss/postcss": "^4.1.11",
+		"redoc": "^2.5.2"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3.3.3",
