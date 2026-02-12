@@ -1,8 +1,11 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 /**
  * Stats Response DTO
  * Returns completed orders count
  */
 export class StatsResponseDto {
+	@ApiProperty({ description: 'Number of completed orders', example: 42 })
 	count: number;
 
 	/**

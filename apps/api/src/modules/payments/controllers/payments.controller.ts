@@ -9,16 +9,19 @@ import {
 	Req,
 	Headers
 } from '@nestjs/common';
-import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
-import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
-import { StripeService } from '../services/stripe.service';
-import { OrdersService } from '../../orders/services/orders.service';
-import { UsersService } from '../../users/services/users.service';
-import { AppConfigService } from '../../../config/config.service';
-import { OrderStatus } from '../../../enums/order-status.enum';
 import { ApiResponse } from '../../../utils/response/api-response';
+import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiBody, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { AppConfigService } from '../../../config/config.service';
+import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
+import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
+import { HttpStatus } from '../../../enums/response-code.enum';
+import { OrdersService } from '../../orders/services/orders.service';
+import { OrderStatus } from '../../../enums/order-status.enum';
+import { StripeService } from '../services/stripe.service';
+import { UsersService } from '../../users/services/users.service';
 import type { FastifyRequest } from 'fastify';
 
+@ApiTags('Payments')
 @Controller('api/orders/:orderId/payment')
 class PaymentsController {
 	constructor(
@@ -32,6 +35,14 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/checkout
 	 * Создаёт Stripe Checkout Session и возвращает sessionId
 	 */
+	@ApiOperation({ summary: 'Create checkout session', description: 'Creates Stripe Checkout session for order payment' })
+	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
+	@ApiBody({ type: CreateCheckoutRequestDto })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		description: 'Checkout session created',
+		schema: ApiResponse.getSuccessSchema(CheckoutSessionResponseDto)
+	})
 	@Post('checkout')
 	public async createCheckoutSession(
 		@Param('orderId', ParseIntPipe) orderId: number,
@@ -50,6 +61,13 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/intent
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
+	@ApiOperation({ summary: 'Create payment intent', description: 'Creates Stripe Payment Intent for embedded payment form' })
+	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		description: 'Payment intent created',
+		schema: ApiResponse.getSuccessSchema(PaymentIntentResponseDto)
+	})
 	@Post('intent')
 	public async createPaymentIntent(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<PaymentIntentResponseDto>> {
 		const clientSecret = await this.ordersService.getOrCreatePaymentIntent(orderId);
@@ -62,6 +80,20 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/refund
 	 * Запрашивает возврат средств за заказ
 	 */
+	@ApiOperation({ summary: 'Request refund', description: 'Requests refund for a failed order' })
+	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		description: 'Refund processed successfully',
+		schema: {
+			type: 'object',
+			properties: {
+				success: { type: 'boolean', example: true },
+				message: { type: 'string', example: 'Operation completed successfully' },
+				data: { type: 'string', example: 'Refund has been processed successfully' }
+			}
+		}
+	})
 	@Post('refund')
 	public async requestRefund(@Param('orderId', ParseIntPipe) orderId: number): Promise<ApiResponse<string>> {
 		// 1. Проверить владение заказом
@@ -93,6 +125,7 @@ class PaymentsController {
 	 * POST /api/payments/webhook
 	 * Обработчик Stripe webhooks
 	 */
+	@ApiExcludeEndpoint()
 	@Post('/webhook')
 	public async handleWebhook(
 		@Req() req: RawBodyRequest<FastifyRequest>,

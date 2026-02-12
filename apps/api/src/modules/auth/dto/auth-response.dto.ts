@@ -1,6 +1,8 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
 
 class RequestLoginLinkResponseDto {
+	@ApiProperty({ description: 'Success message', example: 'Login link has been sent to your email' })
 	message: string;
 
 	public static create(message: string): RequestLoginLinkResponseDto {
@@ -17,13 +19,24 @@ class RequestLoginLinkResponseDto {
 }
 
 class AuthLoginDtoResponse {
+	@ApiProperty({
+		description: 'User information',
+		example: {
+			id: 123,
+			email: 'user@example.com',
+			createdAt: '2024-01-01T00:00:00Z'
+		}
+	})
 	user: {
 		id: number;
 		email: string;
 		createdAt: Date;
 	};
 
+	@ApiProperty({ description: 'Redirect URL after successful login', example: 'https://example.com/dashboard' })
 	redirectUrl: string;
+
+	@ApiProperty({ description: 'Number of orders migrated to user account', example: 2 })
 	migratedOrdersCount: number;
 
 	public static fromEntity(user: User, redirectUrl: string, migratedCount: number): AuthLoginDtoResponse {
@@ -53,6 +66,7 @@ class AuthLoginDtoResponse {
 }
 
 class AuthLogoutDtoResponse {
+	@ApiProperty({ description: 'Logout success message', example: 'Successfully logged out' })
 	message: string;
 
 	public static create(message: string): AuthLogoutDtoResponse {
@@ -69,8 +83,21 @@ class AuthLogoutDtoResponse {
 }
 
 class AuthStatusDtoResponse {
+	@ApiProperty({ description: 'Whether user is authenticated', example: true })
 	authenticated: boolean;
+
+	@ApiProperty({ description: 'Session ID', example: 'sess_abc123', nullable: true })
 	sessionId: string | null;
+
+	@ApiProperty({
+		description: 'User information if authenticated',
+		nullable: true,
+		example: {
+			id: 123,
+			email: 'user@example.com',
+			createdAt: '2024-01-01T00:00:00Z'
+		}
+	})
 	user: {
 		id: number;
 		email: string;

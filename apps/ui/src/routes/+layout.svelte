@@ -5,8 +5,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import ErrorToast from '$lib/components/general/ErrorToast.svelte';
 	import Navigation from '$lib/components/general/Navigation.svelte';
+	import { page } from '$app/state';
 
 	const { children } = $props();
+
+	// Скрыть навигацию на странице API документации
+	const apiPage = $derived(page.url.pathname === '/api');
 
 	const theme = {
 		card: {
@@ -51,24 +55,25 @@
 </svelte:head>
 
 <ThemeProvider {theme}>
-	<div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-x-hidden max-w-full">
-		<!-- Header -->
-		<div class="w-full max-w-7xl mx-auto px-5">
+	<div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+		{#if apiPage}
+			<Navigation sticky />
+			<main class="flex-1 w-full">
+				{@render children()}
+			</main>
+		{:else}
 			<Navigation />
-		</div>
-
-		<!-- Main Content -->
-		<main class="container flex-1 w-full max-w-7xl mx-auto px-5 py-8 relative">
-			{@render children()}
-		</main>
-
-		<!-- Footer -->
-		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-			<div class="container mx-auto px-4">
-				<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
-			</div>
-		</Footer>
+			<main class="container flex-1 w-full mx-auto px-5 py-8">
+				{@render children()}
+			</main>
+		{/if}
 	</div>
+
+	<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+		<div class="container mx-auto px-4">
+			<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
+		</div>
+	</Footer>
 
 	<ErrorToast />
 </ThemeProvider>

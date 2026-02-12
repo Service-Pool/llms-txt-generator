@@ -19,7 +19,7 @@
 		</div>
 
 		<!-- Error Title -->
-		<Heading tag="h1" size="md" class="text-gray-600 dark:text-gray-400 mb-12">
+		<Heading tag="h1" class="text-gray-600 dark:text-gray-400 mb-12">
 			{error?.message || 'Something Went Wrong'}
 		</Heading>
 

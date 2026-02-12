@@ -68,7 +68,7 @@ class ApiResponse<T = unknown> {
 	 */
 	public static error(
 		code: ResponseCode = ResponseCode.ERROR,
-		message: typeof ApiResponse.DEFAULT_ERROR_MESSAGE = ApiResponse.DEFAULT_ERROR_MESSAGE
+		message: string
 	): ApiResponse<never> {
 		return new ApiResponse<never>(code, message);
 	}

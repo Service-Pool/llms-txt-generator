@@ -1,4 +1,3 @@
-@import './theme.css';
 @import 'tailwindcss';
 
 @plugin 'flowbite/plugin';
@@ -52,6 +51,12 @@
 @source '../node_modules/flowbite-svelte/dist';
 @source '../node_modules/flowbite-svelte-icons/dist';
 
+@layer utilities {
+    .container {
+        @apply max-w-7xl;
+    }
+}
+
 @layer base {
 	/* Fix missing Tailwind CSS variables */
 	*,
@@ -86,15 +91,9 @@
 
 html,
 body {
-	overflow-x: hidden;
 	margin: 0;
 	padding: 0;
 	width: 100%;
-	max-width: 100vw;
-}
-
-html {
-	overflow-y: scroll;
 }
 
 body {

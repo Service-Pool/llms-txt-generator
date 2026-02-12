@@ -5,6 +5,17 @@ import {
 	DownloadOrderResponseDto
 } from '../modules/orders/dto/order-response.dto';
 import { AvailableAiModelDto } from '../modules/ai-models/dto/available-ai-model.dto';
+import { StatsResponseDto } from '../modules/stats/dto/stats-response.dto';
+import {
+	RequestLoginLinkResponseDto,
+	AuthLoginDtoResponse,
+	AuthLogoutDtoResponse,
+	AuthStatusDtoResponse
+} from '../modules/auth/dto/auth-response.dto';
+import {
+	CheckoutSessionResponseDto,
+	PaymentIntentResponseDto
+} from '../modules/payments/dto/payment-response.dto';
 import { AppConfigService } from '../config/config.service';
 import { AppModule } from './app.module';
 import { createWinstonLogger } from '../config/config.logger';
@@ -118,7 +129,21 @@ export async function createApp(): Promise<NestFastifyApplication> {
 		.setTitle('LLMs.txt Generator API')
 		.setDescription('API for generating llms.txt files from websites')
 		.setVersion('1.0')
-		.addCookieAuth(configService.session.cookieName)
+		.setContact('Outcomer', 'https://github.com/outcomer', 'david.evdoshchenko@softgroupsolution.com')
+		.setOpenAPIVersion('3.1.0')
+		.addServer('https://llmstxtgenerator.svcpool.com', 'Production server')
+		.setBasePath('/api')
+		.addCookieAuth(
+			configService.session.cookieName,
+			{
+				type: 'apiKey',
+				in: 'cookie',
+				name: configService.session.cookieName,
+				description: 'Session cookie'
+			},
+			'session'
+		)
+		.addSecurityRequirements('session')
 		.addGlobalResponse(
 			{
 				status: HttpStatus.BAD_REQUEST,
@@ -134,11 +159,24 @@ export async function createApp(): Promise<NestFastifyApplication> {
 		.build();
 
 	const document = SwaggerModule.createDocument(app, config, {
-		extraModels: [CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto, AvailableAiModelDto]
+		extraModels: [
+			AvailableAiModelDto,
+			CreateOrderResponseDto,
+			DownloadOrderResponseDto,
+			OrderResponseDto,
+			OrdersListResponseDto,
+			StatsResponseDto,
+			RequestLoginLinkResponseDto,
+			AuthLoginDtoResponse,
+			AuthLogoutDtoResponse,
+			AuthStatusDtoResponse,
+			CheckoutSessionResponseDto,
+			PaymentIntentResponseDto
+		]
 	});
 
 	// Endpoint для получения OpenAPI спецификации в JSON формате
-	app.getHttpAdapter().get('/api/openapi.json', (req, res) => {
+	app.getHttpAdapter().get('/api/llms-txt-generator-api-schema.json', (req, res) => {
 		res.header('Content-Type', 'application/json');
 		res.send(document);
 	});
