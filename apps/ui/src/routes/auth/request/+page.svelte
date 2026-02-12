@@ -100,11 +100,8 @@
 					</ButtonGroup>
 				</div>
 
-				<Button type="submit" class="w-full" disabled={loading || success}>
+				<Button type="submit" class="w-full" {loading} spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}>
 					{#if loading}
-						<DelayedRender>
-							<Spinner size="4" />
-						</DelayedRender>
 						Sending...
 					{:else if success}
 						Email Sent

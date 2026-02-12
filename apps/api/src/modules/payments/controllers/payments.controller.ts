@@ -7,10 +7,12 @@ import {
 	BadRequestException,
 	RawBodyRequest,
 	Req,
-	Headers
+	Headers,
+	UseGuards
 } from '@nestjs/common';
 import { ApiResponse } from '../../../utils/response/api-response';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiBody, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { SessionGuard } from '../../auth/guards/session.guard';
 import { AppConfigService } from '../../../config/config.service';
 import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
 import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
@@ -35,6 +37,7 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/checkout
 	 * Создаёт Stripe Checkout Session и возвращает sessionId
 	 */
+	@UseGuards(SessionGuard)
 	@ApiOperation({ summary: 'Create checkout session', description: 'Creates Stripe Checkout session for order payment' })
 	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
 	@ApiBody({ type: CreateCheckoutRequestDto })
@@ -61,6 +64,7 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/intent
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 */
+	@UseGuards(SessionGuard)
 	@ApiOperation({ summary: 'Create payment intent', description: 'Creates Stripe Payment Intent for embedded payment form' })
 	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
 	@SwaggerResponse({
@@ -80,6 +84,7 @@ class PaymentsController {
 	 * POST /api/orders/:orderId/payment/refund
 	 * Запрашивает возврат средств за заказ
 	 */
+	@UseGuards(SessionGuard)
 	@ApiOperation({ summary: 'Request refund', description: 'Requests refund for a failed order' })
 	@ApiParam({ name: 'orderId', type: 'number', description: 'Order ID' })
 	@SwaggerResponse({

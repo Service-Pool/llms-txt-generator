@@ -17,7 +17,7 @@ import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { OrderStatusMachine } from '../utils/order-status-machine';
 import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, IsNull } from 'typeorm';
 
 @Injectable()
 class OrdersService {
@@ -456,11 +456,11 @@ class OrdersService {
 	 */
 	public async transferSessionOrders(sessionId: string, userId: number): Promise<number> {
 		const result = await this.orderRepository.update(
-			{ sessionId, userId: null }, // anonymous orders from this session
+			{ sessionId, userId: IsNull() }, // anonymous orders from this session
 			{ userId, sessionId: null } // bind to user, clear sessionId
 		);
 
-		return result.affected || 0;
+		return result.affected;
 	}
 
 	/**

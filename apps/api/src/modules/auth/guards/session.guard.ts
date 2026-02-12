@@ -1,5 +1,5 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import { type FastifyRequest } from 'fastify';
 import { SessionData } from '../entities/session.entity';
 
 /**
@@ -8,10 +8,11 @@ import { SessionData } from '../entities/session.entity';
  */
 @Injectable()
 class SessionGuard implements CanActivate {
-	constructor(private readonly clsService: ClsService) { }
+	private readonly _logger = new Logger(SessionGuard.name);
 
-	public canActivate(_context: ExecutionContext): boolean {
-		const session = this.clsService.get<SessionData>('sessionData');
+	public canActivate(context: ExecutionContext): boolean {
+		const request = context.switchToHttp().getRequest<FastifyRequest>();
+		const session = request.session as SessionData;
 
 		if (!session?.userId) {
 			throw new UnauthorizedException('Authentication required');

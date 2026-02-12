@@ -103,11 +103,13 @@
 				onPageChange={handlePageChange}
 				onLimitChange={handleLimitChange}
 			/>
+			<Hr class="my-8" />
 		{/if}
-		<Hr class="my-8" />
+
 		<OrdersList items={ordersStore.items ?? []} />
-		<Hr class="my-8" />
+
 		{#if ordersStore.total > ordersStore.limit}
+			<Hr class="my-8" />
 			<Pagination
 				page={ordersStore.page}
 				limit={ordersStore.limit}

@@ -100,6 +100,18 @@ class OrdersStore {
 	setLimit(newLimit: number) {
 		void this.loadOrders(1, newLimit); // Reset to first page
 	}
+
+	/**
+	 * Reset store to initial state
+	 */
+	reset() {
+		this.items = null;
+		this.loading = false;
+		this.error = null;
+		this.page = 1;
+		this.limit = 5;
+		this.total = 0;
+	}
 }
 
 export const ordersStore = new OrdersStore();

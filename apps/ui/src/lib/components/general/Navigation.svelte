@@ -3,9 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
 	import { authStore } from '$lib/stores/auth.store.svelte';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { statsStore } from '$lib/stores/stats.store.svelte';
+	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
 	import { authService } from '$lib/services/auth.service';
 	import { configService } from '$lib/services/config.service';
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode, Spinner } from 'flowbite-svelte';
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
 
 	interface Props {
 		class?: string;
@@ -32,7 +35,15 @@
 
 	async function handleLogout() {
 		await authService.logout();
+
+		// Очищаем все store'ы для полного сброса состояния
 		authStore.reset();
+		ordersStore.reset();
+		statsStore.reset();
+		orderWebSocketStore.destroy();
+
+		await authStore.refreshAuthStatus();
+
 		goto('/');
 	}
 </script>
@@ -72,12 +83,10 @@
 					{/each}
 				</NavUl>
 				<DarkMode class="text-lg mr-3" />
-				{#if isLoading}
-					<Spinner size="6" />
-				{:else if user}
-					<Button onclick={handleLogout} color="red" size="sm">Logout</Button>
+				{#if user}
+					<Button loading={isLoading} onclick={handleLogout} color="red" size="sm">Logout</Button>
 				{:else}
-					<Button onclick={handleLogin} color="primary" size="sm">Login</Button>
+					<Button loading={isLoading} onclick={handleLogin} color="primary" size="sm">Login</Button>
 				{/if}
 				<NavHamburger />
 			</div>

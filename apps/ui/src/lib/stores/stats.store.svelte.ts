@@ -85,6 +85,14 @@ class StatsStore {
 			this.socket = null;
 		}
 	}
+
+	/**
+	 * Reset store to initial state
+	 */
+	reset(): void {
+		this.destroy();
+		this.completedCount.set(null);
+	}
 }
 
 // Singleton instance

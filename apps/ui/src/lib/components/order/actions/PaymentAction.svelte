@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { getActionConfig } from '$lib/config/order-actions.config';
 	import { paymentsService } from '$lib/services/payments.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { configService } from '$lib/services/config.service';
 	import type { OrderResponseDto } from '@api/shared';
 
@@ -27,8 +30,16 @@
 	}: Props = $props();
 
 	const isProcessing = $derived(loading || open);
+	const user = $derived($authStore.user);
 
 	const handlePay = async () => {
+		// Проверяем авторизацию пользователя
+		if (!user) {
+			const currentUrl = page.url.pathname + page.url.search;
+			goto(`${configService.routes.auth.request}?redirectUrl=${encodeURIComponent(currentUrl)}`);
+			return;
+		}
+
 		try {
 			switch (configService.stripe.paymentMethod) {
 				case 'elements': {
