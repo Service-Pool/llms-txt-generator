@@ -41,7 +41,7 @@
 		loading = true;
 
 		try {
-			await authService.loginLinkRequest(email, redirectUrl);
+			await authStore.loginLinkRequest(email, redirectUrl);
 			success = true;
 		} catch (exception) {
 			if (exception instanceof UIError) {

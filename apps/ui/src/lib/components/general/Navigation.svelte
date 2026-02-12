@@ -34,17 +34,15 @@
 	}
 
 	async function handleLogout() {
-		await authService.logout();
+		// Store инкапсулирует всю логику logout
+		await authStore.logout();
 
-		// Очищаем все store'ы для полного сброса состояния
-		authStore.reset();
+		// Очищаем остальные store'ы
 		ordersStore.reset();
 		statsStore.reset();
 		orderWebSocketStore.destroy();
 
-		await authStore.refreshAuthStatus();
-
-		goto('/');
+		location.reload();
 	}
 </script>
 

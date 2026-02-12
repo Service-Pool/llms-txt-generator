@@ -26,6 +26,13 @@ function createAuthStore() {
 		reset: () => {
 			set({ user: null, isLoading: false });
 		},
+		logout: async () => {
+			await authService.logout();
+			update(state => ({ ...state, user: null, isLoading: false }));
+		},
+		loginLinkRequest: async (email: string, redirectUrl: string) => {
+			return await authService.loginLinkRequest(email, redirectUrl);
+		},
 		refreshAuthStatus: async (fetchFn?: typeof fetch) => {
 			try {
 				const res = await authService.getStatus(fetchFn);
