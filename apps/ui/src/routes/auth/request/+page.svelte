@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { authService } from '$lib/services/auth.service';
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { EnvelopeSolid, CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
