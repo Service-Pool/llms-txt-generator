@@ -104,6 +104,7 @@
 			class="w-full"
 			spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}
 			loading={submitting}
+			size="lg"
 			>Create Order
 		</Button>
 	</form>
