@@ -6,6 +6,7 @@
 	import ErrorToast from '$lib/components/general/ErrorToast.svelte';
 	import Navigation from '$lib/components/general/Navigation.svelte';
 	import { page } from '$app/state';
+	import { authStore } from '$lib/stores/auth.store.svelte';
 
 	const { children } = $props();
 
@@ -37,10 +38,12 @@
 		document.documentElement.classList.toggle('dark', isDark);
 	};
 
-	onMount(() => {
+	onMount(async () => {
 		window.addEventListener('unhandledrejection', handleUnhandledRejection);
 		window.addEventListener('error', handleError);
 		window.addEventListener('storage', syncTheme);
+
+		await authStore.refreshAuthStatus(fetch);
 	});
 
 	onDestroy(() => {

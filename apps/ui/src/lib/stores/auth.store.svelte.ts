@@ -27,6 +27,7 @@ function createAuthStore() {
 			set({ user: null, isLoading: false });
 		},
 		logout: async () => {
+			update(state => ({ ...state, isLoading: true }));
 			await authService.logout();
 			update(state => ({ ...state, user: null, isLoading: false }));
 		},
@@ -34,17 +35,21 @@ function createAuthStore() {
 			return await authService.loginLinkRequest(email, redirectUrl);
 		},
 		refreshAuthStatus: async (fetchFn?: typeof fetch) => {
+			update(state => ({ ...state, isLoading: true }));
+
 			try {
+				let apiUser = null;
 				const res = await authService.getStatus(fetchFn);
 				const data = res.getData();
 
 				if (data.user && data.authenticated) {
+					apiUser = data.user;
 					update(state => ({ ...state, user: data.user, isLoading: false }));
-				} else {
-					update(state => ({ ...state, user: null, isLoading: false }));
 				}
-			} catch {
-				update(state => ({ ...state, user: null, isLoading: false }));
+
+				update(state => ({ ...state, user: apiUser, isLoading: false }));
+			} finally {
+				update(state => ({ ...state, isLoading: false }));
 			}
 		}
 	};

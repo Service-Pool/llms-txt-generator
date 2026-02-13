@@ -8,4 +8,4 @@ const load = async ({ fetch }: LoadEvent) => {
 	await authStore.refreshAuthStatus(fetch);
 };
 
-export { ssr, load };
+export { ssr };

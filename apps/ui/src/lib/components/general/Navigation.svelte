@@ -6,9 +6,8 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
-	import { authService } from '$lib/services/auth.service';
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, DarkMode, Button, Spinner } from 'flowbite-svelte';
 	import { configService } from '$lib/services/config.service';
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Button, DarkMode } from 'flowbite-svelte';
 
 	interface Props {
 		class?: string;
@@ -81,10 +80,18 @@
 					{/each}
 				</NavUl>
 				<DarkMode class="text-lg mr-3" />
-				{#if user}
-					<Button loading={isLoading} onclick={handleLogout} color="red" size="sm">Logout</Button>
+				{#if isLoading}
+					<Button class="min-w-20 rounded-sm" color="primary" size="sm">
+						<Spinner size="5" type="dots" class="fill-primary-50" />
+					</Button>
+				{:else if user}
+					<Button class="min-w-20 rounded-sm" disabled={isLoading} onclick={handleLogout} color="red" size="sm"
+						>Logout</Button
+					>
 				{:else}
-					<Button loading={isLoading} onclick={handleLogin} color="primary" size="sm">Login</Button>
+					<Button class="min-w-20 rounded-sm" disabled={isLoading} onclick={handleLogin} color="primary" size="sm"
+						>Login</Button
+					>
 				{/if}
 				<NavHamburger />
 			</div>
