@@ -32,7 +32,7 @@
 
 			// Subscribe to WebSocket updates for this specific order
 			const currentOrder = ordersStore.getById(orderId);
-			if (currentOrder && ['pending', 'processing'].includes(currentOrder.status)) {
+			if (currentOrder && ['pending', 'processing'].includes(currentOrder.attributes.status)) {
 				orderWebSocketStore.subscribeToOrder(orderId);
 			}
 		} catch (exception) {
@@ -95,15 +95,15 @@
 			<!-- Status -->
 			<div class="space-y-2">
 				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</div>
-				<OrderStatusBadge status={order.status} class="text-xs px-2 py-1" />
+				<OrderStatusBadge status={order.attributes.status} class="text-xs px-2 py-1" />
 			</div>
 
 			<!-- Price -->
 			<div class="space-y-2">
 				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Price</div>
 				<div class="text-lg font-bold text-gray-900 dark:text-white">
-					{#if order.priceTotal !== null}
-						{order.currencySymbol}{order.priceTotal.toFixed(2)}
+					{#if order.attributes.priceTotal !== null}
+						{order.attributes.currencySymbol}{order.attributes.priceTotal.toFixed(2)}
 					{:else}
 						—
 					{/if}
@@ -114,7 +114,7 @@
 			<div class="space-y-2">
 				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">Domain</div>
 				<div class="text-lg font-semibold text-gray-900 dark:text-white wrap-break-words">
-					{order.hostname}
+					{order.attributes.hostname}
 				</div>
 			</div>
 
@@ -122,18 +122,18 @@
 			<div class="space-y-2">
 				<div class="text-sm font-medium text-gray-500 dark:text-gray-400">URLs</div>
 				<div class="text-xl font-bold text-gray-900 dark:text-white">
-					{order.processedUrls} / {order.totalUrls || 0}
+					{order.attributes.processedUrls} / {order.attributes.totalUrls || 0}
 				</div>
-				{#if order.totalUrls && order.totalUrls > 0}
+				{#if order.attributes.totalUrls && order.attributes.totalUrls > 0}
 					<div class="space-y-1">
 						<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
 							<div
 								class="bg-blue-600 h-2 rounded-full transition-all"
-								style="width: {(order.processedUrls / order.totalUrls) * 100}%"
+								style="width: {(order.attributes.processedUrls / order.attributes.totalUrls) * 100}%"
 							></div>
 						</div>
 						<div class="text-xs text-gray-500 dark:text-gray-400">
-							{Math.round((order.processedUrls / order.totalUrls) * 100)}% completed
+							{Math.round((order.attributes.processedUrls / order.attributes.totalUrls) * 100)}% completed
 						</div>
 					</div>
 				{/if}
@@ -147,25 +147,25 @@
 				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Created</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
+						{order.attributes.createdAt ? new Date(order.attributes.createdAt).toLocaleString() : '—'}
 					</span>
 				</div>
 				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Updated</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{order.updatedAt ? new Date(order.updatedAt).toLocaleString() : '—'}
+						{order.attributes.updatedAt ? new Date(order.attributes.updatedAt).toLocaleString() : '—'}
 					</span>
 				</div>
 				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Started</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{order.startedAt ? new Date(order.startedAt).toLocaleString() : '—'}
+						{order.attributes.startedAt ? new Date(order.attributes.startedAt).toLocaleString() : '—'}
 					</span>
 				</div>
 				<div class="flex justify-between md:flex-col md:justify-start">
 					<span class="text-gray-500 dark:text-gray-400">Completed</span>
 					<span class="font-medium text-gray-900 dark:text-white">
-						{order.completedAt ? new Date(order.completedAt).toLocaleString() : '—'}
+						{order.attributes.completedAt ? new Date(order.attributes.completedAt).toLocaleString() : '—'}
 					</span>
 				</div>
 			</div>
@@ -173,20 +173,20 @@
 	</Card>
 
 	<!-- AI Model Information -->
-	{#if order.currentAiModel}
+	{#if order.attributes.currentAiModel}
 		<Card class="p-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
 			<Heading tag="h3" class="text-lg font-semibold mb-3">AI Model</Heading>
 			<div class="space-y-2">
 				<div class="text-base font-semibold text-gray-900 dark:text-white">
-					{order.currentAiModel.displayName}
+					{order.attributes.currentAiModel.displayName}
 				</div>
 				<div class="text-sm text-gray-600 dark:text-gray-400">
-					{order.currentAiModel.description}
+					{order.attributes.currentAiModel.description}
 				</div>
-				{#if order.currentAiModel.totalPrice}
+				{#if order.attributes.currentAiModel.totalPrice}
 					<div class="text-sm text-gray-500 dark:text-gray-400 mt-2">
 						Price per URL: <span class="font-medium text-gray-900 dark:text-white">
-							{order.currentAiModel.currencySymbol}{order.currentAiModel.totalPrice.toFixed(2)}
+							{order.attributes.currentAiModel.currencySymbol}{order.attributes.currentAiModel.totalPrice.toFixed(2)}
 						</span>
 					</div>
 				{/if}

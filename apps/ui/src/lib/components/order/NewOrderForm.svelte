@@ -45,7 +45,7 @@
 			createdOrder = response.getData();
 
 			// Load full order data and notify parent
-			const fullOrderResponse = await ordersService.getById(createdOrder.id);
+			const fullOrderResponse = await ordersService.getById(createdOrder.attributes.id);
 			const fullOrder = fullOrderResponse.getData();
 			onCreate?.(fullOrder);
 

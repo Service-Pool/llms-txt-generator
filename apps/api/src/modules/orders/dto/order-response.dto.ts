@@ -152,7 +152,10 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 	return links;
 }
 
-class CreateOrderResponseDto {
+/**
+ * Attributes for CreateOrderResponseDto
+ */
+class CreateOrderAttributes {
 	@ApiProperty({ description: 'Order ID', example: 123 })
 	id: number;
 
@@ -191,6 +194,40 @@ class CreateOrderResponseDto {
 	@ApiProperty({ description: 'Order last update date' })
 	updatedAt: Date;
 
+	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderAttributes {
+		const attrs = new CreateOrderAttributes();
+		attrs.id = entity.id;
+		attrs.availableAiModels = availableAiModels;
+		attrs.hostname = entity.hostname;
+		attrs.modelId = entity.modelId;
+		attrs.status = entity.status;
+		attrs.totalUrls = entity.totalUrls;
+		attrs.createdAt = entity.createdAt;
+		attrs.updatedAt = entity.updatedAt;
+		return attrs;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): CreateOrderAttributes {
+		const attrs = new CreateOrderAttributes();
+		attrs.id = json.id as number;
+		attrs.availableAiModels = AvailableAiModelDto.fromJSON(json.availableAiModels);
+		attrs.hostname = json.hostname as string;
+		attrs.modelId = json.modelId as string | null;
+		attrs.status = json.status as OrderStatus;
+		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.createdAt = new Date(json.createdAt as string);
+		attrs.updatedAt = new Date(json.updatedAt as string);
+		return attrs;
+	}
+}
+
+class CreateOrderResponseDto {
+	@ApiProperty({
+		description: 'Order attributes',
+		type: CreateOrderAttributes
+	})
+	attributes: CreateOrderAttributes;
+
 	@ApiProperty({
 		description: 'HATEOAS navigation links',
 		example: {
@@ -202,64 +239,25 @@ class CreateOrderResponseDto {
 
 	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
-		dto.id = entity.id;
-		// dto.userId = entity.userId;
-		dto.availableAiModels = availableAiModels;
-		// dto.currency = entity.priceCurrency;
-		// dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
-		// dto.errors = entity.errors;
-		dto.hostname = entity.hostname;
-		// dto.jobId = entity.jobId;
-		dto.modelId = entity.modelId;
-		// dto.output = entity.output;
-		// dto.pricePerUrl = entity.pricePerUrl;
-		// dto.priceTotal = entity.priceTotal;
-		// dto.processedUrls = entity.processedUrls;
-		// dto.startedAt = entity.startedAt;
-		dto.status = entity.status;
-		// dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
-		// dto.stripeSessionId = entity.stripeSessionId;
-		dto.totalUrls = entity.totalUrls;
-		// dto.completedAt = entity.completedAt;
-		dto.createdAt = entity.createdAt;
-		dto.updatedAt = entity.updatedAt;
+		dto.attributes = CreateOrderAttributes.create(entity, availableAiModels);
 		dto._links = buildOrderLinks(entity);
-
 		return dto;
 	}
 
 	public static fromJSON(json: Record<string, unknown>): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
-		dto.id = json.id as number;
-		// dto.userId = json.userId as number | null;
-		dto.availableAiModels = AvailableAiModelDto.fromJSON(json.availableAiModels);
-		// dto.errors = json.errors as string[] | null;
-		dto.hostname = json.hostname as string;
-		// dto.jobId = json.jobId as string | null;
-		dto.modelId = json.modelId as string | null;
-		// dto.output = json.output as string | null;
-		// dto.pricePerUrl = json.pricePerUrl as number | null;
-		// dto.priceTotal = json.priceTotal as number | null;
-		// dto.processedUrls = json.processedUrls as number;
-		// dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
-		dto.status = json.status as OrderStatus;
-		// dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
-		// dto.stripeSessionId = json.stripeSessionId as string | null;
-		dto.totalUrls = json.totalUrls as number | null;
-		// dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
-		dto.createdAt = new Date(json.createdAt as string);
-		dto.updatedAt = new Date(json.updatedAt as string);
+		dto.attributes = CreateOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		dto._links = json._links as Record<string, HateoasLink>;
-
 		return dto;
 	}
 }
 
-class OrderResponseDto {
+/**
+ * Attributes for OrderResponseDto
+ */
+class OrderAttributes {
 	@ApiProperty({ description: 'Order ID', example: 123 })
 	id: number;
-
-	// userId: number | null;
 
 	@ApiProperty({
 		description: 'Currently selected AI model with pricing details',
@@ -286,8 +284,6 @@ class OrderResponseDto {
 		example: 'example.com'
 	})
 	hostname: string;
-
-	// jobId: string | null;
 
 	@ApiProperty({
 		description: 'Generated llms.txt content (truncated to 300 words)',
@@ -348,41 +344,28 @@ class OrderResponseDto {
 	@ApiProperty({ description: 'Order last update date' })
 	updatedAt: Date;
 
-	@ApiProperty({
-		description: 'HATEOAS navigation links based on order status',
-		example: {
-			self: { href: '/api/orders/123', method: 'GET' },
-			download: { href: '/api/orders/123/output', method: 'GET' }
-		}
-	})
-	_links: Partial<Record<HateoasAction, HateoasLink>>;
+	public static create(entity: Order): OrderAttributes {
+		const attrs = new OrderAttributes();
+		attrs.id = entity.id;
+		attrs.currentAiModel = null;
+		attrs.currency = entity.priceCurrency;
+		attrs.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
+		attrs.errors = entity.errors;
+		attrs.hostname = entity.hostname;
+		attrs.output = truncateToWords(entity.output, 300);
+		attrs.pricePerUrl = entity.pricePerUrl;
+		attrs.priceTotal = entity.priceTotal;
+		attrs.processedUrls = entity.processedUrls;
+		attrs.startedAt = entity.startedAt;
+		attrs.status = entity.status;
+		attrs.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
+		attrs.stripeSessionId = entity.stripeSessionId;
+		attrs.totalUrls = entity.totalUrls;
+		attrs.completedAt = entity.completedAt;
+		attrs.createdAt = entity.createdAt;
+		attrs.updatedAt = entity.updatedAt;
 
-	public static create(entity: Order): OrderResponseDto {
-		const dto = new OrderResponseDto();
-		dto.id = entity.id;
-		// dto.userId = entity.userId;
-		dto.currentAiModel = null;
-		dto.currency = entity.priceCurrency;
-		dto.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
-		dto.errors = entity.errors;
-		dto.hostname = entity.hostname;
-		// dto.jobId = entity.jobId;
-		dto.output = truncateToWords(entity.output, 300);
-		dto.pricePerUrl = entity.pricePerUrl;
-		dto.priceTotal = entity.priceTotal;
-		dto.processedUrls = entity.processedUrls;
-		dto.startedAt = entity.startedAt;
-		dto.status = entity.status;
-		dto.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
-		dto.stripeSessionId = entity.stripeSessionId;
-		dto.totalUrls = entity.totalUrls;
-		dto.completedAt = entity.completedAt;
-		dto.createdAt = entity.createdAt;
-		dto.updatedAt = entity.updatedAt;
-		dto._links = buildOrderLinks(entity);
-
-		// Build currentAiModel from entity data (no intermediate conversions)
-		// entity.aiModelConfig is a synthetic property populated by OrderSubscriber based on entity.modelId
+		// Build currentAiModel from entity data
 		if (entity.modelId && entity.aiModelConfig) {
 			const aiModelDto = new AvailableAiModelDto();
 			aiModelDto.id = entity.aiModelConfig.id;
@@ -396,43 +379,124 @@ class OrderResponseDto {
 			aiModelDto.pageLimit = entity.aiModelConfig.pageLimit;
 			aiModelDto.totalPrice = entity.priceTotal;
 			aiModelDto.unavailableReason = null;
-			dto.currentAiModel = aiModelDto;
+			attrs.currentAiModel = aiModelDto;
 		}
 
+		return attrs;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrderAttributes {
+		const attrs = new OrderAttributes();
+		attrs.id = json.id as number;
+		attrs.currentAiModel = json.currentAiModel
+			? AvailableAiModelDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
+			: null;
+		attrs.currency = json.currency as string;
+		attrs.currencySymbol = json.currencySymbol as string;
+		attrs.errors = json.errors as string[] | null;
+		attrs.hostname = json.hostname as string;
+		attrs.output = json.output as string | null;
+		attrs.pricePerUrl = json.pricePerUrl as number | null;
+		attrs.priceTotal = json.priceTotal as number | null;
+		attrs.processedUrls = json.processedUrls as number;
+		attrs.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
+		attrs.status = json.status as OrderStatus;
+		attrs.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
+		attrs.stripeSessionId = json.stripeSessionId as string | null;
+		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
+		attrs.createdAt = new Date(json.createdAt as string);
+		attrs.updatedAt = new Date(json.updatedAt as string);
+		return attrs;
+	}
+}
+
+class OrderResponseDto {
+	@ApiProperty({
+		description: 'Order attributes',
+		type: OrderAttributes
+	})
+	attributes: OrderAttributes;
+
+	@ApiProperty({
+		description: 'HATEOAS navigation links based on order status',
+		example: {
+			self: { href: '/api/orders/123', method: 'GET' },
+			download: { href: '/api/orders/123/output', method: 'GET' }
+		}
+	})
+	_links: Partial<Record<HateoasAction, HateoasLink>>;
+
+	public static create(entity: Order): OrderResponseDto {
+		const dto = new OrderResponseDto();
+		dto.attributes = OrderAttributes.create(entity);
+		dto._links = buildOrderLinks(entity);
 		return dto;
 	}
 
 	public static fromJSON(json: Record<string, unknown>): OrderResponseDto {
 		const dto = new OrderResponseDto();
-		dto.id = json.id as number;
-		// dto.userId = json.userId as number | null;
-		dto.currentAiModel = json.currentAiModel
-			? AvailableAiModelDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
-			: null;
-		dto.currency = json.currency as string;
-		dto.currencySymbol = json.currencySymbol as string;
-		dto.errors = json.errors as string[] | null;
-		dto.hostname = json.hostname as string;
-		// dto.jobId = json.jobId as string | null;
-		dto.output = json.output as string | null;
-		dto.pricePerUrl = json.pricePerUrl as number | null;
-		dto.priceTotal = json.priceTotal as number | null;
-		dto.processedUrls = json.processedUrls as number;
-		dto.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
-		dto.status = json.status as OrderStatus;
-		dto.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
-		dto.stripeSessionId = json.stripeSessionId as string | null;
-		dto.totalUrls = json.totalUrls as number | null;
-		dto.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
-		dto.createdAt = new Date(json.createdAt as string);
-		dto.updatedAt = new Date(json.updatedAt as string);
+		dto.attributes = OrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		dto._links = json._links as Record<string, HateoasLink>;
-
 		return dto;
 	}
 }
 
-class OrdersListResponseDto {
+/**
+ * Attributes for DownloadOrderResponseDto
+ */
+class DownloadOrderAttributes {
+	@ApiProperty({
+		description: 'Downloaded file name',
+		example: 'llms-example.com.txt'
+	})
+	filename: string;
+
+	@ApiProperty({
+		description: 'File content',
+		example: 'Generated llms.txt content...'
+	})
+	content: string;
+
+	public static create(filename: string, content: string): DownloadOrderAttributes {
+		const attrs = new DownloadOrderAttributes();
+		attrs.filename = filename;
+		attrs.content = content;
+		return attrs;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): DownloadOrderAttributes {
+		const attrs = new DownloadOrderAttributes();
+		attrs.filename = json.filename as string;
+		attrs.content = json.content as string;
+		return attrs;
+	}
+}
+
+class DownloadOrderResponseDto {
+	@ApiProperty({
+		description: 'Download attributes',
+		type: DownloadOrderAttributes
+	})
+	attributes: DownloadOrderAttributes;
+
+	public static create(filename: string, content: string): DownloadOrderResponseDto {
+		const dto = new DownloadOrderResponseDto();
+		dto.attributes = DownloadOrderAttributes.create(filename, content);
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): DownloadOrderResponseDto {
+		const dto = new DownloadOrderResponseDto();
+		dto.attributes = DownloadOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		return dto;
+	}
+}
+
+/**
+ * Attributes for OrdersListResponseDto
+ */
+class OrdersListAttributes {
 	@ApiProperty({
 		description: 'List of orders',
 		type: [OrderResponseDto],
@@ -458,51 +522,42 @@ class OrdersListResponseDto {
 	})
 	limit: number;
 
+	public static create(orders: Order[], total: number, page: number, limit: number): OrdersListAttributes {
+		const attrs = new OrdersListAttributes();
+		attrs.items = orders.map(order => OrderResponseDto.create(order));
+		attrs.total = total;
+		attrs.page = page;
+		attrs.limit = limit;
+		return attrs;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrdersListAttributes {
+		const attrs = new OrdersListAttributes();
+		attrs.items = (json.items as Record<string, unknown>[]).map(item =>
+			OrderResponseDto.fromJSON(item));
+		attrs.total = json.total as number;
+		attrs.page = json.page as number;
+		attrs.limit = json.limit as number;
+		return attrs;
+	}
+}
+
+class OrdersListResponseDto {
+	@ApiProperty({
+		description: 'List attributes',
+		type: OrdersListAttributes
+	})
+	attributes: OrdersListAttributes;
+
 	public static create(orders: Order[], total: number, page: number, limit: number): OrdersListResponseDto {
 		const dto = new OrdersListResponseDto();
-		dto.items = orders.map(order => OrderResponseDto.create(order));
-		dto.total = total;
-		dto.page = page;
-		dto.limit = limit;
+		dto.attributes = OrdersListAttributes.create(orders, total, page, limit);
 		return dto;
 	}
 
 	public static fromJSON(json: Record<string, unknown>): OrdersListResponseDto {
 		const dto = new OrdersListResponseDto();
-		dto.items = (json.items as Record<string, unknown>[]).map(item =>
-			OrderResponseDto.fromJSON(item));
-
-		dto.total = json.total as number;
-		dto.page = json.page as number;
-		dto.limit = json.limit as number;
-		return dto;
-	}
-}
-
-class DownloadOrderResponseDto {
-	@ApiProperty({
-		description: 'Downloaded file name',
-		example: 'llms-example.com.txt'
-	})
-	filename: string;
-
-	@ApiProperty({
-		description: 'File content',
-		example: 'Generated llms.txt content...'
-	})
-	content: string;
-
-	public static create(filename: string, content: string): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.filename = filename;
-		dto.content = content;
-		return dto;
-	}
-
-	public static fromJSON(json: Record<string, unknown>): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.filename = json.filename as string;
-		dto.content = json.content as string;
+		dto.attributes = OrdersListAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		return dto;
 	}
 }

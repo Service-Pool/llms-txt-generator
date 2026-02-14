@@ -20,7 +20,7 @@
 	const handleRun = async () => {
 		isRunning = true;
 		try {
-			const response = await ordersService.start(order.id, order.currentAiModel!.id);
+			const response = await ordersService.start(order.attributes.id, order.attributes.currentAiModel!.id);
 			const updatedOrder = response.getData();
 			if (updatedOrder) {
 				ordersStore.updateOrder(updatedOrder);

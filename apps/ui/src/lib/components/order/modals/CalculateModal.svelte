@@ -17,7 +17,9 @@
 	let { order, open = $bindable(false), onSuccess, onClose }: Props = $props();
 
 	const config = getActionConfig('calculate')!;
-	const label = $derived('currentAiModel' in order && order.currentAiModel ? config.labelAlternative : config.label);
+	const label = $derived(
+		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? config.labelAlternative : config.label
+	);
 
 	let availableModels = $state<AvailableAiModelDto[]>([]);
 	let isLoadingModels = $state(false);
@@ -34,7 +36,7 @@
 	const loadAvailableModels = async () => {
 		isLoadingModels = true;
 		try {
-			const response = await ordersService.getAvailableModels(order.id);
+			const response = await ordersService.getAvailableModels(order.attributes.id);
 			const data = response.getData();
 			if (data) {
 				availableModels = data;
@@ -54,7 +56,7 @@
 		isCalculating = true;
 
 		try {
-			const response = await ordersService.calculate(order.id, selectedModelId);
+			const response = await ordersService.calculate(order.attributes.id, selectedModelId);
 			const updatedOrder = response.getData();
 
 			ordersStore.updateOrder(updatedOrder);
@@ -178,9 +180,9 @@
 			{/each}
 		</div>
 
-		{#if order.totalUrls}
+		{#if order.attributes.totalUrls}
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				Price calculated for {order.totalUrls} URLs
+				Price calculated for {order.attributes.totalUrls} URLs
 			</p>
 		{/if}
 	{/if}

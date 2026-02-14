@@ -25,8 +25,8 @@ class OrdersStore {
 			this.error = null;
 			const response = await ordersService.getAll(this.page, this.limit);
 			const data = response.getData();
-			this.items = data.items;
-			this.total = data.total;
+			this.items = data.attributes.items;
+			this.total = data.attributes.total;
 		} catch (exception) {
 			this.error = exception instanceof Error ? exception.message : 'Failed to load orders';
 			throw exception;
@@ -51,7 +51,7 @@ class OrdersStore {
 			this.items = [updatedOrder];
 			return;
 		}
-		const index = this.items.findIndex(o => o.id === updatedOrder.id);
+		const index = this.items.findIndex(o => o.attributes.id === updatedOrder.attributes.id);
 		if (index !== -1) {
 			this.items[index] = updatedOrder;
 			// Trigger reactivity by creating new array
@@ -67,7 +67,7 @@ class OrdersStore {
 	 */
 	removeOrder(orderId: number) {
 		if (!this.items) return;
-		this.items = this.items.filter(o => o.id !== orderId);
+		this.items = this.items.filter(o => o.attributes.id !== orderId);
 		this.total -= 1;
 	}
 
@@ -75,7 +75,7 @@ class OrdersStore {
 	 * Get order by ID from the list
 	 */
 	getById(orderId: number): OrderResponseDto | undefined {
-		return this.items?.find(o => o.id === orderId);
+		return this.items?.find(o => o.attributes.id === orderId);
 	}
 
 	/**

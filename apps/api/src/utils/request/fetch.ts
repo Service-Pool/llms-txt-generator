@@ -12,7 +12,6 @@ class RequestUtils {
 	 */
 	public static async text(url: string, timeoutMs: number | null = 2000, options: RequestInit = {}): Promise<string | null> {
 		const res = await RequestUtils.fetch(url, timeoutMs, options);
-		if (!res || !res.ok) return null;
 		return await res.text();
 	}
 
@@ -35,8 +34,6 @@ class RequestUtils {
 
 		try {
 			return await fetch(url, { ...options, signal: controller?.signal });
-		} catch {
-			return null;
 		} finally {
 			if (id) clearTimeout(id);
 		}

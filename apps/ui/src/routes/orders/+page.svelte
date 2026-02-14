@@ -34,7 +34,7 @@
 	const subscribeToLoadedOrders = () => {
 		if (ordersStore.items) {
 			// Subscribe to ALL orders on the page - we can't predict which ones will be updated
-			const allOrderIds = ordersStore.items.map((order) => order.id);
+			const allOrderIds = ordersStore.items.map((order) => order.attributes.id);
 
 			if (allOrderIds.length > 0) {
 				orderWebSocketStore.subscribeToOrders(allOrderIds);
@@ -56,7 +56,7 @@
 		ordersStore.addOrder(order);
 
 		// Subscribe to the new order for real-time updates
-		orderWebSocketStore.subscribeToOrder(order.id);
+		orderWebSocketStore.subscribeToOrder(order.attributes.id);
 	};
 
 	onMount(async () => {

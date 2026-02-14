@@ -13,7 +13,7 @@
 
 	let outputElement = $state<HTMLPreElement | null>(null);
 	let downloadData = $state<{ content: string; filename: string } | null>(null);
-	let displayedOutput = $derived(downloadData?.content ?? order.output ?? '');
+	let displayedOutput = $derived(downloadData?.content ?? order.attributes.output ?? '');
 	let isLoadingOutput = $state(false);
 	let isCopying = $state(false);
 	let isDownloading = $state(false);
@@ -30,8 +30,8 @@
 
 		isLoadingOutput = true;
 		try {
-			const response = await ordersService.download(order.id);
-			downloadData = response.getData();
+			const response = await ordersService.download(order.attributes.id);
+			downloadData = response.getData().attributes;
 		} catch (exception) {
 			throw exception;
 		} finally {
@@ -40,7 +40,7 @@
 	};
 
 	const handleCopyClick = async () => {
-		if (!order.output) {
+		if (!order.attributes.output) {
 			return;
 		}
 
@@ -59,7 +59,7 @@
 	};
 
 	const handleDownloadClick = async () => {
-		if (!order.output) {
+		if (!order.attributes.output) {
 			return;
 		}
 
@@ -96,20 +96,20 @@
 		<div class="flex flex-col">
 			<span class="stat-label">Order</span>
 			<span class="stat-value">
-				#{order.id}
+				#{order.attributes.id}
 			</span>
 		</div>
 		<div class="flex flex-col">
 			<span class="stat-label">AI Model</span>
 			<span class="stat-value">
-				{order.currentAiModel?.displayName ?? '—'}
+				{order.attributes.currentAiModel?.displayName ?? '—'}
 			</span>
 		</div>
 		<div class="flex flex-col">
 			<span class="stat-label">Total Price</span>
 			<span class="stat-value">
-				{#if order.priceTotal !== null}
-					{order.currencySymbol}{order.priceTotal.toFixed(2)}
+				{#if order.attributes.priceTotal !== null}
+					{order.attributes.currencySymbol}{order.attributes.priceTotal.toFixed(2)}
 				{:else}
 					—
 				{/if}
@@ -118,32 +118,32 @@
 		<div class="flex flex-col">
 			<span class="stat-label">Created</span>
 			<span class="stat-value">
-				{order.createdAt
-					? new Date(order.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+				{order.attributes.createdAt
+					? new Date(order.attributes.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 					: '—'}
 			</span>
 		</div>
 		<div class="flex flex-col">
 			<span class="stat-label">Updated</span>
 			<span class="stat-value">
-				{order.updatedAt
-					? new Date(order.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+				{order.attributes.updatedAt
+					? new Date(order.attributes.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 					: '—'}
 			</span>
 		</div>
 		<div class="flex flex-col">
 			<span class="stat-label">Started</span>
 			<span class="stat-value">
-				{order.startedAt
-					? new Date(order.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+				{order.attributes.startedAt
+					? new Date(order.attributes.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 					: '—'}
 			</span>
 		</div>
 		<div class="flex flex-col">
 			<span class="stat-label">Completed</span>
 			<span class="stat-value">
-				{order.completedAt
-					? new Date(order.completedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+				{order.attributes.completedAt
+					? new Date(order.attributes.completedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 					: '—'}
 			</span>
 		</div>

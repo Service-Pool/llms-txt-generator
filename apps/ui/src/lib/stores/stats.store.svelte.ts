@@ -22,7 +22,7 @@ class StatsStore {
 		// Fetch initial value from REST API
 		const response = await statsService.getCompleted();
 		const stats = response.getData();
-		this.completedCount.set(stats.count);
+		this.completedCount.set(stats.attributes.count);
 
 		// Connect to WebSocket for real-time updates
 		this.connectWebSocket();

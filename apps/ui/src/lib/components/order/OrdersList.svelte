@@ -30,7 +30,7 @@
 		</div>
 	{:else}
 		<div class="space-y-3">
-			{#each items as order (order.id)}
+			{#each items as order (order.attributes.id)}
 				<div
 					animate:flip={{ duration: 400, easing: quintOut }}
 					in:scale={{ duration: 500, start: 0, easing: quintOut }}
@@ -38,9 +38,9 @@
 				>
 					<OrderListItem
 						{order}
-						isOpen={openOrderId === order.id}
+						isOpen={openOrderId === order.attributes.id}
 						anyOrderOpen={openOrderId !== null}
-						onToggle={() => toggleOrder(order.id)}
+						onToggle={() => toggleOrder(order.attributes.id)}
 					/>
 				</div>
 			{/each}

@@ -20,8 +20,8 @@
 		e.stopPropagation();
 		isDownloading = true;
 		try {
-			const response = await ordersService.download(order.id);
-			const data = response.getData();
+			const response = await ordersService.download(order.attributes.id);
+			const data = response.getData().attributes;
 			const blob = new Blob([data.content], { type: 'text/plain' });
 			const url = window.URL.createObjectURL(blob);
 			const a = document.createElement('a');

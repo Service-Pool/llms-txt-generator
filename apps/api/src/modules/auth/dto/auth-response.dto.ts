@@ -1,24 +1,52 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
 
-class RequestLoginLinkResponseDto {
+/**
+ * Request Login Link Attributes
+ */
+class RequestLoginLinkAttributes {
 	@ApiProperty({ description: 'Success message', example: 'Login link has been sent to your email' })
 	message: string;
 
-	public static create(message: string): RequestLoginLinkResponseDto {
+	static create(message: string): RequestLoginLinkAttributes {
+		const attributes = new RequestLoginLinkAttributes();
+		attributes.message = message;
+		return attributes;
+	}
+
+	static fromJSON(json: Record<string, unknown>): RequestLoginLinkAttributes {
+		const attributes = new RequestLoginLinkAttributes();
+		attributes.message = json.message as string;
+		return attributes;
+	}
+}
+
+class RequestLoginLinkResponseDto {
+	@ApiProperty({ description: 'Request login link attributes', type: RequestLoginLinkAttributes })
+	attributes: RequestLoginLinkAttributes;
+
+	@ApiProperty({ description: 'HATEOAS navigation links', example: {} })
+	_links: Record<string, never>;
+
+	static create(message: string): RequestLoginLinkResponseDto {
 		const dto = new RequestLoginLinkResponseDto();
-		dto.message = message;
+		dto.attributes = RequestLoginLinkAttributes.create(message);
+		dto._links = {};
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): RequestLoginLinkResponseDto {
+	static fromJSON(json: Record<string, unknown>): RequestLoginLinkResponseDto {
 		const dto = new RequestLoginLinkResponseDto();
-		dto.message = json.message as string;
+		dto.attributes = RequestLoginLinkAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		dto._links = json._links as Record<string, never>;
 		return dto;
 	}
 }
 
-class AuthLoginDtoResponse {
+/**
+ * Auth Login Attributes
+ */
+class AuthLoginAttributes {
 	@ApiProperty({
 		description: 'User information',
 		example: {
@@ -39,50 +67,100 @@ class AuthLoginDtoResponse {
 	@ApiProperty({ description: 'Number of orders migrated to user account', example: 2 })
 	migratedOrdersCount: number;
 
-	public static fromEntity(user: User, redirectUrl: string, migratedCount: number): AuthLoginDtoResponse {
-		const dto = new AuthLoginDtoResponse();
-		dto.user = {
+	static create(user: User, redirectUrl: string, migratedCount: number): AuthLoginAttributes {
+		const attributes = new AuthLoginAttributes();
+		attributes.user = {
 			id: user.id,
 			email: user.email,
 			createdAt: user.createdAt
 		};
-		dto.redirectUrl = redirectUrl;
-		dto.migratedOrdersCount = migratedCount;
-		return dto;
+		attributes.redirectUrl = redirectUrl;
+		attributes.migratedOrdersCount = migratedCount;
+		return attributes;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): AuthLoginDtoResponse {
-		const dto = new AuthLoginDtoResponse();
+	static fromJSON(json: Record<string, unknown>): AuthLoginAttributes {
+		const attributes = new AuthLoginAttributes();
 		const userData = json.user as Record<string, unknown>;
-		dto.user = {
+		attributes.user = {
 			id: userData.id as number,
 			email: userData.email as string,
 			createdAt: new Date(userData.createdAt as string)
 		};
-		dto.redirectUrl = json.redirectUrl as string;
-		dto.migratedOrdersCount = json.migratedOrdersCount as number;
+		attributes.redirectUrl = json.redirectUrl as string;
+		attributes.migratedOrdersCount = json.migratedOrdersCount as number;
+		return attributes;
+	}
+}
+
+class AuthLoginDtoResponse {
+	@ApiProperty({ description: 'Auth login attributes', type: AuthLoginAttributes })
+	attributes: AuthLoginAttributes;
+
+	@ApiProperty({ description: 'HATEOAS navigation links', example: {} })
+	_links: Record<string, never>;
+
+	static fromEntity(user: User, redirectUrl: string, migratedCount: number): AuthLoginDtoResponse {
+		const dto = new AuthLoginDtoResponse();
+		dto.attributes = AuthLoginAttributes.create(user, redirectUrl, migratedCount);
+		dto._links = {};
 		return dto;
+	}
+
+	static fromJSON(json: Record<string, unknown>): AuthLoginDtoResponse {
+		const dto = new AuthLoginDtoResponse();
+		dto.attributes = AuthLoginAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		dto._links = json._links as Record<string, never>;
+		return dto;
+	}
+}
+
+/**
+ * Auth Logout Attributes
+ */
+class AuthLogoutAttributes {
+	@ApiProperty({ description: 'Logout success message', example: 'Successfully logged out' })
+	message: string;
+
+	static create(message: string): AuthLogoutAttributes {
+		const attributes = new AuthLogoutAttributes();
+		attributes.message = message;
+		return attributes;
+	}
+
+	static fromJSON(json: Record<string, unknown>): AuthLogoutAttributes {
+		const attributes = new AuthLogoutAttributes();
+		attributes.message = json.message as string;
+		return attributes;
 	}
 }
 
 class AuthLogoutDtoResponse {
-	@ApiProperty({ description: 'Logout success message', example: 'Successfully logged out' })
-	message: string;
+	@ApiProperty({ description: 'Auth logout attributes', type: AuthLogoutAttributes })
+	attributes: AuthLogoutAttributes;
 
-	public static create(message: string): AuthLogoutDtoResponse {
+	@ApiProperty({ description: 'HATEOAS navigation links', example: {} })
+	_links: Record<string, never>;
+
+	static create(message: string): AuthLogoutDtoResponse {
 		const dto = new AuthLogoutDtoResponse();
-		dto.message = message;
+		dto.attributes = AuthLogoutAttributes.create(message);
+		dto._links = {};
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): AuthLogoutDtoResponse {
+	static fromJSON(json: Record<string, unknown>): AuthLogoutDtoResponse {
 		const dto = new AuthLogoutDtoResponse();
-		dto.message = json.message as string;
+		dto.attributes = AuthLogoutAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		dto._links = json._links as Record<string, never>;
 		return dto;
 	}
 }
 
-class AuthStatusDtoResponse {
+/**
+ * Auth Status Attributes
+ */
+class AuthStatusAttributes {
 	@ApiProperty({ description: 'Whether user is authenticated', example: true })
 	authenticated: boolean;
 
@@ -104,32 +182,54 @@ class AuthStatusDtoResponse {
 		createdAt: Date;
 	} | null;
 
-	public static fromEntity(authenticated: boolean, sessionId: string, user?: User): AuthStatusDtoResponse {
-		const dto = new AuthStatusDtoResponse();
-		dto.authenticated = authenticated;
-		dto.sessionId = sessionId ?? null;
-		dto.user = user
+	static create(authenticated: boolean, sessionId: string, user?: User): AuthStatusAttributes {
+		const attributes = new AuthStatusAttributes();
+		attributes.authenticated = authenticated;
+		attributes.sessionId = sessionId ?? null;
+		attributes.user = user
 			? { id: user.id, email: user.email, createdAt: user.createdAt }
 			: null;
-		return dto;
+		return attributes;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): AuthStatusDtoResponse {
-		const dto = new AuthStatusDtoResponse();
-		dto.authenticated = json.authenticated as boolean;
-		dto.sessionId = json.sessionId as string | null;
+	static fromJSON(json: Record<string, unknown>): AuthStatusAttributes {
+		const attributes = new AuthStatusAttributes();
+		attributes.authenticated = json.authenticated as boolean;
+		attributes.sessionId = json.sessionId as string | null;
 
 		if (json.user) {
 			const userData = json.user as Record<string, unknown>;
-			dto.user = {
+			attributes.user = {
 				id: userData.id as number,
 				email: userData.email as string,
 				createdAt: new Date(userData.createdAt as string)
 			};
 		} else {
-			dto.user = null;
+			attributes.user = null;
 		}
 
+		return attributes;
+	}
+}
+
+class AuthStatusDtoResponse {
+	@ApiProperty({ description: 'Auth status attributes', type: AuthStatusAttributes })
+	attributes: AuthStatusAttributes;
+
+	@ApiProperty({ description: 'HATEOAS navigation links', example: {} })
+	_links: Record<string, never>;
+
+	static fromEntity(authenticated: boolean, sessionId: string, user?: User): AuthStatusDtoResponse {
+		const dto = new AuthStatusDtoResponse();
+		dto.attributes = AuthStatusAttributes.create(authenticated, sessionId, user);
+		dto._links = {};
+		return dto;
+	}
+
+	static fromJSON(json: Record<string, unknown>): AuthStatusDtoResponse {
+		const dto = new AuthStatusDtoResponse();
+		dto.attributes = AuthStatusAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		dto._links = json._links as Record<string, never>;
 		return dto;
 	}
 }

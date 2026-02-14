@@ -49,7 +49,7 @@
 
 	const handlePaymentSuccess = async () => {
 		paymentModalOpen = false;
-		await ordersStore.refreshOrder(order.id);
+		await ordersStore.refreshOrder(order.attributes.id);
 	};
 
 	const handlePaymentClose = () => {
@@ -64,22 +64,22 @@
 		}
 	};
 
-	const formattedDate = $derived(order.createdAt ? new Date(order.createdAt).toLocaleString() : '-');
+	const formattedDate = $derived(order.attributes.createdAt ? new Date(order.attributes.createdAt).toLocaleString() : '-');
 
 	const metadataItems = $derived.by(() => {
 		const items: string[] = [];
 
-		if (order.createdAt) {
+		if (order.attributes.createdAt) {
 			items.push(formattedDate);
 		}
-		if (order.totalUrls) {
-			items.push(`${formatNumber(order.totalUrls)} urls`);
+		if (order.attributes.totalUrls) {
+			items.push(`${formatNumber(order.attributes.totalUrls)} urls`);
 		}
-		if (order.currentAiModel) {
-			items.push(order.currentAiModel.displayName);
+		if (order.attributes.currentAiModel) {
+			items.push(order.attributes.currentAiModel.displayName);
 		}
-		if (order.priceTotal) {
-			items.push(`${order.currencySymbol} ${formatNumber(order.priceTotal)}`);
+		if (order.attributes.priceTotal) {
+			items.push(`${order.attributes.currencySymbol} ${formatNumber(order.attributes.priceTotal)}`);
 		}
 
 		return items;
@@ -93,9 +93,9 @@
 			<!-- Hostname with Status -->
 			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
 				<h3 class="text-sm font-semibold truncate">
-					<Badge color="gray" class="px-2 mr-1">#{order.id}</Badge>{order.hostname}
+					<Badge color="gray" class="px-2 mr-1">#{order.attributes.id}</Badge>{order.attributes.hostname}
 				</h3>
-				<OrderStatusBadge status={order.status} />
+				<OrderStatusBadge status={order.attributes.status} />
 			</div>
 		</div>
 
@@ -161,21 +161,21 @@
 	</div>
 
 	<!-- Errors -->
-	{#if order.errors && order.errors.length > 0}
+	{#if order.attributes.errors && order.attributes.errors.length > 0}
 		<div class="mt-3">
 			<Alert color="red" class="text-xs">
-				<ErrorList class="text-xs dark:text-black" error={order.errors} />
+				<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
 			</Alert>
 		</div>
 	{/if}
 
 	<!-- Progress Bar for Active Generations -->
-	{#if order.status === OrderStatus.PROCESSING}
+	{#if order.attributes.status === OrderStatus.PROCESSING}
 		<div class="mt-3">
 			<ProgressBar
 				label="URLs"
-				current={order.processedUrls}
-				total={order.totalUrls!}
+				current={order.attributes.processedUrls}
+				total={order.attributes.totalUrls!}
 				size="h-1.5"
 				showNumbers={true}
 			/>

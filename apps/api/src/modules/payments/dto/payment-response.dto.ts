@@ -31,9 +31,9 @@ function buildPaymentLinks(orderId: number): Record<string, HateoasLink> {
 }
 
 /**
- * Response DTO for Checkout Session creation
+ * Checkout Session Attributes
  */
-class CheckoutSessionResponseDto {
+class CheckoutSessionAttributes {
 	@ApiProperty({ description: 'Stripe checkout session ID', example: 'cs_1234567890' })
 	sessionId: string;
 
@@ -43,6 +43,30 @@ class CheckoutSessionResponseDto {
 	@ApiProperty({ description: 'Order ID', example: 123 })
 	orderId: number;
 
+	static create(orderId: number, sessionId: string, paymentUrl: string): CheckoutSessionAttributes {
+		const attributes = new CheckoutSessionAttributes();
+		attributes.sessionId = sessionId;
+		attributes.paymentUrl = paymentUrl;
+		attributes.orderId = orderId;
+		return attributes;
+	}
+
+	static fromJSON(json: Record<string, unknown>): CheckoutSessionAttributes {
+		const attributes = new CheckoutSessionAttributes();
+		attributes.sessionId = json.sessionId as string;
+		attributes.paymentUrl = json.paymentUrl as string;
+		attributes.orderId = json.orderId as number;
+		return attributes;
+	}
+}
+
+/**
+ * Response DTO for Checkout Session creation
+ */
+class CheckoutSessionResponseDto {
+	@ApiProperty({ description: 'Checkout session attributes', type: CheckoutSessionAttributes })
+	attributes: CheckoutSessionAttributes;
+
 	@ApiProperty({
 		description: 'HATEOAS navigation links',
 		example: {
@@ -52,30 +76,25 @@ class CheckoutSessionResponseDto {
 	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
-	public static create(orderId: number, sessionId: string, paymentUrl: string): CheckoutSessionResponseDto {
+	static create(orderId: number, sessionId: string, paymentUrl: string): CheckoutSessionResponseDto {
 		const dto = new CheckoutSessionResponseDto();
-		dto.sessionId = sessionId;
-		dto.paymentUrl = paymentUrl;
-		dto.orderId = orderId;
+		dto.attributes = CheckoutSessionAttributes.create(orderId, sessionId, paymentUrl);
 		dto._links = buildPaymentLinks(orderId);
-
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): CheckoutSessionResponseDto {
+	static fromJSON(json: Record<string, unknown>): CheckoutSessionResponseDto {
 		const dto = new CheckoutSessionResponseDto();
-		dto.sessionId = json.sessionId as string;
-		dto.paymentUrl = json.paymentUrl as string;
-		dto.orderId = json.orderId as number;
+		dto.attributes = CheckoutSessionAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		dto._links = json._links as Partial<Record<HateoasAction, HateoasLink>>;
 		return dto;
 	}
 }
 
 /**
- * Response DTO for Payment Intent creation
+ * Payment Intent Attributes
  */
-class PaymentIntentResponseDto {
+class PaymentIntentAttributes {
 	@ApiProperty({ description: 'Stripe Payment Intent client secret', example: 'pi_1234567890_secret_abcd1234' })
 	clientSecret: string;
 
@@ -85,6 +104,30 @@ class PaymentIntentResponseDto {
 	@ApiProperty({ description: 'Order ID', example: 123 })
 	orderId: number;
 
+	static create(orderId: number, clientSecret: string, publishableKey: string): PaymentIntentAttributes {
+		const attributes = new PaymentIntentAttributes();
+		attributes.clientSecret = clientSecret;
+		attributes.publishableKey = publishableKey;
+		attributes.orderId = orderId;
+		return attributes;
+	}
+
+	static fromJSON(json: Record<string, unknown>): PaymentIntentAttributes {
+		const attributes = new PaymentIntentAttributes();
+		attributes.clientSecret = json.clientSecret as string;
+		attributes.publishableKey = json.publishableKey as string;
+		attributes.orderId = json.orderId as number;
+		return attributes;
+	}
+}
+
+/**
+ * Response DTO for Payment Intent creation
+ */
+class PaymentIntentResponseDto {
+	@ApiProperty({ description: 'Payment intent attributes', type: PaymentIntentAttributes })
+	attributes: PaymentIntentAttributes;
+
 	@ApiProperty({
 		description: 'HATEOAS navigation links',
 		example: {
@@ -94,21 +137,16 @@ class PaymentIntentResponseDto {
 	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
-	public static create(orderId: number, clientSecret: string, publishableKey: string): PaymentIntentResponseDto {
+	static create(orderId: number, clientSecret: string, publishableKey: string): PaymentIntentResponseDto {
 		const dto = new PaymentIntentResponseDto();
-		dto.clientSecret = clientSecret;
-		dto.publishableKey = publishableKey;
-		dto.orderId = orderId;
+		dto.attributes = PaymentIntentAttributes.create(orderId, clientSecret, publishableKey);
 		dto._links = buildPaymentLinks(orderId);
-
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): PaymentIntentResponseDto {
+	static fromJSON(json: Record<string, unknown>): PaymentIntentResponseDto {
 		const dto = new PaymentIntentResponseDto();
-		dto.clientSecret = json.clientSecret as string;
-		dto.publishableKey = json.publishableKey as string;
-		dto.orderId = json.orderId as number;
+		dto.attributes = PaymentIntentAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		dto._links = json._links as Partial<Record<HateoasAction, HateoasLink>>;
 		return dto;
 	}

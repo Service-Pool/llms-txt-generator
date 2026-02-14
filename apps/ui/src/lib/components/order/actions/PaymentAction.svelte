@@ -44,8 +44,8 @@
 			switch (configService.stripe.paymentMethod) {
 				case 'elements': {
 					// Stripe Elements - modal form
-					const response = await paymentsService.createPaymentIntent(order.id);
-					const data = response.getData();
+					const response = await paymentsService.createPaymentIntent(order.attributes.id);
+					const data = response.getData().attributes;
 
 					clientSecret = data.clientSecret;
 					publishableKey = data.publishableKey;
@@ -55,10 +55,10 @@
 
 				case 'checkout': {
 					// Stripe Checkout - redirect
-					const response = await paymentsService.createSession(order.id);
-					const data = response.getData();
+					const response = await paymentsService.createSession(order.attributes.id);
+					const data = response.getData().attributes;
 					if (data.paymentUrl) {
-						await ordersStore.refreshOrder(order.id);
+						await ordersStore.refreshOrder(order.attributes.id);
 						window.location.href = data.paymentUrl;
 					}
 					break;
@@ -96,7 +96,9 @@
 					{config.description}
 				</div>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-					Total: <span class="font-semibold">{order.currencySymbol}{order.priceTotal?.toFixed(2)}</span>
+					Total: <span class="font-semibold"
+						>{order.attributes.currencySymbol}{order.attributes.priceTotal?.toFixed(2)}</span
+					>
 				</p>
 			</div>
 			<Button

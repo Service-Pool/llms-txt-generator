@@ -14,7 +14,9 @@
 	let { order, open = $bindable(false), mode = 'card', loading = false, showButton = true }: Props = $props();
 
 	const config = getActionConfig('calculate')!;
-	const label = $derived('currentAiModel' in order && order.currentAiModel ? config.labelAlternative : config.label);
+	const label = $derived(
+		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? config.labelAlternative : config.label
+	);
 </script>
 
 {#if showButton}
@@ -42,7 +44,7 @@
 					</div>
 					<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
 						Current: <span class="font-semibold">
-							{'currentAiModel' in order ? (order.currentAiModel?.displayName ?? '—') : '—'}
+							{'currentAiModel' in order.attributes ? (order.attributes.currentAiModel?.displayName ?? '—') : '—'}
 						</span>
 					</p>
 				</div>
