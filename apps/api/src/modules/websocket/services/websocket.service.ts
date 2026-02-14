@@ -117,7 +117,7 @@ class WebSocketService {
 	 */
 	sendOrderUpdate(orderDto: OrderResponseDto): void {
 		const wsMessage = WebSocketResponse.create(WebSocketEvent.ORDER_UPDATE, orderDto);
-		this.sendToOrder(orderDto.id, JSON.stringify(wsMessage));
+		this.sendToOrder(orderDto.attributes.id, JSON.stringify(wsMessage));
 	}
 
 	/**

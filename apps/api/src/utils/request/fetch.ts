@@ -3,8 +3,12 @@ class RequestUtils {
 	 * HEAD-запрос с таймаутом для проверки доступности ресурса
 	 */
 	public static async exists(url: string, timeoutMs: number | null = 2000): Promise<boolean> {
-		const res = await RequestUtils.fetch(url, timeoutMs, { method: 'HEAD' });
-		return !!res && res.ok;
+		try {
+			const res = await RequestUtils.fetch(url, timeoutMs, { method: 'HEAD' });
+			return !!res && res.ok;
+		} catch {
+			return false;
+		}
 	}
 
 	/**

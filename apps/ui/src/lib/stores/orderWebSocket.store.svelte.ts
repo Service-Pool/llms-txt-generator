@@ -92,7 +92,7 @@ class OrderWebSocketStore {
 	private handleOrderUpdate(orderDto: OrderResponseDto): void {
 		try {
 			// Only process if we're subscribed to this order
-			if (!this.subscribedOrderIds.has(orderDto.id)) {
+			if (!this.subscribedOrderIds.has(orderDto.attributes.id)) {
 				return;
 			}
 
@@ -100,8 +100,8 @@ class OrderWebSocketStore {
 			ordersStore.updateOrder(orderDto);
 
 			// Automatically unsubscribe from completed orders to avoid memory leaks
-			if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(orderDto.status)) {
-				this.unsubscribeFromOrder(orderDto.id);
+			if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(orderDto.attributes.status)) {
+				this.unsubscribeFromOrder(orderDto.attributes.id);
 			}
 		} catch (error) {
 			console.error('[OrderWebSocketStore] Failed to handle order update:', error);

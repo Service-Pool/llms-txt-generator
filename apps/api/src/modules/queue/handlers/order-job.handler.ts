@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { Order } from '../../orders/entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
@@ -45,8 +45,7 @@ class OrderJobHandler {
 		private readonly pageBatchProcessor: PageBatchProcessor,
 		private readonly ordersService: OrdersService,
 		private readonly statsService: StatsService,
-		@InjectRepository(Order) private readonly orderRepository: Repository<Order>,
-		private readonly dataSource: DataSource
+		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
 	) { }
 
 	/**
@@ -82,10 +81,6 @@ class OrderJobHandler {
 		// 2. Обновить статус на PROCESSING
 		await this.ordersService.updateOrderStatus(orderId, OrderStatus.PROCESSING);
 
-		const queryRunner = this.dataSource.createQueryRunner();
-		await queryRunner.connect();
-		await queryRunner.startTransaction();
-
 		try {
 			// 3. Получить список URLs из sitemap НА ЛЕТУ
 			const allUrls = await this.crawlersService.getAllSitemapUrls(order.hostname);
@@ -108,9 +103,7 @@ class OrderJobHandler {
 					allPages.push(...processedPages);
 
 					// Обновить processedUrls в Order
-					await this.orderRepository.update(orderId, {
-						processedUrls: allPages.length
-					});
+					await this.ordersService.updateProgress(orderId, allPages.length);
 
 					// Отправить прогресс через BullMQ события
 					await job.updateProgress({});
@@ -136,9 +129,6 @@ class OrderJobHandler {
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
 
-			// Отправить статус через BullMQ события
-			await job.updateProgress({});
-
 			const { hostname } = this.cacheService.parseUrl(order.hostname);
 			const hashKey = this.cacheService.buildHashKey(order.modelId, hostname);
 			const description = await this.cacheService.get(hashKey, '__description__', async () => {
@@ -149,22 +139,21 @@ class OrderJobHandler {
 			// 7. Форматирование llms.txt
 			const output = LlmsTxtFormatter.format(order.hostname, description, allPages);
 
-			// 8-9. Сохранение результата
-			await queryRunner.manager.update(Order, orderId, {
+			// 8-9. Сохранение результата - атомарное обновление
+			await this.orderRepository.update(orderId, {
 				output,
 				status: OrderStatus.COMPLETED,
 				completedAt: new Date()
 			});
 
-			await queryRunner.commitTransaction();
+			// Отправить финальное событие через BullMQ ПОСЛЕ сохранения в БД
+			await job.updateProgress({});
 
 			// WebSocket события о завершении и статистике будут отправлены
 			// через QueueEventsService при получении BullMQ 'completed' события
 
 			this.logger.log(`Order ${orderId} completed successfully with ${allPages.length} pages`);
 		} catch (error) {
-			await queryRunner.rollbackTransaction();
-
 			// Сохранить ошибку в Order через OrdersService
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			await this.ordersService.updateOrderStatus(orderId, OrderStatus.FAILED);
@@ -175,8 +164,6 @@ class OrderJobHandler {
 
 			this.logger.error(`Order ${orderId} failed: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
 			throw error; // Пробросить для retry BullMQ
-		} finally {
-			await queryRunner.release();
 		}
 	}
 }

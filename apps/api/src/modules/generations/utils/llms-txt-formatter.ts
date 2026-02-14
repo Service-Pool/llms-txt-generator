@@ -22,11 +22,7 @@ class LlmsTxtFormatter {
 		];
 
 		for (const page of pages) {
-			lines.push(`### ${page.title}`);
-			lines.push(`URL: ${page.url}`);
-			lines.push('');
-			lines.push(page.summary || '');
-			lines.push('');
+			lines.push(`- [${page.title}](${page.url}): ${page.summary || ''}`);
 		}
 
 		return lines.join('\n');
