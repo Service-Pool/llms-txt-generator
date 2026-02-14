@@ -419,7 +419,11 @@ class OrdersService {
 			}
 
 			const errors = order.errors ?? [];
-			errors.push(error);
+
+			// Добавляем только уникальные ошибки
+			if (!errors.includes(error)) {
+				errors.push(error);
+			}
 
 			await queryRunner.manager.update(Order, orderId, { errors });
 			await queryRunner.commitTransaction();
