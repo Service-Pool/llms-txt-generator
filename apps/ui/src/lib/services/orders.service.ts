@@ -13,7 +13,7 @@ import {
 	type ApiResponse
 } from '@api/shared';
 
-type StatusColor = 'blue' | 'purple' | 'yellow' | 'green' | 'indigo' | 'red' | 'gray';
+type StatusColor = 'primary' | 'secondary' | 'gray' | 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'fuchsia' | 'purple' | 'pink' | 'rose';
 
 interface StatusConfig {
 	label: string;
@@ -21,7 +21,7 @@ interface StatusConfig {
 }
 
 const STATUS_MAP: Record<OrderStatus, StatusConfig> = {
-	[OrderStatus.CREATED]: { label: 'Draft', color: 'blue' },
+	[OrderStatus.CREATED]: { label: 'Draft', color: 'secondary' },
 	[OrderStatus.CALCULATED]: { label: 'Calculated', color: 'indigo' },
 	[OrderStatus.PENDING_PAYMENT]: { label: 'Pending Payment', color: 'yellow' },
 	[OrderStatus.PAID]: { label: 'Paid', color: 'green' },

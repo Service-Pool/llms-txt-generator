@@ -67,8 +67,9 @@
 
 			handleClose();
 		} catch (exception) {
-			isCalculating = false;
 			throw exception;
+		} finally {
+			isCalculating = false;
 		}
 	};
 
@@ -188,13 +189,7 @@
 	{/if}
 
 	{#snippet footer()}
-		<Button
-			type="submit"
-			value="calculate"
-			disabled={!selectedModelId || isCalculating}
-			loading={isCalculating}
-			color={config.color}
-		>
+		<Button type="submit" value="calculate" disabled={!selectedModelId} loading={isCalculating} color={config.color}>
 			{config.label}
 		</Button>
 		<Button type="submit" value="cancel" color="alternative">Cancel</Button>
