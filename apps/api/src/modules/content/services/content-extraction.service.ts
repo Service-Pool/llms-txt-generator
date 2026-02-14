@@ -30,9 +30,6 @@ class ContentExtractionService {
 				},
 				redirect: 'follow'
 			});
-			if (!html) {
-				throw new Error(`Failed to fetch content or empty response`);
-			}
 
 			// Парсинг через Readability
 			const dom = new JSDOM(html, { url });
@@ -40,7 +37,7 @@ class ContentExtractionService {
 			const article = reader.parse();
 
 			if (!article) {
-				throw new Error('Failed to extract content with Readability');
+				throw new Error(`No readable text to extract from ${url}`);
 			}
 
 			// Удаление всех HTML-тегов
@@ -60,7 +57,7 @@ class ContentExtractionService {
 			};
 		} catch (error) {
 			this.logger.error(`Failed to extract content from ${url}:`, error);
-			throw new Error(`Content extraction failed: ${error instanceof Error ? error.message : String(error)}`);
+			throw error;
 		}
 	}
 

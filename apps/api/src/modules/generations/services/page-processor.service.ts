@@ -30,7 +30,7 @@ class PageBatchProcessor {
 			this.pages.push(new PageContent(url, title, content));
 		} catch (error) {
 			this.logger.error(`Failed to extract content for ${url}:`, error);
-			throw new Error(`Failed to extract content for ${url}: ${error instanceof Error ? error.message : String(error)}`);
+			throw error;
 		}
 	}
 
