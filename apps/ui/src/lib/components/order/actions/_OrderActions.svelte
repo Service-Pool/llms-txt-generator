@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { ordersService } from '$lib/services/orders.service';
 	import type { OrderResponseDto } from '@api/shared';
-	import CalculateAction from './actions/CalculateAction.svelte';
-	import PaymentAction from './actions/PaymentAction.svelte';
-	import RunAction from './actions/RunAction.svelte';
-	import DownloadAction from './actions/DownloadAction.svelte';
+	import CalculateAction from './CalculateAction.svelte';
+	import PaymentAction from './PaymentAction.svelte';
+	import RunAction from './RunAction.svelte';
+	import DownloadAction from './DownloadAction.svelte';
 
 	interface Props {
 		order: OrderResponseDto;

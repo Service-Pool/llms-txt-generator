@@ -1,12 +1,12 @@
 <script lang="ts">
 	import '../app.css';
+	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { Footer, FooterCopyright, ThemeProvider } from 'flowbite-svelte';
 	import { handleCriticalError } from '$lib/stores/error.store.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import ErrorToast from '$lib/components/general/ErrorToast.svelte';
-	import Navigation from '$lib/components/general/Navigation.svelte';
 	import { page } from '$app/state';
-	import { authStore } from '$lib/stores/auth.store.svelte';
+	import ErrorToast from '$lib/components/ui/error-toast.svelte';
+	import Navigation from '$lib/components/layout/Navigation.svelte';
 
 	const { children } = $props();
 

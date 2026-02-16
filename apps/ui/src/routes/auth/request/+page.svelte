@@ -6,8 +6,8 @@
 	import { page } from '$app/state';
 	import { UIError } from '$lib/errors/ui-error';
 	import { Card, Heading, P, Label, Input, Button, Alert, InputAddon, ButtonGroup, Spinner } from 'flowbite-svelte';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
+	import ErrorList from '$lib/components/ui/error-list.svelte';
+	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 
 	let redirectUrl = $state('');
 	let email = $state('');

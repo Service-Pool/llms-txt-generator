@@ -3,7 +3,7 @@
 	import { Button, Tooltip, Badge, Hr, Alert } from 'flowbite-svelte';
 	import { FileCopyOutline, DownloadSolid, FileCopySolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import ErrorList from '$lib/components/ui/error-list.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -91,107 +91,118 @@
 </script>
 
 <!-- Info -->
-<div class="mb-4 {className}">
-	<div
-		class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-[minmax(60px,auto)_minmax(100px,1fr)_minmax(90px,auto)_repeat(4,minmax(120px,1fr))] gap-2 text-xs"
-	>
-		<div class="flex flex-col">
-			<span class="stat-label">Order</span>
-			<span class="stat-value">
-				#{order.attributes.id}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">AI Model</span>
-			<span class="stat-value">
-				{order.attributes.currentAiModel?.displayName ?? '—'}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">Total Price</span>
-			<span class="stat-value">
-				{#if order.attributes.priceTotal !== null}
-					{order.attributes.currencySymbol}{order.attributes.priceTotal.toFixed(2)}
-				{:else}
-					—
-				{/if}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">Created</span>
-			<span class="stat-value">
-				{order.attributes.createdAt
-					? new Date(order.attributes.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-					: '—'}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">Updated</span>
-			<span class="stat-value">
-				{order.attributes.updatedAt
-					? new Date(order.attributes.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-					: '—'}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">Started</span>
-			<span class="stat-value">
-				{order.attributes.startedAt
-					? new Date(order.attributes.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-					: '—'}
-			</span>
-		</div>
-		<div class="flex flex-col">
-			<span class="stat-label">Completed</span>
-			<span class="stat-value">
-				{order.attributes.completedAt
-					? new Date(order.attributes.completedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-					: '—'}
-			</span>
-		</div>
-	</div>
-</div>
-
-<!-- Output -->
-{#if hasDownloadAction}
-	<div class="mb-4 {className}">
-		<div class="flex items-center justify-between mb-2">
-			<span class="stat-label">Generated <Badge>llms.txt</Badge><sup class="text-red-500">&nbsp;●</sup></span>
-			<div class="flex gap-1">
-				<Button size="sm" color="light" class="rounded-full p-2!" onclick={handleCopyClick} loading={isCopying}>
-					{#if copySuccess}
-						<FileCopyOutline size="md" />
+<div class="space-y-4">
+	<div class={className}>
+		<div
+			class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-[minmax(60px,auto)_minmax(100px,1fr)_minmax(90px,auto)_repeat(4,minmax(120px,1fr))] gap-2 text-xs"
+		>
+			<div class="flex flex-col">
+				<span class="stat-label">Order</span>
+				<span class="stat-value">
+					#{order.attributes.id}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">AI Model</span>
+				<span class="stat-value">
+					{order.attributes.currentAiModel?.displayName ?? '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Total Price</span>
+				<span class="stat-value">
+					{#if order.attributes.priceTotal !== null}
+						{order.attributes.currencySymbol}{order.attributes.priceTotal.toFixed(2)}
 					{:else}
-						<FileCopySolid size="md" />
+						—
 					{/if}
-				</Button>
-				<Tooltip>Copy content</Tooltip>
-				<Button size="sm" color="light" class="rounded-full p-2!" onclick={handleDownloadClick} loading={isDownloading}>
-					{#if downloadSuccess}
-						<DownloadSolid size="md" />
-					{:else}
-						<DownloadSolid size="md" />
-					{/if}
-				</Button>
-				<Tooltip>Download content</Tooltip>
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Created</span>
+				<span class="stat-value">
+					{order.attributes.createdAt
+						? new Date(order.attributes.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Updated</span>
+				<span class="stat-value">
+					{order.attributes.updatedAt
+						? new Date(order.attributes.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Started</span>
+				<span class="stat-value">
+					{order.attributes.startedAt
+						? new Date(order.attributes.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Completed</span>
+				<span class="stat-value">
+					{order.attributes.completedAt
+						? new Date(order.attributes.completedAt).toLocaleString(undefined, {
+								dateStyle: 'short',
+								timeStyle: 'short'
+							})
+						: '—'}
+				</span>
 			</div>
 		</div>
-
-		<Hr class="my-0" />
-		<pre
-			bind:this={outputElement}
-			class="text-xs pt-2 pl-2 dark:text-white overflow-auto whitespace-pre-wrap wrap-break-word max-h-120 leading-normal">{displayedOutput}</pre>
 	</div>
-{/if}
 
-<!-- Errors -->
-{#if order.attributes.errors && order.attributes.errors.length > 0}
-	<div class="mt-3">
-		<Alert color="red" class="text-xs">
-			<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
-		</Alert>
-	</div>
-{/if}
+	<!-- Output -->
+	{#if hasDownloadAction}
+		<div class={className}>
+			<div class="flex items-center justify-between mb-2">
+				<span class="stat-label">Generated <Badge>llms.txt</Badge><sup class="text-red-500">&nbsp;●</sup></span>
+				<div class="flex gap-1">
+					<Button size="sm" color="light" class="rounded-full p-2!" onclick={handleCopyClick} loading={isCopying}>
+						{#if copySuccess}
+							<FileCopyOutline size="md" />
+						{:else}
+							<FileCopySolid size="md" />
+						{/if}
+					</Button>
+					<Tooltip>Copy content</Tooltip>
+					<Button
+						size="sm"
+						color="light"
+						class="rounded-full p-2!"
+						onclick={handleDownloadClick}
+						loading={isDownloading}
+					>
+						{#if downloadSuccess}
+							<DownloadSolid size="md" />
+						{:else}
+							<DownloadSolid size="md" />
+						{/if}
+					</Button>
+					<Tooltip>Download content</Tooltip>
+				</div>
+			</div>
+
+			<Hr class="my-0" />
+			<pre
+				bind:this={outputElement}
+				class="text-xs pt-2 pl-2 dark:text-white overflow-auto whitespace-pre-wrap wrap-break-word max-h-120 leading-normal">{displayedOutput}</pre>
+		</div>
+	{/if}
+
+	<!-- Errors -->
+	{#if order.attributes.errors && order.attributes.errors.length > 0}
+		<div>
+			<Alert color="red" class="text-xs">
+				<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
+			</Alert>
+		</div>
+	{/if}
+</div>
 
 <style>
 	@reference "tailwindcss";

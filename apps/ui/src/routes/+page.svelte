@@ -1,7 +1,7 @@
 <svelte:options runes={true} />
 
 <script lang="ts">
-	import Hero from '$lib/components/general/Hero.svelte';
+	import Hero from '$lib/components/layout/hero.svelte';
 	import { Button } from 'flowbite-svelte';
 	import { configService } from '$lib/services/config.service';
 </script>

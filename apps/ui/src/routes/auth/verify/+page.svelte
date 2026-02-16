@@ -7,8 +7,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { UIError } from '$lib/errors/ui-error';
-	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
+	import ErrorList from '$lib/components/ui/error-list.svelte';
 
 	import { CheckCircleSolid, ExclamationCircleSolid } from 'flowbite-svelte-icons';
 
@@ -28,7 +28,7 @@
 			const res = await authService.login(crd);
 			const data = res.getData();
 
-			authStore.setUser(data.user);
+			authStore.setUser(data.attributes.user);
 			success = true;
 
 			// Куда редиректить: сначала параметр target, потом redirectUrl из API, потом главная

@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { type OrderResponseDto } from '@api/shared';
-	import { Button } from 'flowbite-svelte';
-	import { ArrowUpRightFromSquareOutline } from 'flowbite-svelte-icons';
-	import { configService } from '$lib/services/config.service';
 	import OrderCard from './OrderCard.svelte';
-	import OrderActions from './OrderActions.svelte';
+	import OrderActions from './actions/_OrderActions.svelte';
 	import OrderStats from './OrderStats.svelte';
 	import CalculateModal from './modals/CalculateModal.svelte';
 	import StripeElementsModal from './modals/StripeElementsModal.svelte';
@@ -34,18 +31,6 @@
 </script>
 
 <OrderCard {order}>
-	{#snippet headerActions()}
-		<!-- Open order in new tab/window -->
-		<Button
-			size="xs"
-			color="light"
-			class="rounded-full p-1 w-8 h-8"
-			onclick={() => window.open(configService.routes.orderById(order.attributes.id), '_blank')}
-		>
-			<ArrowUpRightFromSquareOutline class="w-4 h-4" />
-		</Button>
-	{/snippet}
-
 	{#snippet children()}
 		<!-- Actions Section -->
 		<OrderActions

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
-	import OrderItemList from './OrderItemList.svelte';
+	import OrderItemList from './OrderListItem.svelte';
 	import { FileLinesOutline } from 'flowbite-svelte-icons';
 	import { flip } from 'svelte/animate';
 	import { scale, fly } from 'svelte/transition';

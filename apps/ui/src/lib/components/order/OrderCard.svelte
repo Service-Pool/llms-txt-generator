@@ -3,7 +3,7 @@
 	import { formatNumber } from '$lib/utils/number-format';
 	import { type OrderResponseDto, OrderStatus } from '@api/shared';
 	import OrderStatusBadge from './OrderStatusBadge.svelte';
-	import ProgressBar from '$lib/components/general/ProgressBar.svelte';
+	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
 
 	interface Props {
 		order: OrderResponseDto;

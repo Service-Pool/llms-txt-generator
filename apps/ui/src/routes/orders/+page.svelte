@@ -5,10 +5,10 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
-	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
+	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import OrdersList from '$lib/components/order/OrdersList.svelte';
-	import Pagination from '$lib/components/general/Pagination.svelte';
+	import Pagination from '$lib/components/ui/pagination.svelte';
 
 	let error = $state<string[] | string | null>(null);
 
@@ -67,7 +67,10 @@
 	<title>Orders - LLMs.txt Generator</title>
 </svelte:head>
 
-<div class="max-w-4xl mx-auto space-y-6">
+<Heading tag="h2">Your Orders</Heading>
+<Hr />
+
+<div class="mx-auto space-y-6">
 	{#if ordersStore.items === null || ordersStore.loading}
 		<div class="space-y-3">
 			{#each Array(3) as _, i (i)}
@@ -84,7 +87,6 @@
 			<Button onclick={() => loadOrders()} size="xs" color="red" class="mt-2">Try again</Button>
 		</Alert>
 	{:else}
-		<Heading tag="h2">Your Orders</Heading>
 		{#if ordersStore.total > ordersStore.limit}
 			<Pagination
 				page={ordersStore.page}
@@ -93,13 +95,11 @@
 				onPageChange={handlePageChange}
 				onLimitChange={handleLimitChange}
 			/>
-			<Hr class="my-8" />
 		{/if}
 
 		<OrdersList items={ordersStore.items ?? []} />
 
 		{#if ordersStore.total > ordersStore.limit}
-			<Hr class="my-8" />
 			<Pagination
 				page={ordersStore.page}
 				limit={ordersStore.limit}

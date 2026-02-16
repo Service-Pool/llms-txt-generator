@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Modal, Button, Spinner } from 'flowbite-svelte';
 	import { slide } from 'svelte/transition';
-	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
+	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 	import { onMount, tick } from 'svelte';
 

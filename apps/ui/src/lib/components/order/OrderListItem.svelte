@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { slide, fly } from 'svelte/transition';
 	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger, Listgroup } from 'flowbite-svelte';
-	import { ChevronDownOutline, DotsVerticalOutline, ArrowUpRightFromSquareOutline } from 'flowbite-svelte-icons';
+	import { ChevronDownOutline, DotsVerticalOutline, EditOutline } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { type OrderResponseDto } from '@api/shared';
 	import { ordersService } from '$lib/services/orders.service';
 	import { configService } from '$lib/services/config.service';
 	import OrderCard from './OrderCard.svelte';
-	import OrderActions from './OrderActions.svelte';
+	import OrderActions from './actions/_OrderActions.svelte';
 	import OrderStats from './OrderStats.svelte';
 	import CalculateModal from './modals/CalculateModal.svelte';
 	import StripeElementsModal from './modals/StripeElementsModal.svelte';
@@ -61,7 +61,8 @@
 				>
 					{#snippet icon()}
 						<DotsVerticalOutline
-							class="w-4 h-4 transition-transform duration-200 {speedDialHover ? 'scale-120' : ''}"
+							size="sm"
+							class="transition-transform duration-200 {speedDialHover ? 'scale-120' : ''}"
 						/>
 					{/snippet}
 				</SpeedDialTrigger>
@@ -94,7 +95,7 @@
 			class="rounded-full p-1 w-8 h-8 {isOpen ? 'rotate-180' : ''} transition-transform duration-200"
 			onclick={handleToggle}
 		>
-			<ChevronDownOutline class="w-4 h-4" />
+			<ChevronDownOutline size="sm" />
 		</Button>
 
 		<!-- Open order Button -->
@@ -104,7 +105,7 @@
 			class="rounded-full p-1 w-8 h-8"
 			onclick={() => goto(configService.routes.orderById(order.attributes.id))}
 		>
-			<ArrowUpRightFromSquareOutline class="w-4 h-4" />
+			<EditOutline size="sm" />
 		</Button>
 	{/snippet}
 

@@ -3,10 +3,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
-	import { Alert, Spinner } from 'flowbite-svelte';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
-	import OrderItemPage from '$lib/components/order/OrderItemPage.svelte';
+	import { configService } from '$lib/services/config.service';
+	import { Alert, Spinner, Heading, Hr, Button } from 'flowbite-svelte';
+	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
+	import ErrorList from '$lib/components/ui/error-list.svelte';
+	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
+	import OrderItemPage from '$lib/components/order/OrderDetails.svelte';
 
 	const orderId = $derived(Number(page.params.id));
 	const order = $derived(ordersStore.getById(orderId));
@@ -59,5 +61,13 @@
 		<ErrorList {error} />
 	</Alert>
 {:else if order}
+	<div class="flex justify-between items-center mb-4">
+		<Heading tag="h2" class="mb-0">Order #{order.attributes.id}</Heading>
+		<Button href={configService.routes.orders} color="light" size="sm">
+			<ArrowLeftOutline size="sm" class="me-2" />
+			Order List
+		</Button>
+	</div>
+	<Hr class="mb-6" />
 	<OrderItemPage {order} />
 {/if}
