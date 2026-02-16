@@ -77,6 +77,11 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 		});
 
 		// Listen to completed events
+		// NOTE: This handler might be redundant if job handler sends final progress event after updating order status.
+		// Currently worker sends job.updateProgress({}) after setting status=COMPLETED (order-job.handler.ts:163),
+		// which triggers handleProgressEvent with same data. Consider removing either:
+		// 1. Line 163 in worker (recommended) - keep 'completed' event for semantic clarity and future actions (emails, etc.)
+		// 2. This listener - if final progress event is intentional
 		queueEvents.on('completed', ({ jobId }) => {
 			this.handleCompletedEvent(jobId).catch((error) => {
 				this.logger.error(`Error handling completed event for job ${jobId}:`, error);
