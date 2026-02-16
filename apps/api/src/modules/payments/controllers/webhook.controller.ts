@@ -57,6 +57,7 @@ class WebhookController {
 
 				// Create temporary session and run order
 				this.usersService.setTemporarySessionData(order.userId);
+
 				try {
 					// runOrder will use saved modelId and queue the order
 					await this.ordersService.runOrder(orderId);
@@ -81,6 +82,7 @@ class WebhookController {
 
 				// Create temporary session and run order
 				this.usersService.setTemporarySessionData(order.userId);
+
 				try {
 					// runOrder will use saved modelId and queue the order
 					await this.ordersService.runOrder(orderId);

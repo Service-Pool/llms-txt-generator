@@ -137,7 +137,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 
 		// Get complete order data and send via WebSocket
 		try {
-			const order = await this.ordersService.getUserOrder(orderId);
+			const order = await this.ordersService.findById(orderId);
 			const orderDto = OrderResponseDto.create(order);
 			this.webSocketService.sendOrderUpdate(orderDto);
 

@@ -1,8 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import type { SessionData } from '../../../types/fastify';
 
 // SessionData теперь алиас к расширенному Fastify.Session (см. src/types/fastify.d.ts)
-type SessionData = import('fastify').Session;
+// type SessionData = import('fastify').Session;
 
 @Entity('sessions')
 class Session {

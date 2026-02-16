@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Migration1769980269724 implements MigrationInterface {
-    name = 'Migration1769980269724'
+export class Migration1771268660945 implements MigrationInterface {
+    name = 'Migration1771268660945'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE \`orders\` (\`id\` int NOT NULL AUTO_INCREMENT, \`userId\` int NULL, \`sessionId\` varchar(255) NULL, \`hostname\` varchar(255) NOT NULL, \`modelId\` varchar(255) NULL, \`priceTotal\` decimal(11,6) NULL, \`priceCurrency\` enum ('EUR') NULL, \`pricePerUrl\` decimal(11,6) NULL, \`stripeSessionId\` varchar(255) NULL, \`stripePaymentIntentSecret\` varchar(255) NULL, \`status\` enum ('created', 'calculated', 'pending_payment', 'paid', 'payment_failed', 'queued', 'processing', 'completed', 'failed', 'cancelled', 'refunded') NOT NULL DEFAULT 'created', \`jobId\` varchar(255) NULL, \`totalUrls\` int NULL, \`processedUrls\` int NOT NULL DEFAULT '0', \`startedAt\` datetime NULL, \`completedAt\` datetime NULL, \`output\` text NULL, \`errors\` json NULL, \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
