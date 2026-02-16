@@ -3,6 +3,7 @@ import { ClsModule } from 'nestjs-cls';
 import { OrdersModule } from '../orders/orders.module';
 import { UsersModule } from '../users/users.module';
 import { PaymentsController } from './controllers/payments.controller';
+import { WebhookController } from './controllers/webhook.controller';
 import { StripeService } from './services/stripe.service';
 import { PaymentUserAuthValidator } from '../../validators/payment.validator';
 
@@ -13,7 +14,7 @@ import { PaymentUserAuthValidator } from '../../validators/payment.validator';
 		UsersModule
 	],
 	providers: [StripeService, PaymentUserAuthValidator],
-	controllers: [PaymentsController],
+	controllers: [PaymentsController, WebhookController],
 	exports: [StripeService]
 })
 

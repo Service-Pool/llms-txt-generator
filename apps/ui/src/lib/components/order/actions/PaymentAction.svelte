@@ -58,7 +58,6 @@
 					const response = await paymentsService.createSession(order.attributes.id);
 					const data = response.getData().attributes;
 					if (data.paymentUrl) {
-						await ordersStore.refreshOrder(order.attributes.id);
 						window.location.href = data.paymentUrl;
 					}
 					break;

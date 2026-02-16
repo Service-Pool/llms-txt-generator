@@ -5,13 +5,10 @@ import {
 	Body,
 	ParseIntPipe,
 	BadRequestException,
-	RawBodyRequest,
-	Req,
-	Headers,
 	UseGuards
 } from '@nestjs/common';
 import { ApiResponse } from '../../../utils/response/api-response';
-import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiBody, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { SessionGuard } from '../../auth/guards/session.guard';
 import { AppConfigService } from '../../../config/config.service';
 import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
@@ -20,8 +17,6 @@ import { HttpStatus } from '../../../enums/response-code.enum';
 import { OrdersService } from '../../orders/services/orders.service';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { StripeService } from '../services/stripe.service';
-import { UsersService } from '../../users/services/users.service';
-import type { FastifyRequest } from 'fastify';
 
 @ApiTags('Payments')
 @Controller('api/orders/:orderId/payment')
@@ -29,7 +24,6 @@ class PaymentsController {
 	constructor(
 		private readonly stripeService: StripeService,
 		private readonly ordersService: OrdersService,
-		private readonly usersService: UsersService,
 		private readonly configService: AppConfigService
 	) { }
 
@@ -124,97 +118,6 @@ class PaymentsController {
 		await this.ordersService.updateOrderStatus(orderId, OrderStatus.REFUNDED);
 
 		return ApiResponse.success('Refund has been processed successfully');
-	}
-
-	/**
-	 * POST /api/payments/webhook
-	 * Обработчик Stripe webhooks
-	 */
-	@ApiExcludeEndpoint()
-	@Post('/webhook')
-	public async handleWebhook(
-		@Req() req: RawBodyRequest<FastifyRequest>,
-		@Headers('stripe-signature') signature: string
-	): Promise<{ received: boolean }> {
-		if (!signature) {
-			throw new BadRequestException('Missing stripe-signature header');
-		}
-
-		// 1. Верифицировать webhook signature
-		const event = this.stripeService.constructWebhookEvent(
-			req.rawBody,
-			signature
-		);
-
-		// 2. Обработать событие
-		switch (event.type) {
-			case 'checkout.session.completed': {
-				const session = event.data.object;
-				const orderId = parseInt(session.metadata.orderId, 10);
-
-				// Get order and update status to PAID
-				const order = await this.ordersService.findById(orderId);
-				if (!order.userId) {
-					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
-				}
-
-				await this.ordersService.updateOrderStatus(orderId, OrderStatus.PAID);
-
-				// Create temporary session and run order
-				this.usersService.setTemporarySessionData(order.userId);
-				try {
-					// runOrder will use saved modelId and queue the order
-					await this.ordersService.runOrder(orderId);
-				} finally {
-					this.usersService.clearSessionData();
-				}
-
-				break;
-			}
-
-			case 'payment_intent.succeeded': {
-				const paymentIntent = event.data.object;
-				const orderId = parseInt(paymentIntent.metadata.orderId, 10);
-
-				// Get order and update status to PAID
-				const order = await this.ordersService.findById(orderId);
-				if (!order.userId) {
-					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
-				}
-
-				await this.ordersService.updateOrderStatus(orderId, OrderStatus.PAID);
-
-				// Create temporary session and run order
-				this.usersService.setTemporarySessionData(order.userId);
-				try {
-					// runOrder will use saved modelId and queue the order
-					await this.ordersService.runOrder(orderId);
-				} finally {
-					this.usersService.clearSessionData();
-				}
-
-				break;
-			}
-
-			case 'payment_intent.payment_failed': {
-				const paymentIntent = event.data.object;
-				const orderId = parseInt(paymentIntent.metadata.orderId, 10);
-
-				// Обновить статус Order на PAYMENT_FAILED
-				await this.ordersService.updateOrderStatus(
-					orderId,
-					OrderStatus.PAYMENT_FAILED
-				);
-
-				break;
-			}
-
-			default:
-				// Игнорируем неизвестные события
-				break;
-		}
-
-		return { received: true };
 	}
 }
 

@@ -3,7 +3,8 @@ import {
 	NotFoundException,
 	ForbiddenException,
 	BadRequestException,
-	UnauthorizedException
+	UnauthorizedException,
+	Logger
 } from '@nestjs/common';
 import { CrawlersService } from '../../crawlers/services/crawlers.service';
 import { QueueManagerService } from '../../queue/services/queue-manager.service';
@@ -21,6 +22,8 @@ import { Repository, DataSource, IsNull } from 'typeorm';
 
 @Injectable()
 class OrdersService {
+	private readonly logger = new Logger(OrdersService.name);
+
 	constructor(
 		@InjectRepository(Order)
 		private readonly orderRepository: Repository<Order>,
@@ -219,6 +222,7 @@ class OrdersService {
 	/**
 	 * Get single order by ID for current user/session
 	 * Validates ownership via SQL where clause
+	 * Auto-syncs payment status from Stripe if order is in PENDING_PAYMENT
 	 */
 	public async getUserOrder(id: number): Promise<Order> {
 		const session = this.usersService.getSessionData();
@@ -233,12 +237,21 @@ class OrdersService {
 			throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
 		}
 
+		// Auto-sync payment status from Stripe if order is pending payment
+		if (order.status === OrderStatus.PENDING_PAYMENT) {
+			await this.syncPaymentStatus(order);
+			// Reload order after potential status update
+			const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+			return updatedOrder || order;
+		}
+
 		return order;
 	}
 
 	/**
 	 * Get paginated orders for current user/session
 	 * Validates ownership via SQL where clause
+	 * Auto-syncs payment status from Stripe for orders in PENDING_PAYMENT
 	 */
 	public async getUserOrders(page: number, limit: number): Promise<{ orders: Order[]; total: number }> {
 		const session = this.usersService.getSessionData();
@@ -255,6 +268,25 @@ class OrdersService {
 			skip,
 			take: limit
 		});
+
+		// Auto-sync payment status for orders in PENDING_PAYMENT
+		const syncPromises = orders
+			.filter(order => order.status === OrderStatus.PENDING_PAYMENT)
+			.map(order => this.syncPaymentStatus(order));
+
+		if (syncPromises.length > 0) {
+			await Promise.all(syncPromises);
+
+			// Reload orders after potential status updates
+			const [updatedOrders] = await this.orderRepository.findAndCount({
+				where: ownershipWhere,
+				order: { createdAt: 'DESC' },
+				skip,
+				take: limit
+			});
+
+			return { orders: updatedOrders, total };
+		}
 
 		return { orders, total };
 	}
@@ -465,6 +497,49 @@ class OrdersService {
 		);
 
 		return result.affected;
+	}
+
+	/**
+	 * Sync payment status from Stripe for order in PENDING_PAYMENT
+	 * Updates order status to PAID if payment is complete
+	 * Can optionally trigger order processing
+	 */
+	private async syncPaymentStatus(order: Order): Promise<void> {
+		if (order.status !== OrderStatus.PENDING_PAYMENT) {
+			return;
+		}
+
+		if (!order.stripeSessionId && !order.stripePaymentIntentSecret) {
+			return;
+		}
+
+		try {
+			let stripeStatus: StripeSessionStatus;
+
+			// Check Checkout Session or Payment Intent status
+			if (order.stripeSessionId) {
+				stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+			} else if (order.stripePaymentIntentSecret) {
+				stripeStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+			}
+
+			if (stripeStatus === StripeSessionStatus.COMPLETE) {
+				try {
+					await this.updateOrderStatus(order.id, OrderStatus.PAID);
+				} catch (error) {
+					// Webhook already processed - ignore transition error
+					const currentOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+					if (currentOrder && [OrderStatus.PAID, OrderStatus.QUEUED, OrderStatus.PROCESSING].includes(currentOrder.status)) {
+						return; // Already processed by webhook
+					}
+					throw error;
+				}
+			}
+		} catch (error) {
+			// Silently fail - don't break order retrieval if Stripe is down
+			// Log error for monitoring
+			this.logger.error(`Failed to sync payment status for order ${order.id}:`, error);
+		}
 	}
 
 	/**
