@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type OrderResponseDto, HateoasAction } from '@api/shared';
-	import { Button, Tooltip, Badge, Hr, Alert, List, Li, P } from 'flowbite-svelte';
+	import { Button, Tooltip, Badge, Hr, Alert, List, Li, P, Indicator } from 'flowbite-svelte';
 	import { FileCopyOutline, DownloadSolid, FileCopySolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
 
@@ -159,7 +159,11 @@
 	{#if hasDownloadAction}
 		<div class={className}>
 			<div class="flex items-center justify-between mb-2">
-				<span class="stat-label">Generated <Badge>llms.txt</Badge><sup class="text-red-500">&nbsp;●</sup></span>
+				<span class="flex items-center gap-1">
+					<span>Generated</span>
+					<Badge>llms.txt</Badge>
+					<Indicator size="sm" color="green" />
+				</span>
 				<div class="flex gap-1">
 					<Button size="sm" color="light" class="p-2!" onclick={handleCopyClick} loading={isCopying}>
 						{#if copySuccess}
