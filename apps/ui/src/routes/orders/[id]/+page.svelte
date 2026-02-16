@@ -25,10 +25,8 @@
 				await ordersStore.refreshOrder(orderId);
 			}
 
-			const currentOrder = ordersStore.getById(orderId);
-			if (currentOrder && ['pending', 'processing'].includes(currentOrder.attributes.status)) {
-				socketStore.subscribeToOrder(orderId);
-			}
+			// Subscribe to WebSocket updates for this order (regardless of status)
+			socketStore.subscribeToOrder(orderId);
 		} catch (exception) {
 			error = exception instanceof Error ? exception.message : 'Failed to load order';
 		} finally {

@@ -19,8 +19,8 @@
 
 	const navItems = [
 		// { href: configService.routes.home, label: 'Home' },
-		{ href: configService.routes.ordersNew, label: 'New Order' },
-		{ href: configService.routes.orders, label: 'Orders' },
+		{ href: configService.routes.ordersNew, label: 'New' },
+		{ href: configService.routes.orders, label: 'Generations' },
 		{ href: configService.routes.api, label: 'API', target: '_blank' },
 		{ href: configService.routes.about, label: 'About' }
 	];

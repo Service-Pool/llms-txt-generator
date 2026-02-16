@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { type OrderResponseDto, HateoasAction } from '@api/shared';
-	import { Button, Tooltip, Badge, Hr, Alert } from 'flowbite-svelte';
+	import { Button, Tooltip, Badge, Hr, Alert, List, Li, P } from 'flowbite-svelte';
 	import { FileCopyOutline, DownloadSolid, FileCopySolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
-	import ErrorList from '$lib/components/ui/error-list.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -162,7 +161,7 @@
 			<div class="flex items-center justify-between mb-2">
 				<span class="stat-label">Generated <Badge>llms.txt</Badge><sup class="text-red-500">&nbsp;●</sup></span>
 				<div class="flex gap-1">
-					<Button size="sm" color="light" class="rounded-full p-2!" onclick={handleCopyClick} loading={isCopying}>
+					<Button size="sm" color="light" class="p-2!" onclick={handleCopyClick} loading={isCopying}>
 						{#if copySuccess}
 							<FileCopyOutline size="md" />
 						{:else}
@@ -170,13 +169,7 @@
 						{/if}
 					</Button>
 					<Tooltip>Copy content</Tooltip>
-					<Button
-						size="sm"
-						color="light"
-						class="rounded-full p-2!"
-						onclick={handleDownloadClick}
-						loading={isDownloading}
-					>
+					<Button size="sm" color="light" class="p-2!" onclick={handleDownloadClick} loading={isDownloading}>
 						{#if downloadSuccess}
 							<DownloadSolid size="md" />
 						{:else}
@@ -198,7 +191,15 @@
 	{#if order.attributes.errors && order.attributes.errors.length > 0}
 		<div>
 			<Alert color="red" class="text-xs">
-				<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
+				<P class="text-red-600 dark:text-red-400" space="tight" size="xs" height="8"
+					>Errors: ({order.attributes.errors.length})</P
+				>
+
+				<List tag="ul" class="text-left space-y-1">
+					{#each order.attributes.errors as errMsg}
+						<Li class="text-red-600 dark:text-red-400">{errMsg}</Li>
+					{/each}
+				</List>
 			</Alert>
 		</div>
 	{/if}

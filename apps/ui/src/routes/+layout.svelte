@@ -6,7 +6,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import ErrorToast from '$lib/components/ui/error-toast.svelte';
-	import Navigation from '$lib/components/layout/Navigation.svelte';
+	import Navigation from '$lib/components/layout/navigation.svelte';
 
 	const { children } = $props();
 
