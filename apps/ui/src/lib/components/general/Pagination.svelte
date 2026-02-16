@@ -46,14 +46,14 @@
 		</div>
 
 		<!-- Navigation -->
-		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="large">
+		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="default">
 			{#snippet prevContent()}
 				<span class="sr-only">Previous</span>
-				<ChevronLeftOutline class="h-5 w-5" />
+				<ChevronLeftOutline size="md" />
 			{/snippet}
 			{#snippet nextContent()}
 				<span class="sr-only">Next</span>
-				<ChevronRightOutline class="h-5 w-5" />
+				<ChevronRightOutline size="md" />
 			{/snippet}
 		</PaginationNav>
 	</div>

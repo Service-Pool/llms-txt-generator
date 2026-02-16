@@ -1,6 +1,6 @@
 import { HttpClient } from './api.service';
 import { configService } from './config.service';
-import { ORDER_ACTION_BUTTONS, type ActionButtonConfig } from '$lib/config/order-actions.config';
+import { ORDER_ACTION_BUTTONS, type ActionButtonConfig } from '$lib/components/order-actions.config';
 import {
 	CreateOrderRequestDto,
 	CreateOrderResponseDto,

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
 	import OrderListItem from './OrderListItem.svelte';
-	import { Heading } from 'flowbite-svelte';
 	import { FileLinesOutline } from 'flowbite-svelte-icons';
 	import { flip } from 'svelte/animate';
 	import { scale, fly } from 'svelte/transition';
@@ -21,8 +20,6 @@
 </script>
 
 <div class="space-y-4">
-	<Heading tag="h2">Your Orders</Heading>
-
 	{#if items.length === 0}
 		<div class="text-center py-12 rounded-lg border-2 border-dashed">
 			<FileLinesOutline class="mx-auto h-12 w-12 text-gray-400" />

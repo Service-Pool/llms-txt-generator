@@ -48,6 +48,7 @@ class ConfigService {
 		about: '/about',
 		api: '/api',
 		orders: '/orders',
+		ordersNew: '/orders/new',
 		orderById: (id: number) => `/orders/${id}`,
 		auth: {
 			request: '/auth/request',

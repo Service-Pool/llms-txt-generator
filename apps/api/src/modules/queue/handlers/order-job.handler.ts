@@ -13,6 +13,8 @@ import { PageBatchProcessor } from '../../generations/services/page-processor.se
 import { LlmsTxtFormatter } from '../../generations/utils/llms-txt-formatter';
 import { OrdersService } from '../../orders/services/orders.service';
 import { StatsService } from '../../stats/services/stats.service';
+import { PageProcessingError } from '../../../exceptions/page-processing.exception';
+import { ResourceUnavailableError } from '../../../exceptions/resource-unavailable.exception';
 
 /**
  * Generation Job Handler
@@ -95,20 +97,31 @@ class OrderJobHandler {
 			const allPages: PageContent[] = [];
 
 			for (const url of urlsToProcess) {
-				await this.pageBatchProcessor.add(url);
+				try {
+					await this.pageBatchProcessor.add(url);
 
-				if (this.pageBatchProcessor.count >= batchSize) {
-					// Сгенерировать саммари для батча
-					const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
-					allPages.push(...processedPages);
+					if (this.pageBatchProcessor.count >= batchSize) {
+						// Сгенерировать саммари для батча
+						const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
+						allPages.push(...processedPages);
 
-					// Обновить processedUrls в Order
-					await this.ordersService.updateProgress(orderId, allPages.length);
+						// Обновить processedUrls в Order
+						await this.ordersService.updateProgress(orderId, allPages.length);
 
-					// Отправить прогресс через BullMQ события
-					await job.updateProgress({});
+						// Отправить прогресс через BullMQ события
+						await job.updateProgress({});
 
-					this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
+						this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
+					}
+				} catch (error) {
+					// Ошибка обработки отдельной страницы или недоступности ресурса - записываем и продолжаем
+					if (error instanceof PageProcessingError || error instanceof ResourceUnavailableError) {
+						await this.ordersService.addError(orderId, error.message);
+						this.logger.warn(`Failed to process ${url}: ${error.message}`);
+						continue;
+					}
+					// Критическая ошибка - прерываем весь job
+					throw error;
 				}
 			}
 

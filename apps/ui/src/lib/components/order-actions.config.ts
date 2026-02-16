@@ -67,7 +67,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		cardBgClass: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
 		iconColorClass: 'text-green-600 dark:text-green-400',
 		hateoasActions: [HateoasAction.DOWNLOAD],
-		enabled: false
+		enabled: true
 	},
 	{
 		id: 'refund',

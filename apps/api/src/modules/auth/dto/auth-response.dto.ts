@@ -235,6 +235,7 @@ class AuthStatusDtoResponse {
 }
 
 export {
+	AuthLoginAttributes,
 	RequestLoginLinkResponseDto,
 	AuthLoginDtoResponse,
 	AuthLogoutDtoResponse,

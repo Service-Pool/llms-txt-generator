@@ -1,3 +1,5 @@
+import { ResourceUnavailableError } from '../../exceptions/resource-unavailable.exception';
+
 class RequestUtils {
 	/**
 	 * HEAD-запрос с таймаутом для проверки доступности ресурса
@@ -43,7 +45,7 @@ class RequestUtils {
 
 			// Проверяем HTTP статус-код
 			if (!response.ok) {
-				throw new Error(`HTTP ${response.status} ${response.statusText} for ${url}`);
+				throw new ResourceUnavailableError(`HTTP ${response.status} ${response.statusText} for ${url}`);
 			}
 
 			// Проверяем, что не произошла подмена домена (заглушка провайдера)
@@ -51,20 +53,20 @@ class RequestUtils {
 			const finalHostname = new URL(response.url).hostname;
 
 			if (requestedHostname !== finalHostname) {
-				throw new Error(`Domain mismatch: requested ${requestedHostname}, got ${finalHostname}. Possible ISP redirect or domain hijacking.`);
+				throw new ResourceUnavailableError(`Domain mismatch: requested ${requestedHostname}, got ${finalHostname}. Possible ISP redirect or domain hijacking.`);
 			}
 
 			return response;
 		} catch (error) {
 			if (error instanceof Error) {
-				// Пробрасываем наши ошибки валидации как есть
-				if (error.message.startsWith('Domain mismatch')) {
+				// Пробрасываем ResourceUnavailableError как есть
+				if (error instanceof ResourceUnavailableError) {
 					throw error;
 				}
 
 				// AbortError от AbortController означает таймаут
 				if (error.name === 'AbortError') {
-					throw new Error(`Request timeout (${timeoutMs}ms) for ${url}`);
+					throw new ResourceUnavailableError(`Request timeout (${timeoutMs}ms) for ${url}`);
 				}
 
 				// Извлекаем детали из error.cause для более информативного сообщения
@@ -74,15 +76,15 @@ class RequestUtils {
 
 					switch (code) {
 						case 'ENOTFOUND':
-							throw new Error(`Domain not found: ${url} (DNS resolution failed)`);
+							throw new ResourceUnavailableError(`Domain not found: ${url} (DNS resolution failed)`);
 						case 'ECONNREFUSED':
-							throw new Error(`Connection refused: ${url}`);
+							throw new ResourceUnavailableError(`Connection refused: ${url}`);
 						case 'ETIMEDOUT':
 						case 'ENETUNREACH':
-							throw new Error(`Network timeout or unreachable: ${url}`);
+							throw new ResourceUnavailableError(`Network timeout or unreachable: ${url}`);
 						default:
 							// Другие сетевые ошибки с причиной
-							throw new Error(`Network error for ${url}: ${message || code || 'unknown cause'}`);
+							throw new ResourceUnavailableError(`Network error for ${url}: ${message || code || 'unknown cause'}`);
 					}
 				}
 			}

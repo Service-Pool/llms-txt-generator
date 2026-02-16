@@ -5,7 +5,7 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AvailableAiModelDto } from '@api/shared';
-	import { getActionConfig } from '$lib/config/order-actions.config';
+	import { getActionConfig } from '$lib/components/order-actions.config';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
@@ -155,7 +155,7 @@
 						<ul class="space-y-2">
 							{#if model.description}
 								<li class="flex items-start space-x-2">
-									<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
+									<CheckCircleSolid size="sm" class="text-purple-600 shrink-0 mt-0.5" />
 									<span class="text-sm text-gray-700 dark:text-gray-300">
 										{model.description}
 									</span>
@@ -163,7 +163,7 @@
 							{/if}
 							{#if model.pageLimit}
 								<li class="flex items-start space-x-2">
-									<CheckCircleSolid class="text-purple-600 h-4 w-4 shrink-0 mt-0.5" />
+									<CheckCircleSolid size="sm" class="text-purple-600 shrink-0 mt-0.5" />
 									<span class="text-sm text-gray-700 dark:text-gray-300">
 										Up to {model.pageLimit} pages
 									</span>

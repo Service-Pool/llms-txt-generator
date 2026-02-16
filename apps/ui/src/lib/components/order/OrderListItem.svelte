@@ -2,7 +2,6 @@
 	import { slide, fly } from 'svelte/transition';
 	import {
 		Card,
-		Alert,
 		Badge,
 		Accordion,
 		AccordionItem,
@@ -11,11 +10,12 @@
 		SpeedDialTrigger,
 		Listgroup
 	} from 'flowbite-svelte';
-	import { ChevronDownOutline, PlusOutline, InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { ChevronDownOutline, DotsVerticalOutline, ArrowUpRightFromSquareOutline } from 'flowbite-svelte-icons';
+	import { goto } from '$app/navigation';
 	import { formatNumber } from '$lib/utils/number-format';
 	import { type OrderResponseDto } from '@api/shared';
 	import { ordersService } from '$lib/services/orders.service';
-	import ErrorList from '$lib/components/general/ErrorList.svelte';
+	import { configService } from '$lib/services/config.service';
 	import ProgressBar from '$lib/components/general/ProgressBar.svelte';
 	import OrderStatusBadge from '$lib/components/order/OrderStatusBadge.svelte';
 	import OrderActions from '$lib/components/order/OrderActions.svelte';
@@ -34,8 +34,7 @@
 
 	let { order, isOpen = false, anyOrderOpen = false, onToggle }: Props = $props();
 
-	const cardOpacity = $derived(anyOrderOpen ? (isOpen ? 'opacity-100' : 'opacity-60') : null);
-	const cardShadow = $derived(anyOrderOpen ? (isOpen ? 'shadow-md' : 'shadow-none') : null);
+	const cardClass = $derived(anyOrderOpen ? (isOpen ? '' : '') : null);
 
 	let speedDialOpen = $state(false);
 	let speedDialHover = $state(false);
@@ -64,7 +63,9 @@
 		}
 	};
 
-	const formattedDate = $derived(order.attributes.createdAt ? new Date(order.attributes.createdAt).toLocaleString() : '-');
+	const formattedDate = $derived(
+		order.attributes.createdAt ? new Date(order.attributes.createdAt).toLocaleString() : '-'
+	);
 
 	const metadataItems = $derived.by(() => {
 		const items: string[] = [];
@@ -86,7 +87,7 @@
 	});
 </script>
 
-<Card class="max-w-none p-4 transition-opacity-shadow duration-100 {cardOpacity} {cardShadow}">
+<Card class="max-w-none p-4 transition-border duration-100 {cardClass}">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<!-- Header -->
 		<div class="flex-1">
@@ -105,19 +106,20 @@
 			{#if hasAvailableActions}
 				<div class="relative">
 					<SpeedDialTrigger
-						color="dark"
+						color="light"
 						class="rounded-full p-1 w-8 h-8 dark:bg-white dark:text-gray-900"
 						onmouseenter={() => (speedDialHover = true)}
 						onmouseleave={() => (speedDialHover = false)}
 					>
 						{#snippet icon()}
-							<PlusOutline
-								class="w-4 h-4 transition-transform duration-200 {speedDialOpen || speedDialHover ? 'rotate-45' : ''}"
+							<DotsVerticalOutline
+								size="sm"
+								class="transition-transform duration-200 {speedDialOpen || speedDialHover ? 'scale-120' : ''}"
 							/>
 						{/snippet}
 					</SpeedDialTrigger>
 					<SpeedDial
-						trigger="click"
+						trigger="hover"
 						placement="top-end"
 						tooltip="none"
 						transition={fly}
@@ -145,7 +147,17 @@
 				class="rounded-full p-1 w-8 h-8 {isOpen ? 'rotate-180' : ''} transition-transform duration-200"
 				onclick={handleToggle}
 			>
-				<ChevronDownOutline class="w-4 h-4" />
+				<ChevronDownOutline size="sm" />
+			</Button>
+
+			<!-- Open order Button -->
+			<Button
+				size="xs"
+				color="light"
+				class="rounded-full p-1 w-8 h-8"
+				onclick={() => goto(configService.routes.orderById(order.attributes.id))}
+			>
+				<ArrowUpRightFromSquareOutline size="sm" />
 			</Button>
 		</div>
 	</div>
@@ -159,15 +171,6 @@
 			{/if}
 		{/each}
 	</div>
-
-	<!-- Errors -->
-	{#if order.attributes.errors && order.attributes.errors.length > 0}
-		<div class="mt-3">
-			<Alert color="red" class="text-xs">
-				<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
-			</Alert>
-		</div>
-	{/if}
 
 	<!-- Progress Bar for Active Generations -->
 	{#if order.attributes.status === OrderStatus.PROCESSING}
@@ -205,13 +208,6 @@
 					bind:paymentClientSecret
 					bind:paymentPublishableKey
 				/>
-
-				<!-- Divider with Info Icon -->
-				<div class="flex items-center gap-3 mb-4">
-					<div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
-					<InfoCircleOutline class="w-6 h-6 text-gray-400 dark:text-gray-500" />
-					<div class="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
-				</div>
 
 				<!-- Stats Section -->
 				<OrderStats

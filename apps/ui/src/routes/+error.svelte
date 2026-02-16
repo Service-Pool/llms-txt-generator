@@ -26,11 +26,11 @@
 		<!-- Actions -->
 		<div class="flex gap-4 justify-center items-center">
 			<Button href="/" color="primary">
-				<HomeOutline class="w-4 h-4 mr-2" />
+				<HomeOutline size="sm" class="mr-2" />
 				Go Home
 			</Button>
 			<Button color="alternative" onclick={() => window.history.back()}>
-				<ArrowLeftOutline class="w-4 h-4 mr-2" />
+				<ArrowLeftOutline size="sm" class="mr-2" />
 				Go Back
 			</Button>
 		</div>

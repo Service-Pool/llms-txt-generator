@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { Card, Input, Label, Button, Helper, Alert, Badge } from 'flowbite-svelte';
+	import { Card, Input, Label, Button, Helper, Alert } from 'flowbite-svelte';
 	import { ordersService } from '$lib/services/orders.service';
+	import CompletedStats from '$lib/components/order/stats/CompletedStats.svelte';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import CalculateModal from './modals/CalculateModal.svelte';
-	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import type { CreateOrderResponseDto, OrderResponseDto } from '@api/shared';
 
 	interface Props {
@@ -18,16 +17,6 @@
 	let error = $state<string[] | string | null>(null);
 	let createdOrder = $state<CreateOrderResponseDto | null>(null);
 	let showModelSelection = $state(false);
-	let completed = $state<number | null>();
-
-	// Subscribe to completedCount store
-	$effect(() => {
-		const unsubscribe = statsStore.completedCount.subscribe((value) => {
-			completed = value;
-		});
-
-		return () => unsubscribe();
-	});
 
 	const isUrlValid = $derived(/^https?:\/\/.+/.test(hostname));
 	const canCreate = $derived(isUrlValid && !submitting);
@@ -74,9 +63,7 @@
 <Card size="xl" class="p-4 sm:p-6 md:p-8">
 	<div class="flex flex-wrap gap-2 items-center justify-between mb-4">
 		<h2 class="text-2xl font-bold whitespace-nowrap">Create New Order</h2>
-		<span class="text-sm whitespace-nowrap text-gray-600 dark:text-gray-400">
-			ATM generated <Badge color="indigo">{completed?.toLocaleString() ?? '—'} llms.txt</Badge> files
-		</span>
+		<CompletedStats />
 	</div>
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
@@ -109,7 +96,3 @@
 		</Button>
 	</form>
 </Card>
-
-{#if createdOrder}
-	<CalculateModal bind:open={showModelSelection} order={createdOrder} />
-{/if}

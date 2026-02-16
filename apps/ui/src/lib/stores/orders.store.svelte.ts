@@ -1,6 +1,10 @@
 import { ordersService } from '$lib/services/orders.service';
 import type { OrderResponseDto } from '@api/shared';
 
+type OrdersBroadcastMessage = | { type: 'ORDER_CREATED'; order: OrderResponseDto }
+	| { type: 'ORDER_UPDATED'; order: OrderResponseDto }
+	| { type: 'ORDER_DELETED'; orderId: number };
+
 /**
  * Orders Store - centralized state management for orders
  * All order mutations should go through this store to ensure reactivity
@@ -12,6 +16,9 @@ class OrdersStore {
 	page = $state(1);
 	limit = $state(5);
 	total = $state(0);
+
+	private channel: BroadcastChannel | null = null;
+	private isChannelInitialized = false;
 
 	/**
 	 * Load orders from API
@@ -102,6 +109,76 @@ class OrdersStore {
 	}
 
 	/**
+	 * Initialize BroadcastChannel for cross-tab synchronization
+	 */
+	initChannel() {
+		if (this.isChannelInitialized) return;
+		this.isChannelInitialized = true;
+
+		this.channel = new BroadcastChannel('orders-sync');
+
+		this.channel.onmessage = (event: MessageEvent<OrdersBroadcastMessage>) => {
+			const message = event.data;
+
+			switch (message.type) {
+				case 'ORDER_CREATED':
+					this.addOrder(message.order);
+					break;
+				case 'ORDER_UPDATED':
+					this.updateOrder(message.order);
+					break;
+				case 'ORDER_DELETED':
+					this.removeOrder(message.orderId);
+					break;
+			}
+		};
+	}
+
+	/**
+	 * Broadcast order creation to other tabs
+	 */
+	broadcastOrderCreated(order: OrderResponseDto) {
+		this.ensureChannelInitialized();
+		this.channel?.postMessage({ type: 'ORDER_CREATED', order } satisfies OrdersBroadcastMessage);
+	}
+
+	/**
+	 * Broadcast order update to other tabs
+	 */
+	broadcastOrderUpdated(order: OrderResponseDto) {
+		this.ensureChannelInitialized();
+		this.channel?.postMessage({ type: 'ORDER_UPDATED', order } satisfies OrdersBroadcastMessage);
+	}
+
+	/**
+	 * Broadcast order deletion to other tabs
+	 */
+	broadcastOrderDeleted(orderId: number) {
+		this.ensureChannelInitialized();
+		this.channel?.postMessage({ type: 'ORDER_DELETED', orderId } satisfies OrdersBroadcastMessage);
+	}
+
+	/**
+	 * Ensure channel is initialized before broadcasting
+	 */
+	private ensureChannelInitialized() {
+		if (!this.isChannelInitialized) {
+			this.initChannel();
+		}
+	}
+
+	/**
+	 * Destroy BroadcastChannel
+	 */
+	destroyChannel() {
+		this.isChannelInitialized = false;
+		if (this.channel) {
+			this.channel.close();
+			this.channel = null;
+		}
+	}
+
+	/**
 	 * Reset store to initial state
 	 */
 	reset() {
@@ -111,6 +188,7 @@ class OrdersStore {
 		this.page = 1;
 		this.limit = 5;
 		this.total = 0;
+		this.destroyChannel();
 	}
 }
 

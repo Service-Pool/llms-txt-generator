@@ -69,7 +69,7 @@
 
 				{#if success}
 					<Alert color="green" class="flex items-start gap-3">
-						<CheckCircleSolid class="w-5 h-5 shrink-0 mt-0.5" />
+						<CheckCircleSolid size="md" class="shrink-0 mt-0.5" />
 						<div>
 							<P weight="semibold" class="mb-1">Check your email!</P>
 							<P size="sm">We've sent you a login link to sign in.</P>
@@ -85,7 +85,7 @@
 					<Label for="email" class="mb-2 block">Email</Label>
 					<ButtonGroup class="w-full">
 						<InputAddon>
-							<EnvelopeSolid class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+							<EnvelopeSolid size="sm" class="text-gray-500 dark:text-gray-400" />
 						</InputAddon>
 						<Input
 							id="email"

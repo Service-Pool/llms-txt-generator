@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 import { load } from 'cheerio';
 import { Readability } from '@mozilla/readability';
 import { RequestUtils } from '../../../utils/request/fetch';
+import { PageProcessingError } from '../../../exceptions/page-processing.exception';
 import * as crypto from 'crypto';
 
 interface ExtractedContent {
@@ -37,7 +38,7 @@ class ContentExtractionService {
 			const article = reader.parse();
 
 			if (!article) {
-				throw new Error(`No readable text to extract from ${url}`);
+				throw new PageProcessingError(`No readable text to extract from ${url}`);
 			}
 
 			// Удаление всех HTML-тегов

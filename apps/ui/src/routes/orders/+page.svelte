@@ -1,17 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Alert, Button, Hr, Skeleton, Card } from 'flowbite-svelte';
+	import { Alert, Button, Hr, Skeleton, Card, Heading } from 'flowbite-svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
-	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
+	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
 	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
-	import Hero from '$lib/components/general/Hero.svelte';
-	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
 	import OrdersList from '$lib/components/order/OrdersList.svelte';
 	import Pagination from '$lib/components/general/Pagination.svelte';
-	import type { OrderResponseDto } from '@api/shared';
 
 	let error = $state<string[] | string | null>(null);
 
@@ -37,7 +34,7 @@
 			const allOrderIds = ordersStore.items.map((order) => order.attributes.id);
 
 			if (allOrderIds.length > 0) {
-				orderWebSocketStore.subscribeToOrders(allOrderIds);
+				socketStore.subscribeToOrders(allOrderIds);
 			}
 		}
 	};
@@ -52,22 +49,17 @@
 		// Orders will be loaded in ordersStore.setLimit, so subscribeToLoadedOrders will be called from loadOrders
 	};
 
-	const handleOrderCreated = (order: OrderResponseDto) => {
-		ordersStore.addOrder(order);
-
-		// Subscribe to the new order for real-time updates
-		orderWebSocketStore.subscribeToOrder(order.attributes.id);
-	};
-
 	onMount(async () => {
 		await statsStore.init();
-		orderWebSocketStore.init(); // Initialize WebSocket for order updates
+		ordersStore.initChannel(); // Initialize BroadcastChannel for cross-tab sync
+		socketStore.init(); // Initialize WebSocket for order updates
 		await loadOrders();
 	});
 
 	onDestroy(() => {
 		// Clean up WebSocket subscriptions when leaving the page
-		orderWebSocketStore.unsubscribeFromAllOrders();
+		socketStore.unsubscribeFromAllOrders();
+		ordersStore.destroyChannel(); // Clean up BroadcastChannel
 	});
 </script>
 
@@ -76,9 +68,6 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto space-y-6">
-	<Hero />
-	<NewOrderForm onCreate={handleOrderCreated} />
-
 	{#if ordersStore.items === null || ordersStore.loading}
 		<div class="space-y-3">
 			{#each Array(3) as _, i (i)}
@@ -95,6 +84,7 @@
 			<Button onclick={() => loadOrders()} size="xs" color="red" class="mt-2">Try again</Button>
 		</Alert>
 	{:else}
+		<Heading tag="h2">Your Orders</Heading>
 		{#if ordersStore.total > ordersStore.limit}
 			<Pagination
 				page={ordersStore.page}

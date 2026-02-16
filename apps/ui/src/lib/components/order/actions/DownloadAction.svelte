@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte';
-	import { getActionConfig } from '$lib/config/order-actions.config';
+	import { getActionConfig } from '$lib/components/order-actions.config';
 	import { ordersService } from '$lib/services/orders.service';
 	import type { OrderResponseDto } from '@api/shared';
 
@@ -51,7 +51,7 @@
 		onclick={handleDownload}
 		loading={loading || isDownloading}
 	>
-		<config.icon class="w-5 h-5 me-2" />
+		<config.icon size="md" class="me-2" />
 		{config.label}
 	</Button>
 {:else}
@@ -60,7 +60,7 @@
 		<div class="flex items-center justify-between">
 			<div>
 				<div class="font-semibold text-gray-900 dark:text-white">
-					<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+					<config.icon size="sm" class="inline me-2 {config.iconColorClass}" />
 					{config.description}
 				</div>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>

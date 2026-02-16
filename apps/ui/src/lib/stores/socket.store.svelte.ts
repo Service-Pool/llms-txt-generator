@@ -1,11 +1,11 @@
 import { configService } from '$lib/services/config.service';
-import { WebSocketResponse, WebSocketEvent, OrderResponseDto } from '@api/shared';
+import { WebSocketResponse, WebSocketEvent, OrderResponseDto, OrderStatus } from '@api/shared';
 import { ordersStore } from './orders.store.svelte';
 
 /**
  * Order WebSocket Store - real-time updates for order progress and completion
  */
-class OrderWebSocketStore {
+class SocketStore {
 	private socket: WebSocket | null = null;
 	private reconnectTimeout: number | null = null;
 	private isInitialized = false;
@@ -100,7 +100,7 @@ class OrderWebSocketStore {
 			ordersStore.updateOrder(orderDto);
 
 			// Automatically unsubscribe from completed orders to avoid memory leaks
-			if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(orderDto.attributes.status)) {
+			if ([OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED].includes(orderDto.attributes.status)) {
 				this.unsubscribeFromOrder(orderDto.attributes.id);
 			}
 		} catch (error) {
@@ -225,4 +225,4 @@ class OrderWebSocketStore {
 }
 
 // Singleton instance
-export const orderWebSocketStore = new OrderWebSocketStore();
+export const socketStore = new SocketStore();

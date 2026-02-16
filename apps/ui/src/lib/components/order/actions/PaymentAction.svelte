@@ -2,7 +2,7 @@
 	import { Button } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { getActionConfig } from '$lib/config/order-actions.config';
+	import { getActionConfig } from '$lib/components/order-actions.config';
 	import { paymentsService } from '$lib/services/payments.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { authStore } from '$lib/stores/auth.store.svelte';
@@ -83,7 +83,7 @@
 		onclick={handlePay}
 		loading={isProcessing}
 	>
-		<config.icon class="w-5 h-5 me-2" />
+		<config.icon size="md" class="me-2" />
 		{config.label}
 	</Button>
 {:else}
@@ -92,7 +92,7 @@
 		<div class="flex items-center justify-between">
 			<div>
 				<div class="font-semibold text-gray-900 dark:text-white">
-					<config.icon class="w-4 h-4 inline me-2 {config.iconColorClass}" />
+					<config.icon size="sm" class="inline me-2 {config.iconColorClass}" />
 					{config.description}
 				</div>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">

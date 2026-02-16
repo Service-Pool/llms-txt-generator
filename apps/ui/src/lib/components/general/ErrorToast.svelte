@@ -25,7 +25,7 @@
 			class="max-w-md"
 		>
 			{#snippet icon()}
-				<ExclamationCircleOutline class="h-5 w-5" />
+				<ExclamationCircleOutline size="md" />
 			{/snippet}
 			<span class="font-medium text-sm">{error.message}</span>
 		</Toast>

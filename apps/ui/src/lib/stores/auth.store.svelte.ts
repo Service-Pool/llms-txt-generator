@@ -1,8 +1,8 @@
 import { writable } from 'svelte/store';
-import type { AuthLoginDtoResponse } from '@api/shared';
+import { type AuthLoginAttributes } from '@api/shared';
 import { authService } from '$lib/services/auth.service';
 
-type AuthUser = AuthLoginDtoResponse['user'];
+type AuthUser = AuthLoginAttributes['user'];
 
 interface AuthState {
 	user: AuthUser | null;
@@ -40,7 +40,7 @@ function createAuthStore() {
 			try {
 				let apiUser = null;
 				const res = await authService.getStatus(fetchFn);
-				const data = res.getData();
+				const data = res.getData().attributes;
 
 				if (data.user && data.authenticated) {
 					apiUser = data.user;

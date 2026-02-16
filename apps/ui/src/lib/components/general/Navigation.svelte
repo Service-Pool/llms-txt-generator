@@ -5,7 +5,7 @@
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
-	import { orderWebSocketStore } from '$lib/stores/orderWebSocket.store.svelte';
+	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, DarkMode, Button, Spinner } from 'flowbite-svelte';
 	import { configService } from '$lib/services/config.service';
 
@@ -19,7 +19,8 @@
 
 	const navItems = [
 		// { href: configService.routes.home, label: 'Home' },
-		{ href: configService.routes.orders, label: 'Generate' },
+		{ href: configService.routes.ordersNew, label: 'New Order' },
+		{ href: configService.routes.orders, label: 'Orders' },
 		{ href: configService.routes.api, label: 'API', target: '_blank' },
 		{ href: configService.routes.about, label: 'About' }
 	];
@@ -39,7 +40,7 @@
 		// Очищаем остальные store'ы
 		ordersStore.reset();
 		statsStore.reset();
-		orderWebSocketStore.destroy();
+		socketStore.destroy();
 
 		location.reload();
 	}
