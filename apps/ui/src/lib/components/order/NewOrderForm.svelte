@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Card, Input, Label, Button, Helper, Alert } from 'flowbite-svelte';
 	import { ordersService } from '$lib/services/orders.service';
-	import CompletedStats from '$lib/components/order/stats/CompletedStats.svelte';
+	import CompletedStats from '$lib/components/general/CompletedStats.svelte';
 	import { UIError } from '$lib/errors/ui-error';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import type { CreateOrderResponseDto, OrderResponseDto } from '@api/shared';

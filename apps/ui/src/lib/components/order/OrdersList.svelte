@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
-	import OrderListItem from './OrderListItem.svelte';
+	import OrderItemList from './OrderItemList.svelte';
 	import { FileLinesOutline } from 'flowbite-svelte-icons';
 	import { flip } from 'svelte/animate';
 	import { scale, fly } from 'svelte/transition';
@@ -33,10 +33,9 @@
 					in:scale={{ duration: 500, start: 0, easing: quintOut }}
 					out:fly={{ y: -50, duration: 200 }}
 				>
-					<OrderListItem
+					<OrderItemList
 						{order}
 						isOpen={openOrderId === order.attributes.id}
-						anyOrderOpen={openOrderId !== null}
 						onToggle={() => toggleOrder(order.attributes.id)}
 					/>
 				</div>

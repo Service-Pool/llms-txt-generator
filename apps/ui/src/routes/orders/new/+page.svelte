@@ -9,7 +9,7 @@
 	import { scale, fly } from 'svelte/transition';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
-	import CompletedStats from '$lib/components/order/stats/CompletedStats.svelte';
+	import CompletedStats from '$lib/components/general/CompletedStats.svelte';
 	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import Hero from '$lib/components/general/Hero.svelte';

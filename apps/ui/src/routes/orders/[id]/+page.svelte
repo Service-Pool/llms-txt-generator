@@ -3,14 +3,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
-	import { Alert, Spinner, Heading, Hr } from 'flowbite-svelte';
+	import { Alert, Spinner } from 'flowbite-svelte';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 	import DelayedRender from '$lib/components/general/DelayedRender.svelte';
-	import OrderListItem from '../../../lib/components/order/OrderListItem.svelte';
+	import OrderItemPage from '$lib/components/order/OrderItemPage.svelte';
 
 	const orderId = $derived(Number(page.params.id));
-
-	// Get order from store reactively - automatically updates when store changes
 	const order = $derived(ordersStore.getById(orderId));
 
 	let initialLoading = $state(true);
@@ -21,12 +19,10 @@
 			initialLoading = true;
 			error = null;
 
-			// If order not in store, load it
 			if (!ordersStore.getById(orderId)) {
 				await ordersStore.refreshOrder(orderId);
 			}
 
-			// Subscribe to WebSocket updates for this specific order
 			const currentOrder = ordersStore.getById(orderId);
 			if (currentOrder && ['pending', 'processing'].includes(currentOrder.attributes.status)) {
 				socketStore.subscribeToOrder(orderId);
@@ -39,12 +35,11 @@
 	};
 
 	onMount(() => {
-		socketStore.init(); // Initialize WebSocket connection
+		socketStore.init();
 		void loadOrderIfNeeded();
 	});
 
 	onDestroy(() => {
-		// Clean up WebSocket subscription for this order when leaving the page
 		socketStore.unsubscribeFromOrder(orderId);
 	});
 </script>
@@ -64,7 +59,5 @@
 		<ErrorList {error} />
 	</Alert>
 {:else if order}
-	<Heading tag="h2">Order #{order.attributes.id}</Heading>
-	<Hr class="my-8" />
-	<OrderListItem {order} isOpen={true} anyOrderOpen={true} />
+	<OrderItemPage {order} />
 {/if}

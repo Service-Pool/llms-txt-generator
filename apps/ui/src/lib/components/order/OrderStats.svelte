@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type OrderResponseDto, HateoasAction } from '@api/shared';
-	import { Button, Tooltip, Badge, Hr, P, Alert } from 'flowbite-svelte';
-	import { FileCopyOutline, DownloadSolid, FileCopySolid, InfoCircleOutline } from 'flowbite-svelte-icons';
+	import { Button, Tooltip, Badge, Hr, Alert } from 'flowbite-svelte';
+	import { FileCopyOutline, DownloadSolid, FileCopySolid } from 'flowbite-svelte-icons';
 	import { ordersService } from '$lib/services/orders.service';
 	import ErrorList from '$lib/components/general/ErrorList.svelte';
 
@@ -187,10 +187,6 @@
 <!-- Errors -->
 {#if order.attributes.errors && order.attributes.errors.length > 0}
 	<div class="mt-3">
-		<div class="flex-1">
-			<InfoCircleOutline size="md" />
-			<P space="tight" size="xs" height="6">Errors:</P>
-		</div>
 		<Alert color="red" class="text-xs">
 			<ErrorList class="text-xs dark:text-black" error={order.attributes.errors} />
 		</Alert>
