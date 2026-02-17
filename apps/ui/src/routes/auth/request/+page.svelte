@@ -43,11 +43,11 @@
 			await authStore.loginLinkRequest(email, redirectUrl);
 			success = true;
 		} catch (exception) {
-			if (exception instanceof UIError) {
-				error = exception.context;
-			} else if (exception instanceof Error) {
+			if (exception instanceof Error) {
 				error = exception.message;
 			}
+
+			throw exception;
 		} finally {
 			loading = false;
 		}

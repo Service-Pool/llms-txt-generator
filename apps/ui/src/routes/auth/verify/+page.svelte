@@ -38,9 +38,7 @@
 				goto(targetUrl);
 			}, 1500);
 		} catch (exception) {
-			if (exception instanceof UIError) {
-				error = exception.context;
-			} else if (exception instanceof Error) {
+			if (exception instanceof Error) {
 				error = exception.message;
 			}
 

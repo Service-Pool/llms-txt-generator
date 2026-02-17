@@ -4,7 +4,6 @@
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
-	import { UIError } from '$lib/errors/ui-error';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import OrdersList from '$lib/components/order/OrdersList.svelte';
@@ -20,11 +19,11 @@
 			// Subscribe to WebSocket updates for all loaded orders
 			subscribeToLoadedOrders();
 		} catch (exception) {
-			if (exception instanceof UIError) {
-				error = exception.context;
-			} else if (exception instanceof Error) {
+			if (exception instanceof Error) {
 				error = exception.message;
 			}
+
+			throw exception;
 		}
 	};
 
