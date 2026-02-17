@@ -24,8 +24,17 @@ jobs:
       branch: ${{ github.ref_name }}
     secrets: inherit
 
-  deploy-ui:
+  clean:
     needs: clone
+    runs-on: [self-hosted, ubuntu-4gb-hel1-1]
+    steps:
+      - name: Cleanup Docker
+        run: |
+          docker image prune -af
+          docker builder prune -af
+
+  deploy-ui:
+    needs: [clean]
     if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
     runs-on: [self-hosted, ubuntu-4gb-hel1-1]
     steps:
@@ -39,7 +48,7 @@ jobs:
           bash cmd-run.sh
 
   deploy-api:
-    needs: clone
+    needs: [clean]
     if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
     runs-on: [self-hosted, ubuntu-4gb-hel1-1]
     steps:
