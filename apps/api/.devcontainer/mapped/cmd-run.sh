@@ -33,7 +33,7 @@ echo "✅ Migrations completed"
 docker exec $CONTAINER_APP sh -c "
   supervisorctl reread &&
   supervisorctl update &&
-  supervisorctl start services:app services:generation-worker
+  supervisorctl start services:app services:order-worker
 "
 
 echo ""
