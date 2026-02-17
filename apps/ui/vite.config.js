@@ -22,6 +22,7 @@ const stubServerImports = {
 	resolveId(id) {
 		switch (true) {
 			case id === '@nestjs/common':
+			case id === '@nestjs/common/enums/http-status.enum':
 			case id === '@nestjs/swagger':
 			case id === 'class-validator':
 				return id;
@@ -34,6 +35,9 @@ const stubServerImports = {
 		switch (true) {
 			case id === '@nestjs/common':
 				return `export const Injectable = () => () => {};`;
+
+			case id === '@nestjs/common/enums/http-status.enum':
+				return `export const HttpStatus = {};`;
 
 			case id === '@nestjs/swagger': {
 				// Декораторы для OpenAPI/Swagger
