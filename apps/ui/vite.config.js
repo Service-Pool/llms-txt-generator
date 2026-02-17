@@ -22,16 +22,8 @@ const stubServerImports = {
 	resolveId(id) {
 		switch (true) {
 			case id === '@nestjs/common':
+			case id === '@nestjs/swagger':
 			case id === 'class-validator':
-			case id === 'class-transformer':
-			case id === 'robots-parser':
-			case id.includes('common/validators'):
-			case id.includes('validators/hostname.validator'):
-			case id.includes('validators/calculation.validator'):
-			case id.includes('validators/generation-request.validator'):
-			case id.includes('validators/payment-method.validator'):
-			case id.includes('validators/refund.validator'):
-			case id.includes('config/config.service'):
 				return id;
 
 			default:
@@ -43,6 +35,21 @@ const stubServerImports = {
 			case id === '@nestjs/common':
 				return `export const Injectable = () => () => {};`;
 
+			case id === '@nestjs/swagger': {
+				// Декораторы для OpenAPI/Swagger
+				const swaggerDecorators = [
+					'ApiProperty', 'ApiPropertyOptional', 'ApiTags', 'ApiOperation',
+					'ApiResponse', 'ApiParam', 'ApiQuery', 'ApiBody', 'ApiBasicAuth',
+					'ApiBearerAuth', 'ApiCookieAuth', 'ApiOAuth2', 'ApiSecurity',
+					'ApiConsumes', 'ApiProduces', 'ApiBadRequestResponse',
+					'ApiUnauthorizedResponse', 'ApiForbiddenResponse', 'ApiNotFoundResponse',
+					'ApiConflictResponse', 'ApiInternalServerErrorResponse', 'ApiExtraModels'
+				];
+				const decoratorExports = swaggerDecorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				const functionExports = `export const getSchemaPath = (cls) => \`#/components/schemas/\${cls.name}\`;`;
+				return decoratorExports + '\n' + functionExports;
+			}
+
 			case id === 'class-validator': {
 				// Все популярные декораторы class-validator
 				const decorators = [
@@ -50,80 +57,12 @@ const stubServerImports = {
 					'IsBoolean', 'IsArray', 'IsObject', 'IsDate', 'IsEmail', 'IsUrl',
 					'MinLength', 'MaxLength', 'Min', 'Max', 'IsOptional', 'ValidateNested',
 					'IsIn', 'IsNotIn', 'ArrayMinSize', 'ArrayMaxSize', 'IsDefined',
-					'Equals', 'NotEquals', 'IsEmpty', 'IsPositive', 'IsNegative'
+					'Equals', 'NotEquals', 'IsEmpty', 'IsPositive', 'IsNegative', 'Validate',
+					'ValidatorConstraint'
 				];
 				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
 				return exports;
 			}
-
-			case id === 'class-transformer': {
-				// Все популярные декораторы class-transformer
-				const decorators = [
-					'Type'
-				];
-				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
-				return exports;
-			}
-
-			case id.includes('validators/hostname.validator'):
-				return `
-					export class RobotsAccessibleValidator { 
-						static validateRobotsAccessible = () => () => {}; 
-					}
-					export class RobotsSitemapExistsValidator { 
-						static validateSitemapExists = () => () => {}; 
-					}
-					export class SitemapAccessibleValidator { 
-						static validateSitemapAccessible = () => () => {}; 
-					}
-				`;
-
-			case id.includes('validators/calculation.validator'):
-				return `export class CalculationValidator { static validateCalculationExists = () => () => {}; }`;
-
-			case id.includes('validators/generation-request.validator'):
-				return `
-					export class GenerationRequestValidator { 
-						static validateGenerationRequestExists = () => () => {}; 
-					}
-					export class GenerationRequestOwnershipValidator { 
-						static validateOwnership = () => () => {}; 
-					}
-				`;
-
-			case id.includes('validators/payment-method.validator'):
-				return `
-					export class NoCheckoutSessionExistsValidator { 
-						static validateNoCheckoutSessionExists = () => () => {}; 
-					}
-					export class NoPaymentIntentExistsValidator { 
-						static validateNoPaymentIntentExists = () => () => {}; 
-					}
-				`;
-
-			case id.includes('validators/refund.validator'):
-				return `
-					export class RefundOwnershipValidator { 
-						static validateOwnership = () => () => {}; 
-					}
-					export class RefundFailedStatusValidator { 
-						static validateFailedStatus = () => () => {}; 
-					}
-					export class RefundPaidValidator { 
-						static validatePaid = () => () => {}; 
-					}
-					export class RefundNotRefundedValidator { 
-						static validateNotRefunded = () => () => {}; 
-					}
-					export class RefundJobRemovedValidator { 
-						static validateJobRemoved = () => () => {}; 
-					}
-				`;
-			case id.includes('config/config.service'):
-				return `export const HOSTNAME_VALIDATION = () => () => {};`;
-
-			case id === 'robots-parser':
-				return `export default () => ({});`;
 
 			default:
 				return null;

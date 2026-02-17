@@ -1,18 +1,23 @@
-import { AppConfigModule } from '../../config/config.module';
-import { GenerationRequest } from '../generations/entities/generation-request.entity';
-import { Module } from '@nestjs/common';
-import { Session } from '../auth/entitites/session.entity';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WebSocketGateway } from './websocket.gateway';
+import { WebSocketService } from './services/websocket.service';
+import { WebSocketGateway } from './gateways/websocket.gateway';
+import { StatsModule } from '../stats/stats.module';
+import { OrdersModule } from '../orders/orders.module';
+import { AiModelsModule } from '../ai-models/ai-models.module';
+import { QueueEventsService } from '../queue/services/queue-events.service';
+import { Session } from '../auth/entities/session.entity';
+import { Order } from '../orders/entities/order.entity';
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([Session, GenerationRequest]),
-		AppConfigModule
+		TypeOrmModule.forFeature([Session, Order]),
+		StatsModule,
+		AiModelsModule,
+		forwardRef(() => OrdersModule)
 	],
-	providers: [WebSocketGateway],
-	exports: [WebSocketGateway]
+	providers: [WebSocketService, WebSocketGateway, QueueEventsService],
+	exports: [WebSocketService]
 })
-class WebSocketModule {}
 
-export { WebSocketModule };
+export class WebSocketModule { }

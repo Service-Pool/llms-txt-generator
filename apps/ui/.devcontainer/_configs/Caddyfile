@@ -13,7 +13,7 @@
 
         # WebSocket
         @websocket {
-                path ${PUBLIC_SOCKET_PATH}
+                path ${PUBLIC_SOCKET_PATH}/*
                 header Connection *Upgrade*
                 header Upgrade websocket
         }

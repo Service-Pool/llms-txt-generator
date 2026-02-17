@@ -4,6 +4,23 @@
 	"sourceRoot": "src",
 	"entryFile": "bootstrap/main",
 	"compilerOptions": {
-		"deleteOutDir": true
+		"deleteOutDir": true,
+		"builder": "swc",
+		"typeCheck": true,
+		"plugins": [
+			{
+				"name": "@nestjs/swagger",
+				"options": {
+					"classValidatorShim": true,
+					"introspectComments": true,
+					"dtoFileNameSuffix": [
+						".dto.ts",
+						".entity.ts",
+						"-request.dto.ts",
+						"-response.dto.ts"
+					]
+				}
+			}
+		]
 	}
 }

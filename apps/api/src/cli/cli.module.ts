@@ -1,25 +1,33 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ClsModule } from 'nestjs-cls';
 import { AppConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/config.service';
-import { CalculationsModule } from '../modules/calculations/calculations.module';
-import { ConfigModule } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { GenerationsModule } from '../modules/generations/generations.module';
-import { GenerationWorkerCommand } from './commands/generation-worker.command';
-import { HttpModule } from '../modules/http/http.module';
-import { Module } from '@nestjs/common';
 import { QueueModule } from '../modules/queue/queue.module';
-import { RobotsModule } from '../modules/robots/robots.module';
-import { SitemapModule } from '../modules/sitemap/sitemap.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { OrdersModule } from '../modules/orders/orders.module';
+import { AiModelsModule } from '../modules/ai-models/ai-models.module';
+import { ContentModule } from '../modules/content/content.module';
+import { CrawlersModule } from '../modules/crawlers/crawlers.module';
+import { GenerationsModule } from '../modules/generations/generations.module';
+import { OrderWorkerCommand } from './commands/order-worker.command';
+
+/**
+ * CLI Module
+ * Provides CLI commands for background tasks
+ *
+ * Note: WebsocketModule, StatsModule будут добавлены позже
+ */
 @Module({
 	imports: [
 		AppConfigModule,
-		HttpModule,
-		RobotsModule,
-		SitemapModule,
 		ConfigModule.forRoot({
 			isGlobal: true,
 			ignoreEnvFile: true
+		}),
+		ClsModule.forRoot({
+			global: true
 		}),
 		EventEmitterModule.forRoot({
 			global: true
@@ -29,9 +37,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		}),
 		QueueModule,
-		GenerationsModule,
-		CalculationsModule
+		OrdersModule,
+		AiModelsModule,
+		ContentModule,
+		CrawlersModule,
+		GenerationsModule
 	],
-	providers: [GenerationWorkerCommand]
+	providers: [OrderWorkerCommand]
 })
 export class CliModule { }

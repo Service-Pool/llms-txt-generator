@@ -1,5 +1,5 @@
-import { CliModule } from '../cli/cli.module';
 import { CommandFactory } from 'nest-commander';
+import { CliModule } from '../cli/cli.module';
 import { createWinstonLogger } from '../config/config.logger';
 
 async function bootstrap() {

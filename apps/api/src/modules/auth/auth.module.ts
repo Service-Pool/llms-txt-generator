@@ -1,27 +1,23 @@
-import { AuthController } from './auth.controller';
-import { AuthService } from './services/auth.service';
-import { GenerationRequest } from '../generations/entities/generation-request.entity';
-import { MailService } from './services/mail.service';
-import { Module } from '@nestjs/common';
-import { ApiResponse } from '../../utils/response/api-response';
-import { Session } from './entitites/session.entity';
-import { SessionCleanupService } from './services/session-cleanup.service';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entitites/user.entity';
+import { Order } from '../orders/entities/order.entity';
+import { Session } from './entities/session.entity';
+import { UsersModule } from '../users/users.module';
+import { OrdersModule } from '../orders/orders.module';
+import { AuthService } from './services/auth.service';
+import { MailService } from './services/mail.service';
+import { SessionService } from './services/session.service';
+import { AuthController } from './controllers/auth.controller';
 
 @Module({
-	imports: [TypeOrmModule.forFeature([
-		Session,
-		User,
-		GenerationRequest
-	])],
-	controllers: [AuthController],
-	providers: [
-		AuthService,
-		MailService,
-		SessionCleanupService,
-		ApiResponse
+	imports: [
+		TypeOrmModule.forFeature([Order, Session]),
+		UsersModule,
+		forwardRef(() => OrdersModule)
 	],
+	controllers: [AuthController],
+	providers: [AuthService, MailService, SessionService],
 	exports: [AuthService]
 })
+
 export class AuthModule { }

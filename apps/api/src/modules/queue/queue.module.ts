@@ -1,16 +1,35 @@
-import { Generation } from '../generations/entities/generation.entity';
-import { GenerationRequest } from '../generations/entities/generation-request.entity';
-import { Module } from '@nestjs/common';
-import { QueueService } from './queue.service';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { QueueManagerService } from './services/queue-manager.service';
+import { OrderJobHandler } from './handlers/order-job.handler';
+import { AiModelsModule } from '../ai-models/ai-models.module';
+import { CrawlersModule } from '../crawlers/crawlers.module';
+import { ContentModule } from '../content/content.module';
+import { GenerationsModule } from '../generations/generations.module';
+import { OrdersModule } from '../orders/orders.module';
+
+import { StatsModule } from '../stats/stats.module';
+import { Order } from '../orders/entities/order.entity';
+import { User } from '../users/entities/user.entity';
 
 /**
  * Queue Module
- * Provides queue services for job processing
+ * Provides BullMQ queue services for processing Orders
+ *
+ * Динамически создает очереди на основе конфигурации моделей
  */
 @Module({
-	imports: [TypeOrmModule.forFeature([Generation, GenerationRequest])],
-	providers: [QueueService],
-	exports: [QueueService]
+	imports: [
+		TypeOrmModule.forFeature([Order, User]),
+		AiModelsModule,
+		CrawlersModule,
+		ContentModule,
+		GenerationsModule,
+		StatsModule,
+		forwardRef(() => OrdersModule)
+	],
+	providers: [QueueManagerService, OrderJobHandler],
+	exports: [QueueManagerService, OrderJobHandler]
 })
-export class QueueModule {}
+
+export class QueueModule { }

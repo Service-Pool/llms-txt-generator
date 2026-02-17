@@ -1,22 +1,17 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional } from 'class-validator';
-
-class LoginDtoRequest {
-	@IsString()
-	@IsNotEmpty()
-	email: string;
-
-	@IsString()
-	password: string;
-}
+import { IsEmail, IsNotEmpty, IsUrl, IsString } from 'class-validator';
 
 class RequestLoginLinkRequestDto {
-	@IsEmail()
-	@IsNotEmpty()
+	@IsEmail({}, { message: 'Invalid email' })
 	email: string;
 
-	@IsString()
-	@IsOptional()
-	redirectUrl?: string;
+	@IsUrl({ require_protocol: true, require_tld: false })
+	@IsNotEmpty()
+	redirectUrl: string;
 }
 
-export { LoginDtoRequest, RequestLoginLinkRequestDto };
+class LoginRequestDto {
+	@IsString()
+	crd: string; // encrypted credentials
+}
+
+export { RequestLoginLinkRequestDto, LoginRequestDto };

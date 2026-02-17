@@ -4,7 +4,7 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 @Injectable()
-export class MailService {
+class MailService {
 	private readonly logger = new Logger(MailService.name);
 	private readonly transporter: Transporter;
 
@@ -20,9 +20,10 @@ export class MailService {
 		});
 	}
 
-	async sendLoginLink(email: string, query: string): Promise<void> {
-		// query — уже зашифрованная строка
-		const loginLink = `${this.configService.loginLink.frontendHost}/auth/verify?crd=${encodeURIComponent(query)}`;
+	public async sendLoginLink(email: string, redirectUrl: string, encryptedQuery: string): Promise<void> {
+		const url = new URL(redirectUrl);
+		url.searchParams.set('crd', encryptedQuery);
+		const loginLink = url.toString();
 
 		const html = `
 <!DOCTYPE html>
@@ -75,3 +76,5 @@ export class MailService {
 		}
 	}
 }
+
+export { MailService };

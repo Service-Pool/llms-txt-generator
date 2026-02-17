@@ -1,0 +1,559 @@
+import {
+	Injectable,
+	NotFoundException,
+	ForbiddenException,
+	BadRequestException,
+	UnauthorizedException,
+	Logger
+} from '@nestjs/common';
+import { CrawlersService } from '../../crawlers/services/crawlers.service';
+import { QueueManagerService } from '../../queue/services/queue-manager.service';
+import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { UsersService } from '../../users/services/users.service';
+import { StripeService } from '../../payments/services/stripe.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { AiModelConfig } from '../../../modules/ai-models/entities/ai-model-config.entity';
+import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
+import { Order } from '../entities/order.entity';
+import { OrderStatus } from '../../../enums/order-status.enum';
+import { OrderStatusMachine } from '../utils/order-status-machine';
+import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
+import { Repository, DataSource, IsNull } from 'typeorm';
+
+@Injectable()
+class OrdersService {
+	private readonly logger = new Logger(OrdersService.name);
+
+	constructor(
+		@InjectRepository(Order)
+		private readonly orderRepository: Repository<Order>,
+		private readonly crawlersService: CrawlersService,
+		private readonly usersService: UsersService,
+		private readonly queueManagerService: QueueManagerService,
+		private readonly aiModelsConfigService: AiModelsConfigService,
+		private readonly stripeService: StripeService,
+		private readonly dataSource: DataSource
+	) { }
+
+	/**
+	 * Calculate order price and save model configuration
+	 * Can be called multiple times while order is in CREATED or CALCULATED status
+	 */
+	public async calculateOrder(orderId: number, modelId: string): Promise<Order> {
+		const order = await this.getUserOrder(orderId);
+
+		// Validate and transition to CALCULATED status
+		OrderStatusMachine.validateTransition(order.status, OrderStatus.CALCULATED);
+
+		// Get pricing information from AI models service
+		const pricing = this.aiModelsConfigService.getModelPricing(modelId, order.totalUrls);
+
+		order.modelId = pricing.modelConfig.id;
+		order.priceTotal = pricing.priceTotal;
+		order.pricePerUrl = pricing.pricePerUrl;
+		order.priceCurrency = pricing.priceCurrency;
+		order.status = OrderStatus.CALCULATED;
+
+		await this.orderRepository.save(order);
+
+		// Reload entity to populate synthetic fields (aiModelConfig) via subscriber
+		return this.getUserOrder(orderId);
+	}
+
+	/**
+	 * Run order - queue for processing based on current status
+	 * Uses saved modelId from calculate step
+	 */
+	public async runOrder(orderId: number): Promise<Order> {
+		const session = this.usersService.getSessionData();
+		const order = await this.getUserOrder(orderId);
+
+		// Ensure modelId is saved (from calculate step or webhook)
+		if (!order.modelId) {
+			throw new BadRequestException('Order has no modelId. Please call /calculate first');
+		}
+
+		const modelConfig = this.aiModelsConfigService.getModelById(order.modelId);
+		const priceTotal = order.priceTotal;
+
+		// CALCULATED status
+		if (order.status === OrderStatus.CALCULATED) {
+			if (priceTotal === 0) {
+				return this.queueOrder(order, modelConfig);
+			} else {
+				if (!session.userId) {
+					throw new UnauthorizedException('Authentication required for paid models');
+				}
+				OrderStatusMachine.validateTransition(order.status, OrderStatus.PENDING_PAYMENT);
+				order.status = OrderStatus.PENDING_PAYMENT;
+				return this.orderRepository.save(order);
+			}
+		}
+
+		// PENDING_PAYMENT
+		if (order.status === OrderStatus.PENDING_PAYMENT) {
+			if (!order.stripeSessionId && !order.stripePaymentIntentSecret) {
+				throw new BadRequestException('Payment session not found. Please create payment session first');
+			}
+
+			let stripeStatus: StripeSessionStatus;
+
+			// Check Checkout Session if available
+			// Check Payment Intent if available
+			if (order.stripeSessionId) {
+				stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+			} else if (order.stripePaymentIntentSecret) {
+				stripeStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+			}
+
+			if (stripeStatus === StripeSessionStatus.COMPLETE) {
+				await this.updateOrderStatus(order.id, OrderStatus.PAID);
+				const paidOrder = await this.getUserOrder(orderId);
+				return this.queueOrder(paidOrder, modelConfig);
+			}
+
+			if (stripeStatus === StripeSessionStatus.EXPIRED) {
+				throw new BadRequestException('Payment session expired. Please create a new payment');
+			}
+
+			throw new BadRequestException('Payment not completed. Please complete payment first');
+		}
+
+		// PAID status - queue directly
+		if (order.status === OrderStatus.PAID) {
+			return this.queueOrder(order, modelConfig);
+		}
+
+		throw new BadRequestException(`Cannot run order in status: ${order.status}`);
+	}
+
+	/**
+	 * Queue order for processing
+	 * Saves pricing, transitions to QUEUED, and adds to processing queue
+	 */
+	private async queueOrder(order: Order, modelConfig: AiModelConfig): Promise<Order> {
+		OrderStatusMachine.validateTransition(order.status, OrderStatus.QUEUED);
+
+		// Set pricing only if not already set (free orders) or model changed
+		if (!order.modelId || order.modelId !== modelConfig.id) {
+			const pricing = this.aiModelsConfigService.getModelPricing(modelConfig.id, order.totalUrls);
+
+			order.modelId = pricing.modelConfig.id;
+			order.priceTotal = pricing.priceTotal;
+			order.pricePerUrl = pricing.pricePerUrl;
+			order.priceCurrency = pricing.priceCurrency;
+		}
+
+		order.status = OrderStatus.QUEUED;
+
+		await this.orderRepository.save(order);
+
+		try {
+			const jobId = await this.queueManagerService.addOrderToQueue(order.id, modelConfig.queueName);
+			await this.orderRepository.update(order.id, { jobId });
+		} catch (error) {
+			await this.orderRepository.update(order.id, {
+				status: OrderStatus.FAILED,
+				errors: [`Failed to add to queue: ${error instanceof Error ? error.message : String(error)}`]
+			});
+			throw error;
+		}
+
+		const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+		if (!updatedOrder) {
+			throw new Error(`Order ${order.id} not found after update`);
+		}
+		return updatedOrder;
+	}
+
+	/**
+	 * Update order status with validation
+	 * Just updates status and timestamps, no side effects
+	 */
+	public async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
+		const order = await this.orderRepository.findOne({
+			where: { id: orderId }
+		});
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${orderId} not found`);
+		}
+
+		// Validate status transition
+		OrderStatusMachine.validateTransition(order.status, newStatus);
+
+		order.status = newStatus;
+
+		// Set timestamps for specific statuses
+		if (newStatus === OrderStatus.PROCESSING && !order.startedAt) {
+			order.startedAt = new Date();
+		}
+
+		if ([OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED].includes(newStatus) && !order.completedAt) {
+			order.completedAt = new Date();
+		}
+
+		return this.orderRepository.save(order);
+	}
+
+	/**
+	 * Create new order - SIMPLIFIED (no snapshot creation)
+	 * Content extraction happens on-the-fly in worker
+	 */
+	public async createOrder(hostname: string): Promise<Order> {
+		const session = this.usersService.getSessionData();
+		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
+
+		if (!urls.length) {
+			throw new BadRequestException('Sitemap did not return any URLs');
+		}
+
+		const order = this.orderRepository.create({
+			hostname,
+			sessionId: session.sessionId,
+			userId: session.userId,
+			totalUrls: urls.length,
+			status: OrderStatus.CREATED
+		});
+
+		return this.orderRepository.save(order);
+	}
+
+	/**
+	 * Get single order by ID for current user/session
+	 * Validates ownership via SQL where clause
+	 * Auto-syncs payment status from Stripe if order is in PENDING_PAYMENT
+	 */
+	public async getUserOrder(id: number): Promise<Order> {
+		const session = this.usersService.getSessionData();
+
+		const where = session.userId
+			? [{ id, userId: session.userId }, { id, sessionId: session.sessionId }]
+			: { id, sessionId: session.sessionId };
+
+		const order = await this.orderRepository.findOne({ where });
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
+		}
+
+		// Auto-sync payment status from Stripe if order is pending payment
+		if (order.status === OrderStatus.PENDING_PAYMENT) {
+			await this.syncPaymentStatus(order);
+			// Reload order after potential status update
+			const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+			return updatedOrder || order;
+		}
+
+		return order;
+	}
+
+	/**
+	 * Get paginated orders for current user/session
+	 * Validates ownership via SQL where clause
+	 * Auto-syncs payment status from Stripe for orders in PENDING_PAYMENT
+	 */
+	public async getUserOrders(page: number, limit: number): Promise<{ orders: Order[]; total: number }> {
+		const session = this.usersService.getSessionData();
+
+		const ownershipWhere = session.userId
+			? [{ userId: session.userId }, { sessionId: session.sessionId }]
+			: [{ sessionId: session.sessionId }];
+
+		const skip = (page - 1) * limit;
+
+		const [orders, total] = await this.orderRepository.findAndCount({
+			where: ownershipWhere,
+			order: { createdAt: 'DESC' },
+			skip,
+			take: limit
+		});
+
+		// Auto-sync payment status for orders in PENDING_PAYMENT
+		const syncPromises = orders
+			.filter(order => order.status === OrderStatus.PENDING_PAYMENT)
+			.map(order => this.syncPaymentStatus(order));
+
+		if (syncPromises.length > 0) {
+			await Promise.all(syncPromises);
+
+			// Reload orders after potential status updates
+			const [updatedOrders] = await this.orderRepository.findAndCount({
+				where: ownershipWhere,
+				order: { createdAt: 'DESC' },
+				skip,
+				take: limit
+			});
+
+			return { orders: updatedOrders, total };
+		}
+
+		return { orders, total };
+	}
+
+	/**
+	 * Get available AI models for an order based on its context
+	 * Models are calculated based on totalUrls and user authentication status
+	 */
+	public getAvailableAiModels(order: Order): AvailableAiModelDto[] {
+		return this.aiModelsConfigService.getAvailableModels(
+			order.totalUrls,
+			!!order.userId
+		);
+	}
+
+	/**
+	 * Find order by ID without ownership check (for internal use)
+	 */
+	public async findById(id: number): Promise<Order> {
+		const order = await this.orderRepository.findOne({ where: { id } });
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${id} not found`);
+		}
+
+		return order;
+	}
+
+	/**
+	 * Ensure order is ready for payment
+	 * Validates ownership, status, and price information
+	 */
+	public async ensureOrderPayable(orderId: number): Promise<Order> {
+		// 1. Check ownership
+		let order = await this.getUserOrder(orderId);
+
+		// 2. Check status (must be CALCULATED or PENDING_PAYMENT)
+		if (order.status !== OrderStatus.CALCULATED && order.status !== OrderStatus.PENDING_PAYMENT) {
+			throw new BadRequestException(`Order ${orderId} cannot accept payment (current status: ${order.status}). Order must be calculated first.`);
+		}
+
+		// 3. Check price information
+		if (!order.priceTotal || !order.priceCurrency) {
+			throw new BadRequestException(`Order ${orderId} has no price information`);
+		}
+
+		// 4. Transition CALCULATED → PENDING_PAYMENT if needed
+		if (order.status === OrderStatus.CALCULATED) {
+			if (order.priceTotal === 0) {
+				throw new BadRequestException(`Order ${orderId} is free and does not require payment`);
+			}
+
+			OrderStatusMachine.validateTransition(order.status, OrderStatus.PENDING_PAYMENT);
+			order.status = OrderStatus.PENDING_PAYMENT;
+			order = await this.orderRepository.save(order);
+		}
+
+		return order;
+	}
+
+	/**
+	 * Get existing or create new Checkout Session
+	 * Checks if order has active session, returns existing or creates new one
+	 */
+	public async getOrCreateCheckoutSession(orderId: number, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
+		const order = await this.ensureOrderPayable(orderId);
+
+		// Check if order already has an active Checkout Session
+		if (order.stripeSessionId) {
+			const existingStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+
+			// If session is still open, return existing sessionId
+			if (existingStatus === StripeSessionStatus.OPEN) {
+				const url = await this.stripeService.getSessionUrl(order.stripeSessionId);
+				return { sessionId: order.stripeSessionId, url };
+			}
+		}
+
+		// Create new Checkout Session
+		const session = await this.stripeService.createCheckoutSession(
+			orderId,
+			order.priceTotal,
+			order.priceCurrency,
+			successUrl,
+			cancelUrl
+		);
+
+		// Save sessionId to Order
+		await this.updateStripeSession(orderId, session.sessionId);
+
+		return session;
+	}
+
+	/**
+	 * Get existing or create new Payment Intent
+	 * Checks if order has active intent, returns existing or creates new one
+	 */
+	public async getOrCreatePaymentIntent(orderId: number): Promise<string> {
+		const order = await this.ensureOrderPayable(orderId);
+
+		// Check if order already has an active Payment Intent
+		if (order.stripePaymentIntentSecret) {
+			const existingStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+
+			// If payment intent is still open, return existing clientSecret
+			if (existingStatus === StripeSessionStatus.OPEN) {
+				return order.stripePaymentIntentSecret;
+			}
+		}
+
+		// Create new Payment Intent
+		const clientSecret = await this.stripeService.createPaymentIntent(
+			orderId,
+			order.priceTotal,
+			order.priceCurrency
+		);
+
+		// Save client_secret to Order
+		await this.updateStripePaymentIntent(orderId, clientSecret);
+
+		return clientSecret;
+	}
+
+	/**
+	 * Update processing progress
+	 */
+	public async updateProgress(orderId: number, processedUrls: number): Promise<void> {
+		await this.orderRepository.update(
+			{ id: orderId },
+			{ processedUrls }
+		);
+	}
+
+	/**
+	 * Update order output (llms.txt content)
+	 */
+	public async updateOutput(orderId: number, output: string): Promise<void> {
+		await this.orderRepository.update(
+			{ id: orderId },
+			{ output }
+		);
+	}
+
+	/**
+	 * Add error to order
+	 * Uses transaction with FOR UPDATE lock to prevent race conditions when modifying errors array
+	 */
+	public async addError(orderId: number, error: string): Promise<void> {
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+
+		try {
+			// Lock row for update to prevent race conditions
+			const order = await queryRunner.manager.findOne(Order, {
+				where: { id: orderId },
+				lock: { mode: 'pessimistic_write' }
+			});
+
+			if (!order) {
+				throw new NotFoundException(`Order with ID ${orderId} not found`);
+			}
+
+			const errors = order.errors ?? [];
+
+			// Добавляем только уникальные ошибки
+			if (!errors.includes(error)) {
+				errors.push(error);
+			}
+
+			await queryRunner.manager.update(Order, orderId, { errors });
+			await queryRunner.commitTransaction();
+		} catch (err) {
+			await queryRunner.rollbackTransaction();
+			throw err;
+		} finally {
+			await queryRunner.release();
+		}
+	}
+
+	/**
+	 * Update Stripe session ID
+	 */
+	public async updateStripeSession(orderId: number, stripeSessionId: string): Promise<void> {
+		await this.orderRepository.update(
+			{ id: orderId },
+			{ stripeSessionId }
+		);
+	}
+
+	/**
+	 * Update Stripe Payment Intent secret
+	 */
+	public async updateStripePaymentIntent(orderId: number, stripePaymentIntentSecret: string): Promise<void> {
+		await this.orderRepository.update(
+			{ id: orderId },
+			{ stripePaymentIntentSecret }
+		);
+	}
+
+	/**
+	 * Transfer orders from anonymous session to authenticated user
+	 */
+	public async transferSessionOrders(sessionId: string, userId: number): Promise<number> {
+		const result = await this.orderRepository.update(
+			{ sessionId, userId: IsNull() }, // anonymous orders from this session
+			{ userId, sessionId: null } // bind to user, clear sessionId
+		);
+
+		return result.affected;
+	}
+
+	/**
+	 * Sync payment status from Stripe for order in PENDING_PAYMENT
+	 * Updates order status to PAID if payment is complete
+	 * Can optionally trigger order processing
+	 */
+	private async syncPaymentStatus(order: Order): Promise<void> {
+		if (order.status !== OrderStatus.PENDING_PAYMENT) {
+			return;
+		}
+
+		if (!order.stripeSessionId && !order.stripePaymentIntentSecret) {
+			return;
+		}
+
+		try {
+			let stripeStatus: StripeSessionStatus;
+
+			// Check Checkout Session or Payment Intent status
+			if (order.stripeSessionId) {
+				stripeStatus = await this.stripeService.checkSessionStatus(order.stripeSessionId);
+			} else if (order.stripePaymentIntentSecret) {
+				stripeStatus = await this.stripeService.checkPaymentIntentStatus(order.stripePaymentIntentSecret);
+			}
+
+			if (stripeStatus === StripeSessionStatus.COMPLETE) {
+				try {
+					await this.updateOrderStatus(order.id, OrderStatus.PAID);
+				} catch (error) {
+					// Webhook already processed - ignore transition error
+					const currentOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+					if (currentOrder && [OrderStatus.PAID, OrderStatus.QUEUED, OrderStatus.PROCESSING].includes(currentOrder.status)) {
+						return; // Already processed by webhook
+					}
+					throw error;
+				}
+			}
+		} catch (error) {
+			// Silently fail - don't break order retrieval if Stripe is down
+			// Log error for monitoring
+			this.logger.error(`Failed to sync payment status for order ${order.id}:`, error);
+		}
+	}
+
+	/**
+	 * Validate order ownership
+	 */
+	private validateOwnership(order: Order, sessionId: string, userId?: number): void {
+		const isOwner = userId
+			? order.userId === userId || order.sessionId === sessionId
+			: order.sessionId === sessionId;
+
+		if (!isOwner) {
+			throw new ForbiddenException('You do not have access to this order');
+		}
+	}
+}
+
+export { OrdersService };
