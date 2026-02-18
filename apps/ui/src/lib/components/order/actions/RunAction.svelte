@@ -44,7 +44,6 @@
 		disabled={loading || isRunning}
 	>
 		<config.icon size="md" />
-		{config.label}
 	</SpeedDialButton>
 {:else}
 	<!-- Card mode for accordion -->

@@ -1,5 +1,5 @@
 import {
-	ChartMixedDollarSolid,
+	RefreshOutline,
 	PlaySolid,
 	CreditCardSolid,
 	DownloadSolid,
@@ -27,7 +27,7 @@ interface ActionButtonConfig {
 const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 	{
 		id: 'calculate',
-		icon: ChartMixedDollarSolid,
+		icon: RefreshOutline,
 		label: 'Set Model',
 		labelAlternative: 'Change Model',
 		description: 'Select preferable AI Model',
