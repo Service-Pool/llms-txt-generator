@@ -51,19 +51,11 @@
 		disabled={disabled || loading || isDownloading}
 		loading={isDownloading}
 	>
-		<config.icon size="xs" class="me-1.5" />
 		{config.label}
 	</Button>
 {:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton
-		name={config.label}
-		color={config.color}
-		class="w-10 h-10 shadow-md"
-		pill
-		onclick={handleDownload}
-		disabled={disabled || loading || isDownloading}
-	>
+	<SpeedDialButton name={config.label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={handleDownload}>
 		<config.icon size="md" />
 	</SpeedDialButton>
 {/if}

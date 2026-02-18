@@ -76,19 +76,11 @@
 {#if mode === 'stepper'}
 	<!-- Small button mode for stepper -->
 	<Button size="xs" color={config.color} onclick={handlePay} disabled={isProcessing} loading={isProcessing}>
-		<config.icon size="xs" class="me-1.5" />
 		{config.label}
 	</Button>
 {:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton
-		name={config.label}
-		color={config.color}
-		class="w-10 h-10 shadow-md"
-		pill
-		onclick={handlePay}
-		disabled={isProcessing}
-	>
+	<SpeedDialButton name={config.label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={handlePay}>
 		<config.icon size="md" />
 	</SpeedDialButton>
 {/if}

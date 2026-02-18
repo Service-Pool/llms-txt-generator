@@ -80,7 +80,7 @@
 					{/snippet}
 				</SpeedDialTrigger>
 				<SpeedDial
-					trigger="click"
+					trigger="hover"
 					placement={speedDialPlacement}
 					tooltip={tooltipPlacement}
 					pill={false}

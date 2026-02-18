@@ -8,18 +8,10 @@
 		open?: boolean;
 		mode?: 'spd-button' | 'stepper';
 		loading?: boolean;
-		showButton?: boolean;
 		disabled?: boolean;
 	}
 
-	let {
-		order,
-		open = $bindable(false),
-		mode = 'stepper',
-		loading = false,
-		showButton = true,
-		disabled = false
-	}: Props = $props();
+	let { order, open = $bindable(false), mode = 'stepper', loading = false, disabled = false }: Props = $props();
 
 	const config = getActionConfig('calculate')!;
 	const label = $derived(
@@ -27,24 +19,14 @@
 	);
 </script>
 
-{#if showButton}
-	{#if mode === 'stepper'}
-		<!-- Small button mode for stepper -->
-		<Button size="xs" color={config.color} onclick={() => (open = true)} disabled={disabled || loading || open}>
-			<config.icon size="xs" class="me-1.5" />
-			{label}
-		</Button>
-	{:else if mode === 'spd-button'}
-		<!-- Button mode for SpeedDial -->
-		<SpeedDialButton
-			name={label}
-			color={config.color}
-			class="w-10 h-10 shadow-md"
-			pill
-			onclick={() => (open = true)}
-			disabled={disabled || loading || open}
-		>
-			<config.icon size="md" />
-		</SpeedDialButton>
-	{/if}
+{#if mode === 'stepper'}
+	<!-- Small button mode for stepper -->
+	<Button size="xs" color={config.color} onclick={() => (open = true)} disabled={disabled || loading || open} {loading}>
+		{label}
+	</Button>
+{:else if mode === 'spd-button'}
+	<!-- Button mode for SpeedDial -->
+	<SpeedDialButton name={label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={() => (open = true)}>
+		<config.icon size="md" />
+	</SpeedDialButton>
 {/if}
