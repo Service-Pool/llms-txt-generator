@@ -39,20 +39,25 @@
 		<!-- Header -->
 		<div class="flex-1">
 			<!-- Hostname with Status -->
-			<div class="flex items-baseline gap-2 mb-2 flex-wrap">
+			<div class="flex items-center gap-2 mb-2 flex-wrap">
 				<h3 class="text-sm font-semibold truncate">
 					<Badge color="gray" class="px-2 mr-1">#{order.attributes.id}</Badge>{order.attributes.hostname}
 				</h3>
-				<OrderStatusBadge status={order.attributes.status} />
 				{#if showEditLink}
 					<a
 						href={configService.routes.orderById(order.attributes.id)}
-						class="inline-flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-500 transition-all duration-200 hover:scale-110"
+						class="inline-flex items-center transition-scale duration-50 hover:scale-105"
 						title="Open order details"
 						aria-label="Open order details"
 					>
-						<EditOutline size="sm" class="transition-transform duration-200 hover:rotate-12" />
+						<OrderStatusBadge status={order.attributes.status}>
+							{#snippet icon()}
+								<EditOutline size="sm" />
+							{/snippet}
+						</OrderStatusBadge>
 					</a>
+				{:else}
+					<OrderStatusBadge status={order.attributes.status} />
 				{/if}
 			</div>
 		</div>
