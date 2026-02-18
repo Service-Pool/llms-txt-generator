@@ -7,6 +7,7 @@ import {
 	Headers
 } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { OrdersService } from '../../orders/services/orders.service';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { StripeService } from '../services/stripe.service';
@@ -26,6 +27,7 @@ class WebhookController {
 	 * Обработчик Stripe webhooks
 	 */
 	@ApiExcludeEndpoint()
+	@SkipThrottle()
 	@Post('stripe-webhook')
 	public async handleWebhook(
 		@Req() req: RawBodyRequest<FastifyRequest>,
@@ -47,8 +49,8 @@ class WebhookController {
 				const session = event.data.object;
 				const orderId = parseInt(session.metadata.orderId, 10);
 
-				// Get order and update status to PAID
-				const order = await this.ordersService.findById(orderId);
+				// Get order (including deleted) and update status to PAID
+				const order = await this.ordersService.findById(orderId, true);
 				if (!order.userId) {
 					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
 				}
@@ -72,8 +74,8 @@ class WebhookController {
 				const paymentIntent = event.data.object;
 				const orderId = parseInt(paymentIntent.metadata.orderId, 10);
 
-				// Get order and update status to PAID
-				const order = await this.ordersService.findById(orderId);
+				// Get order (including deleted) and update status to PAID
+				const order = await this.ordersService.findById(orderId, true);
 				if (!order.userId) {
 					throw new BadRequestException('Order has no userId - cannot process webhook for anonymous order');
 				}

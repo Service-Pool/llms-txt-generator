@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Currency } from '../../../enums/currency.enum';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { User } from '../../users/entities/user.entity';
@@ -79,6 +79,9 @@ class Order {
 
 	@UpdateDateColumn({ utc: true })
 	updatedAt: Date;
+
+	@DeleteDateColumn({ type: 'datetime', nullable: true, utc: true })
+	deletedAt: Date | null;
 
 	/**
 	 * Synthetic property populated by OrderSubscriber.

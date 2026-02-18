@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { configService } from '$lib/services/config.service';
-	import { Alert, Spinner, Heading, Hr, Button } from 'flowbite-svelte';
+	import { Alert, Spinner, Heading, Button } from 'flowbite-svelte';
 	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
@@ -34,6 +35,13 @@
 		}
 	};
 
+	$effect(() => {
+		// This means that order is deleted
+		if (!initialLoading && !error && !order) {
+			goto(configService.routes.orders);
+		}
+	});
+
 	onMount(() => {
 		socketStore.init();
 		void loadOrderIfNeeded();
@@ -59,13 +67,12 @@
 		<ErrorList {error} />
 	</Alert>
 {:else if order}
-	<div class="flex justify-between items-center mb-4">
+	<div class="flex justify-between items-center mb-8">
 		<Heading tag="h2" class="mb-0">Order #{order.attributes.id}</Heading>
 		<Button href={configService.routes.orders} color="light" size="sm">
 			<ArrowLeftOutline size="sm" class="me-2" />
 			Order List
 		</Button>
 	</div>
-	<Hr class="mb-6" />
 	<OrderItemPage {order} />
 {/if}

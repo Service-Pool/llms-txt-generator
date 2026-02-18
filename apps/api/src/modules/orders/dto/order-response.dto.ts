@@ -4,6 +4,7 @@ import { Order } from '../entities/order.entity';
 import { OrderStatus } from '../../../enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
 import { HateoasAction } from '../../../enums/hateoas-action.enum';
+import { OrderStatusMachine } from '../utils/order-status-machine';
 
 /**
  * HATEOAS link interface
@@ -147,6 +148,15 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 				description: 'Retry payment with payment intent'
 			};
 			break;
+	}
+
+	// Add delete link for orders that can be deleted according to state machine
+	if (OrderStatusMachine.canBeDeleted(entity.status)) {
+		links[HateoasAction.DELETE] = {
+			href: `/api/orders/${entity.id}`,
+			method: 'DELETE',
+			description: 'Delete this order'
+		};
 	}
 
 	return links;

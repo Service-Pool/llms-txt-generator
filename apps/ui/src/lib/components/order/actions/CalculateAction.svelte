@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
+	import { Button, SpeedDialButton } from 'flowbite-svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto } from '@api/shared';
 	import { getActionConfig } from '$lib/components/order-actions.config';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
 		open?: boolean;
-		mode?: 'card' | 'button';
+		mode?: 'card' | 'spd-button';
 		loading?: boolean;
 		showButton?: boolean;
 	}
@@ -20,19 +20,18 @@
 </script>
 
 {#if showButton}
-	{#if mode === 'button'}
+	{#if mode === 'spd-button'}
 		<!-- Button mode for SpeedDial -->
-		<Button
-			size="xs"
+		<SpeedDialButton
+			name={label}
 			color={config.color}
+			class="w-10 h-10 shadow-md"
 			pill
-			class="justify-start shadow-md whitespace-nowrap"
 			onclick={() => (open = true)}
-			loading={loading || open}
+			disabled={loading || open}
 		>
-			<config.icon size="md" class="me-2" />
-			{label}
-		</Button>
+			<config.icon size="md" />
+		</SpeedDialButton>
 	{:else}
 		<!-- Card mode for accordion -->
 		<div class="p-4 rounded-lg border {config.cardBgClass}">

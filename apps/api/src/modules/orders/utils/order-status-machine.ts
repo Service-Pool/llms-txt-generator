@@ -62,6 +62,18 @@ class OrderStatusMachine {
 	public static isTerminalStatus(status: OrderStatus): boolean {
 		return this.ALLOWED_TRANSITIONS[status].length === 0;
 	}
+
+	/**
+	 * Check if order with given status can be soft-deleted
+	 * Orders in PROCESSING, QUEUED, or PAID cannot be deleted
+	 */
+	public static canBeDeleted(status: OrderStatus): boolean {
+		return (
+			status !== OrderStatus.PROCESSING
+			&& status !== OrderStatus.QUEUED
+			&& status !== OrderStatus.PAID
+		);
+	}
 }
 
 export { OrderStatusMachine };

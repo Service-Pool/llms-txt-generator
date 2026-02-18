@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
+	import { Button, SpeedDialButton } from 'flowbite-svelte';
 	import { getActionConfig } from '$lib/components/order-actions.config';
 	import { ordersService } from '$lib/services/orders.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
@@ -9,7 +9,7 @@
 
 	interface Props {
 		order: OrderResponseDto;
-		mode?: 'card' | 'button';
+		mode?: 'card' | 'spd-button';
 		loading?: boolean;
 	}
 
@@ -33,19 +33,19 @@
 	};
 </script>
 
-{#if mode === 'button'}
+{#if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<Button
-		size="xs"
+	<SpeedDialButton
+		name={config.label}
 		color={config.color}
+		class="w-10 h-10 shadow-md"
 		pill
-		class="justify-start shadow-md whitespace-nowrap"
 		onclick={handleRun}
-		loading={loading || isRunning}
+		disabled={loading || isRunning}
 	>
-		<config.icon size="md" class="me-2" />
+		<config.icon size="md" />
 		{config.label}
-	</Button>
+	</SpeedDialButton>
 {:else}
 	<!-- Card mode for accordion -->
 	<div class="p-4 rounded-lg border {config.cardBgClass}">

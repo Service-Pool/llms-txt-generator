@@ -106,6 +106,15 @@ class OrdersService extends HttpClient {
 	}
 
 	/**
+	 * Delete order (soft delete)
+	 */
+	async deleteOrder(id: number): Promise<ApiResponse<void>> {
+		return this.fetch(configService.endpoints.orders.byId(id), undefined, {
+			method: 'DELETE'
+		});
+	}
+
+	/**
 	 * Get status configuration (color and label)
 	 */
 	getStatusConfig(status: OrderStatus): StatusConfig {

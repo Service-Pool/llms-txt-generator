@@ -1,8 +1,8 @@
 import { ApiResponse } from '../../../utils/response/api-response';
 import { HttpStatus } from '../../../enums/response-code.enum';
-import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto } from '../dto/order-request.dto';
+import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto } from '../dto/order-request.dto';
 import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
 import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '../dto/order-response.dto';
 import { OrdersService } from '../services/orders.service';
@@ -144,6 +144,31 @@ class OrdersController {
 	public async downloadLlmsTxt(@Param() dto: DownloadOrderRequestDto): Promise<ApiResponse<DownloadOrderResponseDto>> {
 		const order = await this.ordersService.getUserOrder(dto.id);
 		return ApiResponse.success(DownloadOrderResponseDto.create(`llms-${order.hostname}.txt`, order.output));
+	}
+
+	/**
+	 * Delete order (soft delete)
+	 * DELETE /api/orders/:id
+	 */
+	@ApiOperation({ summary: 'Delete order', description: 'Soft deletes an order. Order will be hidden from user\'s list but kept in database.' })
+	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		schema: ApiResponse.getSuccessSchema()
+	})
+	@SwaggerResponse({
+		status: HttpStatus.BAD_REQUEST,
+		description: 'Order cannot be deleted (not found, already deleted, or in processing)'
+	})
+	@SwaggerResponse({
+		status: HttpStatus.FORBIDDEN,
+		description: 'Access denied to this order'
+	})
+	@Delete(':id')
+	@HttpCode(HttpStatus.OK)
+	public async deleteOrder(@Param() dto: DeleteOrderRequestDto): Promise<ApiResponse<void>> {
+		await this.ordersService.deleteOrder(dto.id);
+		return ApiResponse.success(null);
 	}
 }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { slide, fly } from 'svelte/transition';
-	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger, Listgroup } from 'flowbite-svelte';
+	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger } from 'flowbite-svelte';
 	import { ChevronDownOutline, DotsVerticalOutline, EditOutline } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { type OrderResponseDto } from '@api/shared';
@@ -27,8 +27,23 @@
 	let paymentClientSecret = $state<string | null>(null);
 	let paymentPublishableKey = $state<string | null>(null);
 	let actionInProgress = $state<string | null>(null);
+	let isMobile = $state(false);
 
 	const hasAvailableActions = $derived(ordersService.getEnabledActions(order).length > 0);
+	const speedDialPlacement = $derived(isMobile ? 'bottom' : 'left');
+	const tooltipPlacement = $derived(isMobile ? 'left' : 'top');
+
+	$effect(() => {
+		const mediaQuery = window.matchMedia('(max-width: 768px)');
+		isMobile = mediaQuery.matches;
+
+		const handler = (e: MediaQueryListEvent) => {
+			isMobile = e.matches;
+		};
+
+		mediaQuery.addEventListener('change', handler);
+		return () => mediaQuery.removeEventListener('change', handler);
+	});
 
 	const handlePaymentSuccess = async () => {
 		paymentModalOpen = false;
@@ -55,7 +70,7 @@
 			<div class="relative">
 				<SpeedDialTrigger
 					color="light"
-					class="rounded-full p-1 w-8 h-8"
+					class="p-1 w-8 h-8"
 					onmouseenter={() => (speedDialHover = true)}
 					onmouseleave={() => (speedDialHover = false)}
 				>
@@ -67,23 +82,22 @@
 					{/snippet}
 				</SpeedDialTrigger>
 				<SpeedDial
-					trigger="hover"
-					placement="top-end"
-					tooltip="none"
+					trigger="click"
+					placement={speedDialPlacement}
+					tooltip={tooltipPlacement}
+					pill={false}
 					transition={fly}
 					transitionParams={{ duration: 100 }}
 				>
-					<Listgroup class="divide-none space-y-2 bg-transparent border-none flex flex-col" active={false}>
-						<OrderActions
-							{order}
-							mode="button"
-							loadingAction={actionInProgress}
-							bind:calculateModalOpen
-							bind:paymentModalOpen
-							bind:paymentClientSecret
-							bind:paymentPublishableKey
-						/>
-					</Listgroup>
+					<OrderActions
+						{order}
+						mode="spd-button"
+						loadingAction={actionInProgress}
+						bind:calculateModalOpen
+						bind:paymentModalOpen
+						bind:paymentClientSecret
+						bind:paymentPublishableKey
+					/>
 				</SpeedDial>
 			</div>
 		{/if}

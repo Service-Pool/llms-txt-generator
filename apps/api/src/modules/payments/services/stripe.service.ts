@@ -182,7 +182,8 @@ class StripeService {
 	 * Используется для безопасной обработки webhook событий
 	 */
 	public constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
-		const webhookSecret = this.configService.stripe.webhookSecret;
+		// const webhookSecret = this.configService.stripe.webhookSecret;
+		const webhookSecret = 'whsec_27672eeebdf8348915a45eb4aaf1952c3975a2c2554765fa84bb1170af9a3b19';
 		if (!webhookSecret) {
 			throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
 		}

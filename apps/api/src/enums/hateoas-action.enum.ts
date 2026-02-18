@@ -36,7 +36,12 @@ enum HateoasAction {
 	/**
 	 * Request refund for failed order (POST)
 	 */
-	REFUND = 'refund'
+	REFUND = 'refund',
+
+	/**
+	 * Delete order (soft delete) (DELETE)
+	 */
+	DELETE = 'delete'
 }
 
 export { HateoasAction };

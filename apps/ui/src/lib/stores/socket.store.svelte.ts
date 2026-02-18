@@ -96,6 +96,13 @@ class SocketStore {
 				return;
 			}
 
+			// Check if order exists in store - ignore update if deleted locally
+			const existingOrder = ordersStore.getById(orderDto.attributes.id);
+			if (!existingOrder) {
+				// Order was deleted locally - ignore update
+				return;
+			}
+
 			// Direct update with complete DTO - no mapping needed!
 			ordersStore.updateOrder(orderDto);
 

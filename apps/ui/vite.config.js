@@ -25,6 +25,7 @@ const stubServerImports = {
 			case id === '@nestjs/common/enums/http-status.enum':
 			case id === '@nestjs/swagger':
 			case id === 'class-validator':
+			case id === 'class-transformer':
 				return id;
 
 			default:
@@ -33,8 +34,22 @@ const stubServerImports = {
 	},
 	load(id) {
 		switch (true) {
-			case id === '@nestjs/common':
-				return `export const Injectable = () => () => {};`;
+			case id === '@nestjs/common': {
+				// NestJS decorators and exceptions
+				const decorators = ['Injectable'];
+				const exceptions = [
+					'BadRequestException', 'UnauthorizedException', 'NotFoundException',
+					'ForbiddenException', 'NotAcceptableException', 'RequestTimeoutException',
+					'ConflictException', 'GoneException', 'HttpException', 'PayloadTooLargeException',
+					'UnsupportedMediaTypeException', 'UnprocessableEntityException',
+					'InternalServerErrorException', 'NotImplementedException',
+					'ImATeapotException', 'MethodNotAllowedException', 'BadGatewayException',
+					'ServiceUnavailableException', 'GatewayTimeoutException', 'PreconditionFailedException'
+				];
+				const decoratorExports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				const exceptionExports = exceptions.map(name => `export class ${name} extends Error {}`).join('\n');
+				return decoratorExports + '\n' + exceptionExports;
+			}
 
 			case id === '@nestjs/common/enums/http-status.enum':
 				return `export const HttpStatus = {};`;
@@ -63,6 +78,17 @@ const stubServerImports = {
 					'IsIn', 'IsNotIn', 'ArrayMinSize', 'ArrayMaxSize', 'IsDefined',
 					'Equals', 'NotEquals', 'IsEmpty', 'IsPositive', 'IsNegative', 'Validate',
 					'ValidatorConstraint'
+				];
+				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
+				return exports;
+			}
+
+			case id === 'class-transformer': {
+				// Декораторы class-transformer
+				const decorators = [
+					'Type', 'Transform', 'Exclude', 'Expose', 'TransformPlainToClass',
+					'TransformClassToPlain', 'TransformPlainToInstance', 'TransformInstanceToPlain',
+					'plainToClass', 'plainToInstance', 'classToPlain', 'instanceToPlain'
 				];
 				const exports = decorators.map(name => `export const ${name} = () => () => {};`).join('\n');
 				return exports;

@@ -12,10 +12,12 @@ import { PaymentsModule } from '../modules/payments/payments.module';
 import { CrawlersModule } from '../modules/crawlers/crawlers.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../modules/users/users.module';
 import { WebSocketModule } from '../modules/websocket/websocket.module';
 import { StatsModule } from '../modules/stats/stats.module';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
 	imports: [
@@ -50,6 +52,15 @@ import { StatsModule } from '../modules/stats/stats.module';
 			global: true
 		}),
 		ScheduleModule.forRoot(),
+		ThrottlerModule.forRootAsync({
+			inject: [AppConfigService],
+			useFactory: (configService: AppConfigService) => ({
+				throttlers: [{
+					ttl: configService.throttle.ttl * 1000, // Convert to milliseconds
+					limit: configService.throttle.limit
+				}]
+			})
+		}),
 		AppConfigModule,
 		UsersModule,
 		AuthModule,
@@ -64,6 +75,12 @@ import { StatsModule } from '../modules/stats/stats.module';
 			inject: [AppConfigService],
 			useFactory: (configService: AppConfigService) => configService.typeorm
 		})
+	],
+	providers: [
+		{
+			provide: APP_GUARD,
+			useClass: ThrottlerGuard
+		}
 	]
 })
 

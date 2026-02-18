@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte';
+	import { Button, SpeedDialButton } from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getActionConfig } from '$lib/components/order-actions.config';
 	import { paymentsService } from '$lib/services/payments.service';
-	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { configService } from '$lib/services/config.service';
 	import type { OrderResponseDto } from '@api/shared';
@@ -16,7 +15,7 @@
 		open?: boolean;
 		clientSecret?: string | null;
 		publishableKey?: string | null;
-		mode?: 'card' | 'button';
+		mode?: 'card' | 'spd-button';
 		loading?: boolean;
 	}
 
@@ -72,19 +71,18 @@
 	};
 </script>
 
-{#if mode === 'button'}
+{#if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<Button
-		size="xs"
+	<SpeedDialButton
+		name={config.label}
 		color={config.color}
+		class="w-10 h-10 shadow-md"
 		pill
-		class="justify-start shadow-md whitespace-nowrap"
 		onclick={handlePay}
-		loading={isProcessing}
+		disabled={isProcessing}
 	>
-		<config.icon size="md" class="me-2" />
-		{config.label}
-	</Button>
+		<config.icon size="md" />
+	</SpeedDialButton>
 {:else}
 	<!-- Card mode for accordion -->
 	<div class="p-4 rounded-lg border {config.cardBgClass}">

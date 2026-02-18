@@ -38,7 +38,7 @@
 	});
 </script>
 
-<Card class="max-w-none p-4 {className}">
+<Card class="max-w-none p-4 relative {className}">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<!-- Header -->
 		<div class="flex-1">

@@ -3,6 +3,7 @@ import { HttpStatus } from '@nestjs/common/enums/http-status.enum';
 enum ResponseCode {
 	SUCCESS = 200,
 	INVALID = 400,
+	RATE_LIMIT_EXCEEDED = 429,
 	ERROR = 500
 }
 
@@ -12,7 +13,8 @@ const STATUS_TO_CODE: Record<number, ResponseCode> = {
 	[HttpStatus.FORBIDDEN]: ResponseCode.INVALID,
 	[HttpStatus.NOT_FOUND]: ResponseCode.INVALID,
 	[HttpStatus.CONFLICT]: ResponseCode.INVALID,
-	[HttpStatus.UNPROCESSABLE_ENTITY]: ResponseCode.INVALID
+	[HttpStatus.UNPROCESSABLE_ENTITY]: ResponseCode.INVALID,
+	[HttpStatus.TOO_MANY_REQUESTS]: ResponseCode.RATE_LIMIT_EXCEEDED
 };
 
 function resolveResponseCode(status: number): ResponseCode {

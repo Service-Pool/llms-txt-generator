@@ -227,15 +227,14 @@ class OrdersService {
 	public async getUserOrder(id: number): Promise<Order> {
 		const session = this.usersService.getSessionData();
 
-		const where = session.userId
-			? [{ id, userId: session.userId }, { id, sessionId: session.sessionId }]
-			: { id, sessionId: session.sessionId };
-
-		const order = await this.orderRepository.findOne({ where });
+		const order = await this.orderRepository.findOne({ where: { id } });
 
 		if (!order) {
-			throw new NotFoundException(`Order with ID ${id} not found or you don't have access to it`);
+			throw new NotFoundException(`Order with ID ${id} not found`);
 		}
+
+		// Validate ownership
+		this.validateOwnership(order, session.sessionId, session.userId);
 
 		// Auto-sync payment status from Stripe if order is pending payment
 		if (order.status === OrderStatus.PENDING_PAYMENT) {
@@ -304,9 +303,13 @@ class OrdersService {
 
 	/**
 	 * Find order by ID without ownership check (for internal use)
+	 * @param withDeleted - if true, includes soft-deleted orders (for webhooks)
 	 */
-	public async findById(id: number): Promise<Order> {
-		const order = await this.orderRepository.findOne({ where: { id } });
+	public async findById(id: number, withDeleted = false): Promise<Order> {
+		const order = await this.orderRepository.findOne({
+			where: { id },
+			withDeleted
+		});
 
 		if (!order) {
 			throw new NotFoundException(`Order with ID ${id} not found`);
@@ -540,6 +543,40 @@ class OrdersService {
 			// Log error for monitoring
 			this.logger.error(`Failed to sync payment status for order ${order.id}:`, error);
 		}
+	}
+
+	/**
+	 * Delete order (soft delete)
+	 * Sets deletedAt timestamp, order disappears from user's list
+	 */
+	public async deleteOrder(orderId: number): Promise<void> {
+		const session = this.usersService.getSessionData();
+
+		// Get order with deleted (to prevent double deletion)
+		const order = await this.orderRepository.findOne({
+			where: { id: orderId },
+			withDeleted: true
+		});
+
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${orderId} not found`);
+		}
+
+		// Check if already deleted
+		if (order.deletedAt) {
+			return;
+		}
+
+		// Validate ownership
+		this.validateOwnership(order, session.sessionId, session.userId);
+
+		// Validate status using state machine
+		if (!OrderStatusMachine.canBeDeleted(order.status)) {
+			throw new BadRequestException(`Cannot delete order in ${order.status} status. Please wait until processing is complete.`);
+		}
+
+		// Soft delete
+		await this.orderRepository.softRemove(order);
 	}
 
 	/**

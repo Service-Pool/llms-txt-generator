@@ -5,11 +5,12 @@
 	import PaymentAction from './PaymentAction.svelte';
 	import RunAction from './RunAction.svelte';
 	import DownloadAction from './DownloadAction.svelte';
+	import DeleteAction from './DeleteAction.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
 		class?: string;
-		mode?: 'card' | 'button';
+		mode?: 'card' | 'spd-button';
 		loadingAction?: string | null;
 		calculateModalOpen?: boolean;
 		paymentModalOpen?: boolean;
@@ -32,7 +33,7 @@
 	const hasAnyAction = $derived(enabledActions.length > 0);
 </script>
 
-<div class="{mode === 'button' ? 'flex flex-col gap-2' : 'space-y-4'} {className}">
+{#snippet actionsList()}
 	{#each enabledActions as action}
 		{#if action.id === 'calculate'}
 			<CalculateAction {order} {mode} loading={loadingAction === 'calculate'} bind:open={calculateModalOpen} />
@@ -49,6 +50,8 @@
 			<RunAction {order} {mode} loading={loadingAction === 'run'} />
 		{:else if action.id === 'download'}
 			<DownloadAction {order} {mode} loading={loadingAction === 'download'} />
+		{:else if action.id === 'delete'}
+			<DeleteAction {order} {mode} loading={loadingAction === 'delete'} />
 		{/if}
 	{/each}
 
@@ -56,4 +59,12 @@
 	{#if mode === 'card' && !hasAnyAction}
 		<p class="text-gray-500 dark:text-gray-400 text-center py-4">No actions available for this order at the moment.</p>
 	{/if}
-</div>
+{/snippet}
+
+{#if mode === 'spd-button'}
+	{@render actionsList()}
+{:else}
+	<div class="space-y-4 {className}">
+		{@render actionsList()}
+	</div>
+{/if}

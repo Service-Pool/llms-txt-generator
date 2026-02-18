@@ -35,6 +35,8 @@ interface ValidatedEnv {
 	LOGIN_LINK_EXPIRY_MINUTES: number;
 	AES_KEY: string;
 	AES_IV: string;
+	THROTTLE_TTL: number;
+	THROTTLE_LIMIT: number;
 }
 
 const aiModelConfigSchema = Joi.object({
@@ -83,7 +85,9 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SMTP_PASSWORD: Joi.string().required(),
 	LOGIN_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required(),
 	AES_KEY: Joi.string().base64().required(),
-	AES_IV: Joi.string().base64().required()
+	AES_IV: Joi.string().base64().required(),
+	THROTTLE_TTL: Joi.number().integer().min(1).default(60),
+	THROTTLE_LIMIT: Joi.number().integer().min(1).default(10)
 });
 
 function validateEnv(): ValidatedEnv {
@@ -222,6 +226,11 @@ class AppConfigService {
 	public readonly security = {
 		aesKey: env.AES_KEY,
 		aesIv: env.AES_IV
+	};
+
+	public readonly throttle = {
+		ttl: env.THROTTLE_TTL,
+		limit: env.THROTTLE_LIMIT
 	};
 }
 

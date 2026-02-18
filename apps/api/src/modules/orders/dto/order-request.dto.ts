@@ -1,9 +1,10 @@
-import { IsString, IsNotEmpty, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '../../../validators/host.validator';
-import { OrderHasOutputValidator } from '../../../validators/order.validator';
+import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '../../../validators/order.validator';
 import { AiModelValidator } from '../../../validators/ai-model.validator';
 import { Validate } from 'class-validator';
+import { Type } from 'class-transformer';
 
 class CreateOrderRequestDto {
 	@ApiProperty({
@@ -35,8 +36,21 @@ class DownloadOrderRequestDto {
 		description: 'Order ID for download',
 		example: 123
 	})
+	@Type(() => Number)
+	@IsInt()
 	@Validate(OrderHasOutputValidator)
 	id: number;
 }
 
-export { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto };
+class DeleteOrderRequestDto {
+	@ApiProperty({
+		description: 'Order ID to delete',
+		example: 123
+	})
+	@Type(() => Number)
+	@IsInt()
+	@Validate(OrderCanBeDeletedValidator)
+	id: number;
+}
+
+export { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto };

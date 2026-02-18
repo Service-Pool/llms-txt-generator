@@ -5,6 +5,7 @@ import {
 	HttpException,
 	Logger
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { FastifyReply } from 'fastify';
 import { ApiResponse } from '../utils/response/api-response';
 import { ValidationException } from '../exceptions/validation.exception';
@@ -25,6 +26,19 @@ class GlobalExceptionFilter implements ExceptionFilter {
 			response
 				.status(HttpStatus.OK)
 				.send(ApiResponse.invalid(exception.getErrors()));
+
+			return;
+		}
+
+		if (exception instanceof ThrottlerException) {
+			this.logger.warn('Rate limit exceeded');
+
+			response
+				.status(HttpStatus.TOO_MANY_REQUESTS)
+				.send(ApiResponse.error(
+					ResponseCode.RATE_LIMIT_EXCEEDED,
+					'Too many requests. Please try again later.'
+				));
 
 			return;
 		}

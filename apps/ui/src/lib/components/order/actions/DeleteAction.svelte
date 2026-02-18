@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Button, SpeedDialButton } from 'flowbite-svelte';
 	import { getActionConfig } from '$lib/components/order-actions.config';
-	import { ordersService } from '$lib/services/orders.service';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import type { OrderResponseDto } from '@api/shared';
 
-	const config = getActionConfig('download')!;
+	const config = getActionConfig('delete')!;
 
 	interface Props {
 		order: OrderResponseDto;
@@ -14,29 +14,24 @@
 
 	let { order, mode = 'card', loading = false }: Props = $props();
 
-	let isDownloading = $state(false);
+	let isDeleting = $state(false);
 
-	const handleDownload = async (e: MouseEvent) => {
-		e.stopPropagation();
-		isDownloading = true;
+	const handleDelete = async () => {
+		const confirmed = confirm(
+			`Are you sure you want to delete order #${order.attributes.id}? This action cannot be undone.`
+		);
+
+		if (!confirmed) {
+			return;
+		}
+
+		isDeleting = true;
 		try {
-			const response = await ordersService.download(order.attributes.id);
-			const data = response.getData().attributes;
-			const blob = new Blob([data.content], { type: 'text/plain' });
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = data.filename;
-			a.style.display = 'none';
-			a.addEventListener('click', (e) => e.stopPropagation());
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
+			await ordersStore.deleteOrder(order.attributes.id);
 		} catch (exception) {
 			throw exception;
 		} finally {
-			isDownloading = false;
+			isDeleting = false;
 		}
 	};
 </script>
@@ -48,8 +43,8 @@
 		color={config.color}
 		class="w-10 h-10 shadow-md"
 		pill
-		onclick={handleDownload}
-		disabled={loading || isDownloading}
+		onclick={handleDelete}
+		disabled={loading || isDeleting}
 	>
 		<config.icon size="md" />
 	</SpeedDialButton>
@@ -62,14 +57,14 @@
 					<config.icon size="sm" class="inline me-2 {config.iconColorClass}" />
 					{config.description}
 				</div>
-				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>
+				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Remove this order from your list</p>
 			</div>
 			<Button
-				onclick={handleDownload}
+				onclick={handleDelete}
 				color={config.color}
 				size="sm"
 				class="min-w-25 whitespace-nowrap"
-				loading={loading || isDownloading}>{config.label}</Button
+				loading={loading || isDeleting}>{config.label}</Button
 			>
 		</div>
 	</div>

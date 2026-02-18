@@ -1,4 +1,5 @@
 import { ordersService } from '$lib/services/orders.service';
+import { socketStore } from './socket.store.svelte';
 import type { OrderResponseDto } from '@api/shared';
 
 type OrdersBroadcastMessage = | { type: 'ORDER_CREATED'; order: OrderResponseDto }
@@ -92,6 +93,16 @@ class OrdersStore {
 		const response = await ordersService.getById(orderId);
 		const updatedOrder = response.getData();
 		this.updateOrder(updatedOrder);
+	}
+
+	/**
+	 * Delete order via API and remove from store
+	 */
+	async deleteOrder(orderId: number) {
+		await ordersService.deleteOrder(orderId);
+		this.removeOrder(orderId);
+		this.broadcastOrderDeleted(orderId);
+		socketStore.unsubscribeFromOrder(orderId);
 	}
 
 	/**

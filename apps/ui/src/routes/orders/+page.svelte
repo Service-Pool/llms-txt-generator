@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Alert, Button, Hr, Skeleton, Card, Heading } from 'flowbite-svelte';
+	import { Alert, Button, Skeleton, Card, Heading } from 'flowbite-svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
@@ -66,8 +66,7 @@
 	<title>Orders - LLMs.txt Generator</title>
 </svelte:head>
 
-<Heading tag="h2">Your Orders</Heading>
-<Hr />
+<Heading tag="h2" class="mb-8">Your Orders</Heading>
 
 <div class="mx-auto space-y-6">
 	{#if ordersStore.items === null || ordersStore.loading}

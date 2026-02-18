@@ -3,7 +3,8 @@ import {
 	PlaySolid,
 	CreditCardSolid,
 	DownloadSolid,
-	ExclamationCircleSolid
+	ExclamationCircleSolid,
+	TrashBinSolid
 } from 'flowbite-svelte-icons';
 import { HateoasAction } from '@api/shared';
 import type { Component } from 'svelte';
@@ -78,6 +79,17 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		cardBgClass: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
 		iconColorClass: 'text-red-600 dark:text-red-400',
 		hateoasActions: [HateoasAction.REFUND],
+		enabled: true
+	},
+	{
+		id: 'delete',
+		icon: TrashBinSolid,
+		label: 'Delete',
+		description: 'Delete this order',
+		color: 'red',
+		cardBgClass: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+		iconColorClass: 'text-red-600 dark:text-red-400',
+		hateoasActions: [HateoasAction.DELETE],
 		enabled: true
 	}
 ];
