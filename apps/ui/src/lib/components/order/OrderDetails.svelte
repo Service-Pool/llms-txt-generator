@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { type OrderResponseDto } from '@api/shared';
+	import { ordersService } from '$lib/services/orders.service';
 	import OrderCard from './OrderCard.svelte';
 	import OrderActions from './actions/_OrderActions.svelte';
+	import DeleteAction from './actions/DeleteAction.svelte';
 	import OrderStats from './OrderStats.svelte';
 	import CalculateModal from './modals/CalculateModal.svelte';
 	import StripeElementsModal from './modals/StripeElementsModal.svelte';
@@ -12,6 +14,9 @@
 	}
 
 	let { order }: Props = $props();
+
+	const enabledActions = $derived(ordersService.getEnabledActions(order));
+	const canDelete = $derived(enabledActions.some((a) => a.id === 'delete'));
 
 	let calculateModalOpen = $state(false);
 	let paymentModalOpen = $state(false);
@@ -30,11 +35,15 @@
 	};
 </script>
 
-<OrderCard {order}>
+<OrderCard {order} showEditLink={false}>
+	{#snippet headerActions()}
+		<DeleteAction {order} mode="stepper" disabled={!canDelete} />
+	{/snippet}
 	{#snippet children()}
-		<!-- Actions Section -->
+		<!-- Actions Stepper -->
 		<OrderActions
 			{order}
+			mode="stepper"
 			class="mb-4"
 			bind:calculateModalOpen
 			bind:paymentModalOpen

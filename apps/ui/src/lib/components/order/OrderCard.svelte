@@ -4,33 +4,29 @@
 	import { type OrderResponseDto, OrderStatus } from '@api/shared';
 	import OrderStatusBadge from './OrderStatusBadge.svelte';
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
+	import { EditOutline } from 'flowbite-svelte-icons';
+	import { configService } from '$lib/services/config.service';
 
 	interface Props {
 		order: OrderResponseDto;
 		class?: string;
 		children?: import('svelte').Snippet;
 		headerActions?: import('svelte').Snippet;
+		showEditLink?: boolean;
 	}
 
-	let { order, class: className = '', children, headerActions }: Props = $props();
-
-	const formattedDate = $derived(
-		order.attributes.createdAt ? new Date(order.attributes.createdAt).toLocaleString() : '-'
-	);
+	let { order, class: className = '', children, headerActions, showEditLink = true }: Props = $props();
 
 	const metadataItems = $derived.by(() => {
 		const items: string[] = [];
 
-		if (order.attributes.createdAt) {
-			items.push(formattedDate);
-		}
 		if (order.attributes.totalUrls) {
 			items.push(`${formatNumber(order.attributes.totalUrls)} urls`);
 		}
 		if (order.attributes.currentAiModel) {
 			items.push(order.attributes.currentAiModel.displayName);
 		}
-		if (order.attributes.priceTotal) {
+		if (order.attributes.priceTotal != null) {
 			items.push(`${order.attributes.currencySymbol} ${formatNumber(order.attributes.priceTotal)}`);
 		}
 
@@ -48,6 +44,16 @@
 					<Badge color="gray" class="px-2 mr-1">#{order.attributes.id}</Badge>{order.attributes.hostname}
 				</h3>
 				<OrderStatusBadge status={order.attributes.status} />
+				{#if showEditLink}
+					<a
+						href={configService.routes.orderById(order.attributes.id)}
+						class="inline-flex items-center text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-500 transition-all duration-200 hover:scale-110"
+						title="Open order details"
+						aria-label="Open order details"
+					>
+						<EditOutline size="sm" class="transition-transform duration-200 hover:rotate-12" />
+					</a>
+				{/if}
 			</div>
 		</div>
 

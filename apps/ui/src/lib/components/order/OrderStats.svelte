@@ -91,70 +91,6 @@
 
 <!-- Info -->
 <div class="space-y-4">
-	<div class={className}>
-		<div
-			class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-[minmax(60px,auto)_minmax(100px,1fr)_minmax(90px,auto)_repeat(4,minmax(120px,1fr))] gap-2 text-xs"
-		>
-			<div class="flex flex-col">
-				<span class="stat-label">Order</span>
-				<span class="stat-value">
-					#{order.attributes.id}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">AI Model</span>
-				<span class="stat-value">
-					{order.attributes.currentAiModel?.displayName ?? '—'}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">Total Price</span>
-				<span class="stat-value">
-					{#if order.attributes.priceTotal !== null}
-						{order.attributes.currencySymbol}{order.attributes.priceTotal.toFixed(2)}
-					{:else}
-						—
-					{/if}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">Created</span>
-				<span class="stat-value">
-					{order.attributes.createdAt
-						? new Date(order.attributes.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-						: '—'}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">Updated</span>
-				<span class="stat-value">
-					{order.attributes.updatedAt
-						? new Date(order.attributes.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-						: '—'}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">Started</span>
-				<span class="stat-value">
-					{order.attributes.startedAt
-						? new Date(order.attributes.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-						: '—'}
-				</span>
-			</div>
-			<div class="flex flex-col">
-				<span class="stat-label">Completed</span>
-				<span class="stat-value">
-					{order.attributes.completedAt
-						? new Date(order.attributes.completedAt).toLocaleString(undefined, {
-								dateStyle: 'short',
-								timeStyle: 'short'
-							})
-						: '—'}
-				</span>
-			</div>
-		</div>
-	</div>
-
 	<!-- Output -->
 	{#if hasDownloadAction}
 		<div class={className}>
@@ -194,10 +130,8 @@
 	<!-- Errors -->
 	{#if order.attributes.errors && order.attributes.errors.length > 0}
 		<div>
-			<Alert color="red" class="text-xs">
-				<P class="text-red-600 dark:text-red-400" space="tight" size="xs" height="8"
-					>Errors: ({order.attributes.errors.length})</P
-				>
+			<Alert color="red" class="text-xs space-y-2">
+				<P class="text-red-600 dark:text-red-400" space="tight" size="xs">Errors: ({order.attributes.errors.length})</P>
 
 				<List tag="ul" class="text-left space-y-1">
 					{#each order.attributes.errors as errMsg}
@@ -207,6 +141,46 @@
 			</Alert>
 		</div>
 	{/if}
+
+	<div class={className}>
+		<div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-2 text-xs">
+			<div class="flex flex-col">
+				<span class="stat-label">Created</span>
+				<span class="stat-value">
+					{order.attributes.createdAt
+						? new Date(order.attributes.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Updated</span>
+				<span class="stat-value">
+					{order.attributes.updatedAt
+						? new Date(order.attributes.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Started</span>
+				<span class="stat-value">
+					{order.attributes.startedAt
+						? new Date(order.attributes.startedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+						: '—'}
+				</span>
+			</div>
+			<div class="flex flex-col">
+				<span class="stat-label">Completed</span>
+				<span class="stat-value">
+					{order.attributes.completedAt
+						? new Date(order.attributes.completedAt).toLocaleString(undefined, {
+								dateStyle: 'short',
+								timeStyle: 'short'
+							})
+						: '—'}
+				</span>
+			</div>
+		</div>
+	</div>
 </div>
 
 <style>

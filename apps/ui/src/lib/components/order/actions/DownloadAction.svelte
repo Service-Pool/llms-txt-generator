@@ -8,11 +8,12 @@
 
 	interface Props {
 		order: OrderResponseDto;
-		mode?: 'card' | 'spd-button';
+		mode?: 'spd-button' | 'stepper';
 		loading?: boolean;
+		disabled?: boolean;
 	}
 
-	let { order, mode = 'card', loading = false }: Props = $props();
+	let { order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
 
 	let isDownloading = $state(false);
 
@@ -41,7 +42,19 @@
 	};
 </script>
 
-{#if mode === 'spd-button'}
+{#if mode === 'stepper'}
+	<!-- Small button mode for stepper -->
+	<Button
+		size="xs"
+		color={config.color}
+		onclick={handleDownload}
+		disabled={disabled || loading || isDownloading}
+		loading={isDownloading}
+	>
+		<config.icon size="xs" class="me-1.5" />
+		{config.label}
+	</Button>
+{:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
 	<SpeedDialButton
 		name={config.label}
@@ -49,28 +62,8 @@
 		class="w-10 h-10 shadow-md"
 		pill
 		onclick={handleDownload}
-		disabled={loading || isDownloading}
+		disabled={disabled || loading || isDownloading}
 	>
 		<config.icon size="md" />
 	</SpeedDialButton>
-{:else}
-	<!-- Card mode for accordion -->
-	<div class="p-4 rounded-lg border {config.cardBgClass}">
-		<div class="flex items-center justify-between">
-			<div>
-				<div class="font-semibold text-gray-900 dark:text-white">
-					<config.icon size="sm" class="inline me-2 {config.iconColorClass}" />
-					{config.description}
-				</div>
-				<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Your LLMs.txt file is ready to download</p>
-			</div>
-			<Button
-				onclick={handleDownload}
-				color={config.color}
-				size="sm"
-				class="min-w-25 whitespace-nowrap"
-				loading={loading || isDownloading}>{config.label}</Button
-			>
-		</div>
-	</div>
 {/if}

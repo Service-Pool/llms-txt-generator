@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { slide, fly } from 'svelte/transition';
 	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger } from 'flowbite-svelte';
-	import { ChevronDownOutline, DotsVerticalOutline, EditOutline } from 'flowbite-svelte-icons';
-	import { goto } from '$app/navigation';
+	import { ChevronDownOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { type OrderResponseDto } from '@api/shared';
 	import { ordersService } from '$lib/services/orders.service';
-	import { configService } from '$lib/services/config.service';
 	import OrderCard from './OrderCard.svelte';
 	import OrderActions from './actions/_OrderActions.svelte';
 	import OrderStats from './OrderStats.svelte';
@@ -111,16 +109,6 @@
 		>
 			<ChevronDownOutline size="sm" />
 		</Button>
-
-		<!-- Open order Button -->
-		<Button
-			size="xs"
-			color="light"
-			class="rounded-full p-1 w-8 h-8"
-			onclick={() => goto(configService.routes.orderById(order.attributes.id))}
-		>
-			<EditOutline size="sm" />
-		</Button>
 	{/snippet}
 
 	{#snippet children()}
@@ -138,16 +126,6 @@
 				}}
 			>
 				<div class="pb-2">
-					<!-- Actions Section -->
-					<OrderActions
-						{order}
-						class="pb-4"
-						bind:calculateModalOpen
-						bind:paymentModalOpen
-						bind:paymentClientSecret
-						bind:paymentPublishableKey
-					/>
-
 					<!-- Stats Section -->
 					<OrderStats
 						{order}
