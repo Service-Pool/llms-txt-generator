@@ -11,6 +11,7 @@
 	const config = getActionConfig('payment')!;
 
 	interface Props {
+		class?: string;
 		order: OrderResponseDto;
 		open?: boolean;
 		clientSecret?: string | null;
@@ -21,6 +22,7 @@
 	}
 
 	let {
+		class: className = '',
 		order,
 		open = $bindable(false),
 		clientSecret = $bindable(null),
@@ -30,8 +32,8 @@
 		disabled = false
 	}: Props = $props();
 
-	const isProcessing = $derived(disabled || loading || open);
 	const user = $derived($authStore.user);
+	let isPaymentProcessing = $state(false);
 
 	const handlePay = async () => {
 		// Проверяем авторизацию пользователя
@@ -41,6 +43,7 @@
 			return;
 		}
 
+		isPaymentProcessing = true;
 		try {
 			switch (configService.stripe.paymentMethod) {
 				case 'elements': {
@@ -69,18 +72,27 @@
 			}
 		} catch (exception) {
 			throw exception;
+		} finally {
+			isPaymentProcessing = false;
 		}
 	};
 </script>
 
 {#if mode === 'stepper'}
 	<!-- Small button mode for stepper -->
-	<Button size="xs" color={config.color} onclick={handlePay} disabled={isProcessing} loading={isProcessing}>
+	<Button
+		size="lg"
+		color={config.color}
+		onclick={handlePay}
+		disabled={disabled || loading || isPaymentProcessing || open}
+		loading={isPaymentProcessing}
+		class="whitespace-nowrap {className}"
+	>
 		{config.label}
 	</Button>
 {:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton name={config.label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={handlePay}>
+	<SpeedDialButton name={config.label} color={config.color} class={className} pill onclick={handlePay}>
 		<config.icon size="md" />
 	</SpeedDialButton>
 {/if}

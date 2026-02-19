@@ -7,13 +7,14 @@
 	const config = getActionConfig('download')!;
 
 	interface Props {
+		class?: string;
 		order: OrderResponseDto;
 		mode?: 'spd-button' | 'stepper';
 		loading?: boolean;
 		disabled?: boolean;
 	}
 
-	let { order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
+	let { class: className = '', order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
 
 	let isDownloading = $state(false);
 
@@ -45,17 +46,18 @@
 {#if mode === 'stepper'}
 	<!-- Small button mode for stepper -->
 	<Button
-		size="xs"
+		size="lg"
 		color={config.color}
 		onclick={handleDownload}
 		disabled={disabled || loading || isDownloading}
 		loading={isDownloading}
+		class="whitespace-nowrap {className}"
 	>
 		{config.label}
 	</Button>
 {:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton name={config.label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={handleDownload}>
+	<SpeedDialButton name={config.label} color={config.color} class={className} pill onclick={handleDownload}>
 		<config.icon size="md" />
 	</SpeedDialButton>
 {/if}

@@ -82,17 +82,13 @@
 				</NavUl>
 				<DarkMode class="text-lg mr-3" />
 				{#if isLoading}
-					<Button class="min-w-20 rounded-sm" color="primary" size="sm">
+					<Button class="min-w-20" color="primary">
 						<Spinner size="5" type="dots" class="fill-primary-50" />
 					</Button>
 				{:else if user}
-					<Button class="min-w-20 rounded-sm" disabled={isLoading} onclick={handleLogout} color="red" size="sm"
-						>Logout</Button
-					>
+					<Button class="min-w-20" disabled={isLoading} onclick={handleLogout} color="red">Logout</Button>
 				{:else}
-					<Button class="min-w-20 rounded-sm" disabled={isLoading} onclick={handleLogin} color="primary" size="sm"
-						>Login</Button
-					>
+					<Button class="min-w-20" disabled={isLoading} onclick={handleLogin} color="primary">Login</Button>
 				{/if}
 				<NavHamburger />
 			</div>

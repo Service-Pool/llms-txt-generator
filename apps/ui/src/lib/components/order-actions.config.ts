@@ -29,7 +29,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		id: 'calculate',
 		icon: RefreshOutline,
 		label: 'Set Model',
-		labelAlternative: 'Change Model',
+		labelAlternative: 'Update Model',
 		description: 'Select preferable AI Model',
 		color: 'purple',
 		cardBgClass: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',

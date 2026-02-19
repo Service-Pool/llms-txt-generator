@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { type OrderResponseDto } from '@api/shared';
 	import { ordersService } from '$lib/services/orders.service';
-	import OrderCard from './OrderCard.svelte';
-	import OrderActions from './actions/_OrderActions.svelte';
-	import DeleteAction from './actions/DeleteAction.svelte';
-	import OrderStats from './OrderStats.svelte';
-	import CalculateModal from './modals/CalculateModal.svelte';
-	import StripeElementsModal from './modals/StripeElementsModal.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { type OrderResponseDto, OrderStatus } from '@api/shared';
+	import CalculateModal from './modals/CalculateModal.svelte';
+	import DeleteAction from './actions/DeleteAction.svelte';
+	import OrderActions from './actions/_OrderActions.svelte';
+	import OrderCard from './OrderCard.svelte';
+	import OrderStats from './OrderStats.svelte';
+	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
+	import StripeElementsModal from './modals/StripeElementsModal.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -50,6 +51,19 @@
 			bind:paymentClientSecret
 			bind:paymentPublishableKey
 		/>
+
+		<!-- Progress Bar for Active Generations -->
+		{#if order.attributes.status === OrderStatus.PROCESSING}
+			<div class="mb-4">
+				<ProgressBar
+					label="URLs"
+					current={order.attributes.processedUrls}
+					total={order.attributes.totalUrls!}
+					size="h-1.5"
+					showNumbers={true}
+				/>
+			</div>
+		{/if}
 
 		<!-- Stats Section -->
 		<OrderStats

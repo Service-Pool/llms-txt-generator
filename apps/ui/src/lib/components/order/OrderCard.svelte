@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { Card, Badge } from 'flowbite-svelte';
-	import { formatNumber } from '$lib/utils/number-format';
-	import { type OrderResponseDto, OrderStatus } from '@api/shared';
-	import OrderStatusBadge from './OrderStatusBadge.svelte';
-	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
-	import { EditOutline } from 'flowbite-svelte-icons';
 	import { configService } from '$lib/services/config.service';
+	import { EditOutline } from 'flowbite-svelte-icons';
+	import { formatNumber } from '$lib/utils/number-format';
+	import { type OrderResponseDto } from '@api/shared';
+	import OrderStatusBadge from './OrderStatusBadge.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -34,7 +33,7 @@
 	});
 </script>
 
-<Card class="max-w-none p-4 relative {className}">
+<Card class="max-w-none p-4 pt-6 relative {className}">
 	<div class="flex flex-wrap items-start justify-between gap-3">
 		<!-- Header -->
 		<div class="flex-1">
@@ -46,7 +45,7 @@
 				{#if showEditLink}
 					<a
 						href={configService.routes.orderById(order.attributes.id)}
-						class="inline-flex items-center transition-scale duration-50 hover:scale-105"
+						class="inline-flex items-center transition-transform duration-200 hover:translate-x-0.5"
 						title="Open order details"
 						aria-label="Open order details"
 					>
@@ -79,19 +78,6 @@
 			{/if}
 		{/each}
 	</div>
-
-	<!-- Progress Bar for Active Generations -->
-	{#if order.attributes.status === OrderStatus.PROCESSING}
-		<div class="mt-3">
-			<ProgressBar
-				label="URLs"
-				current={order.attributes.processedUrls}
-				total={order.attributes.totalUrls!}
-				size="h-1.5"
-				showNumbers={true}
-			/>
-		</div>
-	{/if}
 
 	<!-- Content slot -->
 	{#if children}

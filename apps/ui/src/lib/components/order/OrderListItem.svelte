@@ -1,15 +1,18 @@
 <script lang="ts">
-	import { slide, fly } from 'svelte/transition';
+	import { goto } from '$app/navigation';
 	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger } from 'flowbite-svelte';
 	import { ChevronDownOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { type OrderResponseDto } from '@api/shared';
+	import { EditOutline } from 'flowbite-svelte-icons';
+	import { configService } from '$lib/services/config.service';
 	import { ordersService } from '$lib/services/orders.service';
-	import OrderCard from './OrderCard.svelte';
-	import OrderActions from './actions/_OrderActions.svelte';
-	import OrderStats from './OrderStats.svelte';
-	import CalculateModal from './modals/CalculateModal.svelte';
-	import StripeElementsModal from './modals/StripeElementsModal.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { slide, fly } from 'svelte/transition';
+	import { type OrderResponseDto } from '@api/shared';
+	import CalculateModal from './modals/CalculateModal.svelte';
+	import OrderActions from './actions/_OrderActions.svelte';
+	import OrderCard from './OrderCard.svelte';
+	import OrderStats from './OrderStats.svelte';
+	import StripeElementsModal from './modals/StripeElementsModal.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -61,14 +64,14 @@
 	};
 </script>
 
-<OrderCard {order}>
+<OrderCard {order} showEditLink={false}>
 	{#snippet headerActions()}
 		<!-- Speed Dial Actions -->
 		{#if hasAvailableActions}
 			<div class="relative">
 				<SpeedDialTrigger
 					color="light"
-					class="p-1 w-8 h-8"
+					class="p-1 w-8 h-8 rounded-full"
 					onmouseenter={() => (speedDialHover = true)}
 					onmouseleave={() => (speedDialHover = false)}
 				>
@@ -108,6 +111,16 @@
 			onclick={handleToggle}
 		>
 			<ChevronDownOutline size="sm" />
+		</Button>
+
+		<!-- Open order Button -->
+		<Button
+			size="xs"
+			color="light"
+			class="rounded-full p-1 w-8 h-8"
+			onclick={() => goto(configService.routes.orderById(order.attributes.id))}
+		>
+			<EditOutline size="sm" />
 		</Button>
 	{/snippet}
 

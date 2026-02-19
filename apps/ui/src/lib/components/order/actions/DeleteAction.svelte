@@ -7,13 +7,14 @@
 	const config = getActionConfig('delete')!;
 
 	interface Props {
+		class?: string;
 		order: OrderResponseDto;
 		mode?: 'spd-button' | 'stepper';
 		loading?: boolean;
 		disabled?: boolean;
 	}
 
-	let { order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
+	let { class: className = '', order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
 
 	let isDeleting = $state(false);
 
@@ -45,12 +46,13 @@
 		onclick={handleDelete}
 		disabled={disabled || loading || isDeleting}
 		loading={isDeleting}
+		class="whitespace-nowrap {className}"
 	>
 		{config.label}
 	</Button>
 {:else if mode === 'spd-button'}
 	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton name={config.label} color={config.color} class="w-10 h-10 shadow-md" pill onclick={handleDelete}>
+	<SpeedDialButton name={config.label} color={config.color} class={className} pill onclick={handleDelete}>
 		<config.icon size="md" />
 	</SpeedDialButton>
 {/if}

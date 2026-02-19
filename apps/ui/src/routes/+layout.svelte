@@ -16,6 +16,9 @@
 	const theme = {
 		card: {
 			base: 'shadow-none rounded-lg'
+		},
+		button: {
+			base: 'shadow-none rounded-sm'
 		}
 	};
 	const THEME_PREFERENCE_KEY = 'THEME_PREFERENCE_KEY';
