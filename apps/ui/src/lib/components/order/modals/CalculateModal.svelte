@@ -127,9 +127,9 @@
 	{/if}
 
 	{#snippet footer()}
+		<Button type="submit" value="cancel" color="alternative" class="ml-auto">Cancel</Button>
 		<Button type="submit" value="calculate" disabled={!selectedModelId} loading={isCalculating} color={config.color}>
 			{config.label}
 		</Button>
-		<Button type="submit" value="cancel" color="alternative">Cancel</Button>
 	{/snippet}
 </Modal>

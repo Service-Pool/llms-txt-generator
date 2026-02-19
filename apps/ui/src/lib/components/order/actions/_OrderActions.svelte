@@ -2,7 +2,7 @@
 	import { ordersService } from '$lib/services/orders.service';
 	import { OrderStatus, type OrderResponseDto } from '@api/shared';
 	import { DetailedStepper, Button, Card, P } from 'flowbite-svelte';
-	import { ChevronLeftOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
+	import { ChevronLeftOutline, ChevronRightOutline, DollarOutline } from 'flowbite-svelte-icons';
 	import CalculateAction from './CalculateAction.svelte';
 	import PaymentAction from './PaymentAction.svelte';
 	import RunAction from './RunAction.svelte';
@@ -89,15 +89,17 @@
 
 {#if mode === 'stepper'}
 	<!-- Stepper Mode -->
-	<div class={className}>
+	<div class="{className} order-action-stepper">
 		<!-- Stepper -->
 		<Card class="px-4 py-3 max-w-none border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-			<DetailedStepper class="justify-between" {steps} bind:current />
+			<DetailedStepper class="justify-between" {steps} showCheckmarkForCompleted={false} bind:current />
 		</Card>
 
 		<!-- Action Buttons - ОДНА кнопка для текущего шага -->
 		{#if currentStepActionId}
-			<Card class="max-w-none mt-2 p-1">
+			<Card
+				class="max-w-none mt-2 p-1 bg-[linear-gradient(rgba(255,255,255,0.9),rgba(255,255,255,0.9)),url('/pattern.svg')] dark:bg-[linear-gradient(rgba(16,24,40,0.6),rgba(16,24,40,0.6)),url('/pattern.svg')] bg-contain bg-repeat"
+			>
 				<div class="flex justify-center gap-2 mt-14">
 					{#if currentStepActionId === 'calculate'}
 						<CalculateAction
@@ -185,3 +187,16 @@
 		{/if}
 	{/each}
 {/if}
+
+<style>
+	@reference "tailwindcss";
+
+	/* DetailedStepper - override primary colors to purple */
+	.order-action-stepper :global(span.border-primary-600.bg-primary-600) {
+		@apply border-slate-800 bg-slate-800;
+	}
+
+	:global(.dark) .order-action-stepper :global(span.dark\:border-primary-500.dark\:bg-primary-500) {
+		@apply border-sky-700 bg-sky-700;
+	}
+</style>

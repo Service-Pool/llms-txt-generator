@@ -8,8 +8,10 @@ import {
 } from 'flowbite-svelte-icons';
 import { HateoasAction } from '@api/shared';
 import type { Component } from 'svelte';
+import { button } from 'flowbite-svelte';
+import type { VariantProps } from 'tailwind-variants';
 
-type ButtonColor = 'purple' | 'green' | 'blue' | 'red' | 'yellow' | 'indigo' | 'gray';
+type ButtonColor = NonNullable<VariantProps<typeof button>['color']>;
 
 interface ActionButtonConfig {
 	id: string;
@@ -18,8 +20,6 @@ interface ActionButtonConfig {
 	labelAlternative?: string;
 	description?: string;
 	color: ButtonColor;
-	cardBgClass?: string;
-	iconColorClass?: string;
 	hateoasActions: HateoasAction[];
 	enabled?: boolean; // Default: true. Set to false to disable action on frontend
 }
@@ -32,8 +32,6 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		labelAlternative: 'Update Model',
 		description: 'Select preferable AI Model',
 		color: 'purple',
-		cardBgClass: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
-		iconColorClass: 'text-purple-600 dark:text-purple-400',
 		hateoasActions: [HateoasAction.CALCULATE],
 		enabled: true
 	},
@@ -43,8 +41,6 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		label: 'Start',
 		description: 'Start order processing',
 		color: 'green',
-		cardBgClass: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-		iconColorClass: 'text-green-600 dark:text-green-400',
 		hateoasActions: [HateoasAction.RUN],
 		enabled: true
 	},
@@ -54,8 +50,6 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		label: 'Pay Now',
 		description: 'Complete payment to start processing',
 		color: 'blue',
-		cardBgClass: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-		iconColorClass: 'text-blue-600 dark:text-blue-400',
 		hateoasActions: [HateoasAction.CHECKOUT, HateoasAction.PAYMENT_INTENT],
 		enabled: true
 	},
@@ -64,9 +58,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		icon: DownloadSolid,
 		label: 'Download',
 		description: 'Download generated content',
-		color: 'green',
-		cardBgClass: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-		iconColorClass: 'text-green-600 dark:text-green-400',
+		color: 'indigo',
 		hateoasActions: [HateoasAction.DOWNLOAD],
 		enabled: true
 	},
@@ -76,8 +68,6 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		label: 'Refund',
 		description: 'Request refund for failed order',
 		color: 'red',
-		cardBgClass: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-		iconColorClass: 'text-red-600 dark:text-red-400',
 		hateoasActions: [HateoasAction.REFUND],
 		enabled: true
 	},
@@ -87,8 +77,6 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		label: 'Delete',
 		description: 'Delete this order',
 		color: 'red',
-		cardBgClass: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-		iconColorClass: 'text-red-600 dark:text-red-400',
 		hateoasActions: [HateoasAction.DELETE],
 		enabled: true
 	}
