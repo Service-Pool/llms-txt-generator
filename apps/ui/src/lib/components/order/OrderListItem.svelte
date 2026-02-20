@@ -64,7 +64,7 @@
 	};
 </script>
 
-<OrderCard {order} showEditLink={false}>
+<OrderCard {order} showEditLink={false} class="p-4 pt-6">
 	{#snippet headerActions()}
 		<!-- Speed Dial Actions -->
 		{#if hasAvailableActions}

@@ -63,13 +63,13 @@
 <ThemeProvider {theme}>
 	<div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
 		{#if apiPage}
-			<Navigation sticky />
+			<Navigation sticky fullWidth={true} class="px-5" />
 			<main class="flex-1 w-full">
 				{@render children()}
 			</main>
 		{:else}
-			<Navigation />
-			<main class="container flex-1 w-full mx-auto px-5 py-8">
+			<Navigation sticky class="px-2" />
+			<main class="container flex-1 w-full mx-auto px-2 py-8">
 				{@render children()}
 			</main>
 		{/if}

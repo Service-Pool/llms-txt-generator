@@ -33,12 +33,12 @@
 	});
 </script>
 
-<Card class="max-w-none p-4 pt-6 relative {className}">
-	<div class="flex flex-wrap items-start justify-between gap-3">
+<Card class="max-w-none relative {className}">
+	<div class="flex flex-wrap items-start justify-between gap-6">
 		<!-- Header -->
 		<div class="flex-1">
 			<!-- Hostname with Status -->
-			<div class="flex items-center gap-2 mb-2 flex-wrap">
+			<div class="flex items-center gap-2 mb-2">
 				<h3 class="text-sm font-semibold truncate">
 					<Badge color="gray" class="px-2 mr-1">#{order.attributes.id}</Badge>{order.attributes.hostname}
 				</h3>
@@ -59,6 +59,16 @@
 					<OrderStatusBadge status={order.attributes.status} />
 				{/if}
 			</div>
+
+			<!-- Provider & Metadata in one line -->
+			<div class="flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs opacity-75">
+				{#each metadataItems as item, i}
+					<span>{item}</span>
+					{#if i < metadataItems.length - 1}
+						<span>•</span>
+					{/if}
+				{/each}
+			</div>
 		</div>
 
 		<!-- Header Actions slot -->
@@ -67,16 +77,6 @@
 				{@render headerActions()}
 			</div>
 		{/if}
-	</div>
-
-	<!-- Provider & Metadata in one line -->
-	<div class="flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs opacity-75">
-		{#each metadataItems as item, i}
-			<span>{item}</span>
-			{#if i < metadataItems.length - 1}
-				<span>•</span>
-			{/if}
-		{/each}
 	</div>
 
 	<!-- Content slot -->

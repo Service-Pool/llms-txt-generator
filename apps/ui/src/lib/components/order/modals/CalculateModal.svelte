@@ -64,19 +64,10 @@
 			if (onSuccess) {
 				onSuccess();
 			}
-
-			handleClose();
 		} catch (exception) {
 			throw exception;
 		} finally {
 			isCalculating = false;
-		}
-	};
-
-	const handleAction = ({ action }: { action: string }) => {
-		if (action === 'calculate') {
-			handleCalculate();
-		} else {
 			handleClose();
 		}
 	};
@@ -92,15 +83,14 @@
 </script>
 
 <Modal
-	form
 	permanent={isCalculating}
-	title="{label} - Select AI Model{isLoadingModels ? ' - Loading...' : ''}"
+	title="{label}{isLoadingModels ? ' - Loading...' : ''}"
 	size="lg"
 	bind:open
-	onaction={handleAction}
 	onclose={handleClose}
 	dismissable={!isCalculating}
 	outsideclose={!isCalculating}
+	bodyClass="space-y-4"
 	class="max-w-[min(1024px,calc(100vw-2rem))]!"
 >
 	{#if isLoadingModels}
@@ -127,8 +117,8 @@
 	{/if}
 
 	{#snippet footer()}
-		<Button type="submit" value="cancel" color="alternative" class="ml-auto">Cancel</Button>
-		<Button type="submit" value="calculate" disabled={!selectedModelId} loading={isCalculating} color={config.color}>
+		<Button onclick={handleClose} color="alternative" class="ml-auto">Cancel</Button>
+		<Button onclick={handleCalculate} disabled={!selectedModelId} loading={isCalculating} color={config.color}>
 			{config.label}
 		</Button>
 	{/snippet}

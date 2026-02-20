@@ -36,7 +36,7 @@
 	};
 </script>
 
-<OrderCard {order} showEditLink={false}>
+<OrderCard {order} showEditLink={false} class="border-none dark:border-none bg-transparent dark:bg-transparent">
 	{#snippet headerActions()}
 		<DeleteAction {order} mode="stepper" disabled={!canDelete} />
 	{/snippet}

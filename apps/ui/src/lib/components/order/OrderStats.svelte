@@ -90,7 +90,7 @@
 </script>
 
 <!-- Info -->
-<div class="space-y-4">
+<div class="space-y-2">
 	<!-- Output -->
 	{#if hasDownloadAction}
 		<div class={className}>

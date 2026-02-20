@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PaginationNav, Dropdown, DropdownItem, Button } from 'flowbite-svelte';
+	import { PaginationNav, Pagination, Dropdown, DropdownItem, Button } from 'flowbite-svelte';
 	import { ChevronLeftOutline, ChevronRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
 
 	interface Props {
@@ -18,14 +18,26 @@
 	const handlePageChange = (newPage: number) => {
 		onPageChange(newPage);
 	};
+
+	const previous = () => {
+		if (page > 1) {
+			onPageChange(page - 1);
+		}
+	};
+
+	const next = () => {
+		if (page < totalPages) {
+			onPageChange(page + 1);
+		}
+	};
 </script>
 
-<div class="flex items-center justify-between">
+<div class="flex items-center justify-between flex-wrap gap-4">
 	<div class="text-sm">
 		<span class="text-sm opacity-75 whitespace-nowrap">Page {page} of {totalPages} ({total} total)</span>
 	</div>
 
-	<div class="flex items-center gap-4">
+	<div class="flex flex-1 items-center gap-4">
 		<!-- Items per page dropdown -->
 		<div class="flex items-center gap-2">
 			<span class="text-sm opacity-75 whitespace-nowrap">Per page:</span>
@@ -45,16 +57,36 @@
 			</Dropdown>
 		</div>
 
-		<!-- Navigation -->
-		<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="default">
-			{#snippet prevContent()}
-				<span class="sr-only">Previous</span>
-				<ChevronLeftOutline size="md" />
-			{/snippet}
-			{#snippet nextContent()}
-				<span class="sr-only">Next</span>
-				<ChevronRightOutline size="md" />
-			{/snippet}
-		</PaginationNav>
+		<!-- Desktop Navigation -->
+		<div class="hidden md:flex">
+			<PaginationNav currentPage={page} {totalPages} onPageChange={handlePageChange} size="default">
+				{#snippet prevContent()}
+					<span class="sr-only">Previous</span>
+					<ChevronLeftOutline size="md" />
+				{/snippet}
+				{#snippet nextContent()}
+					<span class="sr-only">Next</span>
+					<ChevronRightOutline size="md" />
+				{/snippet}
+			</PaginationNav>
+		</div>
+
+		<!-- Mobile Navigation -->
+		<div class="flex md:hidden">
+			<Pagination {previous} {next}>
+				{#snippet prevContent()}
+					<div class="flex items-center gap-1">
+						<span class="sr-only">Previous</span>
+						<ChevronLeftOutline size="sm" />
+					</div>
+				{/snippet}
+				{#snippet nextContent()}
+					<div class="flex items-center gap-1">
+						<span class="sr-only">Next</span>
+						<ChevronRightOutline size="sm" />
+					</div>
+				{/snippet}
+			</Pagination>
+		</div>
 	</div>
 </div>

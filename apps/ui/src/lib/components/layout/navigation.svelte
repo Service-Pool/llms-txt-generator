@@ -12,10 +12,11 @@
 	interface Props {
 		class?: string;
 		fluid?: boolean;
+		fullWidth?: boolean;
 		sticky?: boolean;
 	}
 
-	let { class: className = '', fluid = true, sticky = false }: Props = $props();
+	let { class: className = '', fluid = true, fullWidth = false, sticky = false }: Props = $props();
 
 	const navItems = [
 		// { href: configService.routes.home, label: 'Home' },
@@ -28,6 +29,22 @@
 	let currentPath = $derived(page.url.pathname);
 	let user = $derived($authStore.user);
 	let isLoading = $derived($authStore.isLoading);
+
+	let isStuck = $state(false);
+
+	$effect(() => {
+		if (!sticky) return;
+
+		const handleScroll = () => {
+			isStuck = window.scrollY > 20;
+		};
+
+		// Проверяем сразу при монтировании
+		handleScroll();
+
+		window.addEventListener('scroll', handleScroll, { passive: true });
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
 
 	async function handleLogin() {
 		goto(configService.routes.auth.request);
@@ -47,13 +64,16 @@
 </script>
 
 <header
-	class="z-50 w-full bg-gray-50 dark:bg-gray-900 {className}"
+	class="z-50 w-full bg-gray-50 dark:bg-gray-900 border-b transition-all duration-300 {className}"
 	class:sticky
 	class:top-0={sticky}
-	class:shadow-sm={sticky}
-	class:dark:shadow-md={sticky}
+	class:shadow-sm={isStuck}
+	class:dark:shadow-md={isStuck}
+	class:border-gray-200={isStuck}
+	class:dark:border-gray-700={isStuck}
+	class:border-transparent={!isStuck}
 >
-	<div class="mx-auto px-5 border-gray-200 dark:border-gray-700" class:container={!sticky} class:border-b={sticky}>
+	<div class="mx-auto" class:container={!fullWidth}>
 		<Navbar {fluid} class="sm:px-0 px-0">
 			<NavBrand href="/" class="mb-1">
 				<!-- светлая -->
@@ -67,7 +87,7 @@
 				</svg>
 
 				<span class="self-center whitespace-nowrap hidden text-sm sm:inline font-semibold dark:text-white">
-					LLMs.txt Generator
+					LLM Ready
 				</span>
 			</NavBrand>
 			<div class="flex items-center mb-1">
