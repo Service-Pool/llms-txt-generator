@@ -1,41 +1,50 @@
 <script lang="ts">
+	import type { OrderResponseDto } from '@api/shared';
 	import { goto } from '$app/navigation';
-	import { Accordion, AccordionItem, Button, SpeedDial, SpeedDialTrigger } from 'flowbite-svelte';
-	import { ChevronDownOutline, DotsVerticalOutline } from 'flowbite-svelte-icons';
-	import { EditOutline } from 'flowbite-svelte-icons';
+	import { onMount } from 'svelte';
+	import { SpeedDial, SpeedDialTrigger, Button } from 'flowbite-svelte';
+	import { DotsVerticalOutline, ChevronDownOutline, ArrowUpRightFromSquareOutline } from 'flowbite-svelte-icons';
+	import { fly } from 'svelte/transition';
 	import { configService } from '$lib/services/config.service';
-	import { ordersService } from '$lib/services/orders.service';
+	import {
+		OrderListItemLayout,
+		ActionsSpeedDial,
+		ActionSpeedDialButton,
+		OrderBadge,
+		OrderStatus,
+		OrderMeta,
+		OrderOutput,
+		OrderErrors,
+		OrderInfo,
+		StripeElementsModal,
+		CalculateModal
+	} from '$lib/components/order';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
-	import { slide, fly } from 'svelte/transition';
-	import { type OrderResponseDto } from '@api/shared';
-	import CalculateModal from './modals/CalculateModal.svelte';
-	import OrderActions from './actions/_OrderActions.svelte';
-	import OrderCard from './OrderCard.svelte';
-	import OrderStats from './OrderStats.svelte';
-	import StripeElementsModal from './modals/StripeElementsModal.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
-		isOpen?: boolean;
+		isExpanded?: boolean;
 		onToggle?: () => void;
 	}
 
-	let { order, isOpen = false, onToggle }: Props = $props();
+	let { order, isExpanded = false, onToggle }: Props = $props();
 
 	let speedDialHover = $state(false);
-	let calculateModalOpen = $state(false);
+	let isMobile = $state(false);
+
+	// Payment modal state
 	let paymentModalOpen = $state(false);
 	let paymentClientSecret = $state<string | null>(null);
 	let paymentPublishableKey = $state<string | null>(null);
-	let actionInProgress = $state<string | null>(null);
-	let isMobile = $state(false);
 
-	const hasAvailableActions = $derived(ordersService.getEnabledActions(order).length > 0);
+	// Calculate modal state
+	let calculateModalOpen = $state(false);
+
 	const speedDialPlacement = $derived(isMobile ? 'bottom' : 'left');
 	const tooltipPlacement = $derived(isMobile ? 'left' : 'top');
 
-	$effect(() => {
-		const mediaQuery = window.matchMedia('(max-width: 768px)');
+	onMount(() => {
+		const mediaQuery = window.matchMedia('(max-width: 640px)');
 		isMobile = mediaQuery.matches;
 
 		const handler = (e: MediaQueryListEvent) => {
@@ -45,122 +54,116 @@
 		mediaQuery.addEventListener('change', handler);
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
-
-	const handlePaymentSuccess = async () => {
-		paymentModalOpen = false;
-		await ordersStore.refreshOrder(order.attributes.id);
-	};
-
-	const handlePaymentClose = () => {
-		paymentModalOpen = false;
-		paymentClientSecret = null;
-		paymentPublishableKey = null;
-	};
-
-	const handleToggle = () => {
-		if (onToggle) {
-			onToggle();
-		}
-	};
 </script>
 
-<OrderCard {order} showEditLink={false} class="p-4 pt-6">
-	{#snippet headerActions()}
-		<!-- Speed Dial Actions -->
-		{#if hasAvailableActions}
-			<div class="relative">
-				<SpeedDialTrigger
-					color="light"
-					class="p-1 w-8 h-8 rounded-full"
-					onmouseenter={() => (speedDialHover = true)}
-					onmouseleave={() => (speedDialHover = false)}
-				>
-					{#snippet icon()}
-						<DotsVerticalOutline
-							size="sm"
-							class="transition-transform duration-200 {speedDialHover ? 'scale-120' : ''}"
-						/>
-					{/snippet}
-				</SpeedDialTrigger>
-				<SpeedDial
-					trigger="hover"
-					placement={speedDialPlacement}
-					tooltip={tooltipPlacement}
-					pill={false}
-					transition={fly}
-					transitionParams={{ duration: 100 }}
-				>
-					<OrderActions
-						{order}
-						mode="spd-button"
-						loadingAction={actionInProgress}
-						bind:calculateModalOpen
-						bind:paymentModalOpen
-						bind:paymentClientSecret
-						bind:paymentPublishableKey
-					/>
-				</SpeedDial>
-			</div>
-		{/if}
+<!--
+  OrderListItem
 
-		<!-- Expand Card Button -->
-		<Button
-			size="xs"
+  Композиция OrderListItemLayout со slots.
+  Использует ActionsSpeedDial для действий.
+-->
+<OrderListItemLayout class="p-2 pt-4 space-y-4" {isExpanded}>
+	{#snippet header()}
+		<div class="flex items-center flex-wrap gap-1">
+			<h3 class="text-sm font-semibold truncate flex items-center gap-2">
+				<OrderBadge {order} class="mr-1" />
+				{order.attributes.hostname}
+			</h3>
+			<OrderStatus status={order.attributes.status} />
+		</div>
+	{/snippet}
+
+	{#snippet meta()}
+		<OrderMeta {order} />
+	{/snippet}
+
+	{#snippet actionsTrigger()}
+		<!-- Actions Button -->
+		<SpeedDialTrigger
 			color="light"
-			class="rounded-full p-1 w-8 h-8 {isOpen ? 'rotate-180' : ''} transition-transform duration-200"
-			onclick={handleToggle}
+			class="p-1 w-6 h-6 border-none"
+			onmouseenter={() => (speedDialHover = true)}
+			onmouseleave={() => (speedDialHover = false)}
 		>
-			<ChevronDownOutline size="sm" />
+			{#snippet icon()}
+				<DotsVerticalOutline size="sm" class="transition-transform duration-200 {speedDialHover ? 'scale-120' : ''}" />
+			{/snippet}
+		</SpeedDialTrigger>
+		<SpeedDial
+			trigger="hover"
+			placement={speedDialPlacement}
+			tooltip={tooltipPlacement}
+			pill={false}
+			transition={fly}
+			transitionParams={{ duration: 100 }}
+		>
+			<ActionsSpeedDial
+				{order}
+				renderer={ActionSpeedDialButton}
+				class="w-9 h-9 shadow-md whitespace-nowrap rounded"
+				onOpenPaymentModal={async (clientSecret, publishableKey) => {
+					paymentClientSecret = clientSecret;
+					paymentPublishableKey = publishableKey;
+					paymentModalOpen = true;
+					await ordersStore.refreshOrder(order.attributes.id);
+				}}
+				onOpenCalculateModal={() => {
+					calculateModalOpen = true;
+				}}
+			/>
+		</SpeedDial>
+
+		<!-- Collapse/Expand Button -->
+		<Button color="light" class="p-1 w-6 h-6 border-none" onclick={onToggle}>
+			<ChevronDownOutline size="md" class="{isExpanded ? 'rotate-180' : ''} transition-transform duration-200" />
 		</Button>
 
-		<!-- Open order Button -->
+		<!-- Open Order Details Page Button -->
 		<Button
-			size="xs"
 			color="light"
-			class="rounded-full p-1 w-8 h-8"
+			class="p-1 w-6 h-6 border-none"
 			onclick={() => goto(configService.routes.orderById(order.attributes.id))}
 		>
-			<EditOutline size="sm" />
+			<ArrowUpRightFromSquareOutline size="sm" />
 		</Button>
 	{/snippet}
 
-	{#snippet children()}
-		<!-- Accordion for Details -->
-		<Accordion flush>
-			<AccordionItem
-				open={isOpen}
-				transitionType={slide}
-				transitionParams={{ duration: 100 }}
-				classes={{
-					button: 'hidden',
-					content: 'border-b-0 py-0',
-					active: 'bg-transparent border-t border-gray-200 dark:border-gray-700 pt-4',
-					inactive: 'border-t border-gray-200 dark:border-gray-700 hidden'
-				}}
-			>
-				<div class="pb-2">
-					<!-- Stats Section -->
-					<OrderStats
-						{order}
-						class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
-					/>
-				</div>
-			</AccordionItem>
-		</Accordion>
+	{#snippet expandableContent()}
+		<div class="order-stats space-y-2">
+			<OrderOutput {order} class="stats-card" />
+			<OrderErrors {order} class="stats-card  text-xs space-y-2" />
+			<OrderInfo {order} class="stats-card" />
+		</div>
 	{/snippet}
-</OrderCard>
+</OrderListItemLayout>
 
-<!-- Calculate Modal -->
+<!-- Payment Modal - rendered outside SpeedDial -->
+{#if paymentModalOpen && paymentClientSecret && paymentPublishableKey}
+	<StripeElementsModal
+		bind:open={paymentModalOpen}
+		clientSecret={paymentClientSecret}
+		publishableKey={paymentPublishableKey}
+		onSuccess={async () => {
+			paymentModalOpen = false;
+			await ordersStore.refreshOrder(order.attributes.id);
+		}}
+		onClose={() => {
+			paymentModalOpen = false;
+		}}
+	/>
+{/if}
+
+<!-- Calculate Modal - rendered outside SpeedDial -->
 {#if calculateModalOpen}
 	<CalculateModal {order} bind:open={calculateModalOpen} />
 {/if}
 
-<!-- Payment Modal -->
-{#if paymentModalOpen && paymentClientSecret && paymentPublishableKey}
-	<StripeElementsModal
-		clientSecret={paymentClientSecret}
-		publishableKey={paymentPublishableKey}
-		onSuccess={handlePaymentSuccess}
-		onClose={handlePaymentClose}
-	/>
-{/if}
+<style>
+	@reference "tailwindcss";
+	.order-stats :global(.stats-card) {
+		@apply p-4 rounded border-none dark:border-none bg-gray-50;
+	}
+	:global(.dark) .order-stats :global(.stats-card) {
+		@apply bg-gray-900;
+	}
+</style>

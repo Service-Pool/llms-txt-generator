@@ -175,11 +175,11 @@
 					<div>
 						<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Select AI Model</h2>
 						<P space="tight" size="xs" height="6" class="text-gray-600 dark:text-gray-400 mb-1">
-							<span>Order <strong>#{createdOrder!.attributes.id}</strong></span>
+							<span>Order <strong>#{createdOrder?.attributes.id}</strong></span>
 							<span>•</span>
-							<span>{createdOrder!.attributes.totalUrls} URLs</span>
+							<span>{createdOrder?.attributes.totalUrls} URLs</span>
 							<span>•</span>
-							<span class="font-semibold">{createdOrder!.attributes.hostname}</span>
+							<span class="font-semibold">{createdOrder?.attributes.hostname}</span>
 						</P>
 
 						<P space="tight" size="xs" height="6" class="flex items-center gap-1">

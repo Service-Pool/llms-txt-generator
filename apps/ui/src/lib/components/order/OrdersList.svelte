@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
-	import OrderItemList from './OrderListItem.svelte';
+	import { OrderListItem } from '$lib/components/order';
 	import { FileLinesOutline } from 'flowbite-svelte-icons';
 	import { flip } from 'svelte/animate';
 	import { scale, fly } from 'svelte/transition';
@@ -19,6 +19,12 @@
 	};
 </script>
 
+<!--
+  OrdersList
+
+  Список заказов с анимациями.
+  Управляет состоянием открытого заказа (expand/collapse).
+-->
 <div class="space-y-4">
 	{#if items.length === 0}
 		<div class="text-center py-12 rounded-lg border-2 border-dashed">
@@ -33,9 +39,9 @@
 					in:scale={{ duration: 500, start: 0, easing: quintOut }}
 					out:fly={{ y: -50, duration: 200 }}
 				>
-					<OrderItemList
+					<OrderListItem
 						{order}
-						isOpen={openOrderId === order.attributes.id}
+						isExpanded={openOrderId === order.attributes.id}
 						onToggle={() => toggleOrder(order.attributes.id)}
 					/>
 				</div>

@@ -6,21 +6,27 @@
 	import { onMount, tick } from 'svelte';
 
 	interface Props {
+		open?: boolean;
 		clientSecret: string;
 		publishableKey: string;
 		onSuccess: () => void;
 		onClose: () => void;
 	}
 
-	let { clientSecret, publishableKey, onSuccess, onClose }: Props = $props();
+	let { open = $bindable(false), clientSecret, publishableKey, onSuccess, onClose }: Props = $props();
 
-	let isOpen = $state(true);
+	let isOpen = $state(false);
 	let stripe: Stripe | null = $state(null);
 	let elements: StripeElements | null = $state(null);
 	let isLoading = $state(true);
 	let isProcessing = $state(false);
 	let paymentElementContainer: HTMLDivElement | undefined = $state(undefined);
 	let paymentElement: any = null;
+
+	// Sync external open prop with internal isOpen
+	$effect(() => {
+		isOpen = open;
+	});
 
 	onMount(async () => {
 		stripe = await loadStripe(publishableKey);
@@ -70,6 +76,7 @@
 	const handleClose = () => {
 		if (!isProcessing) {
 			isOpen = false;
+			open = false;
 			onClose();
 		}
 	};

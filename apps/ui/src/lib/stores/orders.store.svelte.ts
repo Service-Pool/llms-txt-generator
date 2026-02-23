@@ -8,7 +8,22 @@ type OrdersBroadcastMessage = | { type: 'ORDER_CREATED'; order: OrderResponseDto
 
 /**
  * Orders Store - centralized state management for orders
- * All order mutations should go through this store to ensure reactivity
+ *
+ * All order mutations should go through this store to ensure reactivity.
+ *
+ * ⚠️ DOMAIN LOGIC:
+ * This store does NOT contain domain logic (transitions, stepper state, etc).
+ * For domain logic, use OrderStateMachine from $lib/domain/order.
+ *
+ * Example usage with OrderStateMachine:
+ * ```typescript
+ * import { ordersStore } from '$lib/stores/orders.store.svelte';
+ * import { OrderStateMachine } from '$lib/domain/order';
+ *
+ * const order = ordersStore.getById(123);
+ * const transitions = OrderStateMachine.getAvailableTransitions(order);
+ * const stepperState = OrderStateMachine.getStepperState(order);
+ * ```
  */
 class OrdersStore {
 	items = $state<OrderResponseDto[] | null>(null);

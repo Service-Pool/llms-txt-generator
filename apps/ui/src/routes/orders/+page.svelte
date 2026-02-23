@@ -6,7 +6,7 @@
 	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
-	import OrdersList from '$lib/components/order/OrdersList.svelte';
+	import { OrdersList } from '$lib/components/order';
 	import Pagination from '$lib/components/ui/pagination.svelte';
 
 	let error = $state<string[] | string | null>(null);

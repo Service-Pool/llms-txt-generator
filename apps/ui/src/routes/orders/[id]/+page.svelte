@@ -9,7 +9,7 @@
 	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
-	import OrderItemPage from '$lib/components/order/OrderDetails.svelte';
+	import { OrderDetails } from '$lib/components/order';
 
 	const orderId = $derived(Number(page.params.id));
 	const order = $derived(ordersStore.getById(orderId));
@@ -68,11 +68,11 @@
 	</Alert>
 {:else if order}
 	<div class="flex justify-between items-center mb-8">
-		<Heading tag="h2" class="mb-0">Order #{order.attributes.id}</Heading>
-		<Button href={configService.routes.orders} color="light" size="sm">
+		<Heading tag="h2" class="mb-0 whitespace-nowrap">Order #{order.attributes.id}</Heading>
+		<Button href={configService.routes.orders} color="light" size="sm" class="whitespace-nowrap">
 			<ArrowLeftOutline size="sm" class="me-2" />
 			Order List
 		</Button>
 	</div>
-	<OrderItemPage {order} />
+	<OrderDetails {order} />
 {/if}

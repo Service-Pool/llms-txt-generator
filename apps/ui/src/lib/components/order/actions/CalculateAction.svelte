@@ -1,47 +1,48 @@
 <script lang="ts">
-	import { Button, SpeedDialButton } from 'flowbite-svelte';
-	import type { OrderResponseDto, CreateOrderResponseDto } from '@api/shared';
-	import { getActionConfig } from '$lib/components/order-actions.config';
+	import type { TransitionDescriptorInterface, ActionRendererPropsInterface } from '$lib/domain/order';
+	import type { Component } from 'svelte';
 
 	interface Props {
+		transition: TransitionDescriptorInterface;
+		renderer: Component<ActionRendererPropsInterface>;
+		onOpenCalculateModal?: () => void;
 		class?: string;
-		order: OrderResponseDto | CreateOrderResponseDto;
-		open?: boolean;
-		mode?: 'spd-button' | 'stepper';
-		loading?: boolean;
 		disabled?: boolean;
+		loading?: boolean;
 	}
 
 	let {
+		transition,
+		renderer,
+		onOpenCalculateModal,
 		class: className = '',
-		order,
-		open = $bindable(false),
-		mode = 'stepper',
-		loading = false,
-		disabled = false
+		disabled = false,
+		loading = false
 	}: Props = $props();
 
-	const config = getActionConfig('calculate')!;
-	const label = $derived(
-		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? config.labelAlternative : config.label
-	);
+	const Renderer = $derived(renderer);
+
+	const handleClick = () => {
+		onOpenCalculateModal?.();
+	};
 </script>
 
-{#if mode === 'stepper'}
-	<!-- Small button mode for stepper -->
-	<Button
-		size="lg"
-		color={config.color}
-		onclick={() => (open = true)}
-		disabled={disabled || loading || open}
-		{loading}
-		class="whitespace-nowrap {className}"
-	>
-		{label}
-	</Button>
-{:else if mode === 'spd-button'}
-	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton name={label} color={config.color} class={className} pill onclick={() => (open = true)}>
-		<config.icon size="md" />
-	</SpeedDialButton>
-{/if}
+<!--
+  CalculateAction
+
+  ПРАВИЛА:
+  ✅ Управляет модалкой (открывает CalculateModal)
+  ✅ Рендерит переданный renderer с onclick
+  ✅ НЕ ПРОВЕРЯЕТ enabled (transition УЖЕ доступен из domain)
+  ✅ НЕ ОБРАЩАЕТСЯ к ordersService для проверок
+  ❌ НЕ знает о визуализации (это в renderer)
+  ❌ НЕ имеет mode prop (renderer передаётся снаружи)
+
+  Props:
+  - transition: TransitionDescriptor - описание действия (из domain)
+  - renderer: Component - компонент для отображения (ActionButton, ActionSpeedDialButton, etc)
+  - class: string - CSS classes для renderer
+  - disabled: boolean - состояние disabled
+  - loading: boolean - состояние loading
+-->
+<Renderer {transition} onclick={handleClick} class={className} {disabled} {loading} />

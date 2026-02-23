@@ -1,14 +1,25 @@
 <script lang="ts">
-	import { ordersService } from '$lib/services/orders.service';
-	import { ordersStore } from '$lib/stores/orders.store.svelte';
-	import { type OrderResponseDto, OrderStatus } from '@api/shared';
-	import CalculateModal from './modals/CalculateModal.svelte';
-	import DeleteAction from './actions/DeleteAction.svelte';
-	import OrderActions from './actions/_OrderActions.svelte';
-	import OrderCard from './OrderCard.svelte';
-	import OrderStats from './OrderStats.svelte';
+	import type { OrderResponseDto } from '@api/shared';
+	import { OrderStatus } from '@api/shared';
+	import {
+		OrderDetailsLayout,
+		OrderBadge,
+		OrderStatus as OrderStatusComponent,
+		OrderMeta,
+		OrderOutput,
+		OrderErrors,
+		OrderInfo,
+		OrderStepper,
+		ActionButton,
+		DeleteAction,
+		StripeElementsModal,
+		CalculateModal
+	} from '$lib/components/order';
+	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
+	import { getActionConfig } from '$lib/components/order-actions.config';
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
-	import StripeElementsModal from './modals/StripeElementsModal.svelte';
+	import { Heading } from 'flowbite-svelte';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -16,74 +27,110 @@
 
 	let { order }: Props = $props();
 
-	const enabledActions = $derived(ordersService.getEnabledActions(order));
-	const canDelete = $derived(enabledActions.some((a) => a.id === 'delete'));
+	// Get available transitions
+	const transitions = $derived(OrderStateMachine.getAvailableTransitions(order));
+	const deleteTransition = $derived(transitions.find((t) => t.id === StepActionIdEnum.Delete));
+	const deleteConfig = $derived(getActionConfig(StepActionIdEnum.Delete));
 
-	let calculateModalOpen = $state(false);
+	// Payment modal state
 	let paymentModalOpen = $state(false);
 	let paymentClientSecret = $state<string | null>(null);
 	let paymentPublishableKey = $state<string | null>(null);
 
-	const handlePaymentSuccess = async () => {
-		paymentModalOpen = false;
-		await ordersStore.refreshOrder(order.attributes.id);
-	};
-
-	const handlePaymentClose = () => {
-		paymentModalOpen = false;
-		paymentClientSecret = null;
-		paymentPublishableKey = null;
-	};
+	// Calculate modal state
+	let calculateModalOpen = $state(false);
 </script>
 
-<OrderCard {order} showEditLink={false} class="border-none dark:border-none bg-transparent dark:bg-transparent">
-	{#snippet headerActions()}
-		<DeleteAction {order} mode="stepper" disabled={!canDelete} />
+<!-- OrderDetails Композиция для детальной страницы заказа. -->
+<OrderDetailsLayout>
+	{#snippet header()}
+		<Heading tag="h2" class="text-xl flex flex-wrap items-center gap-2">
+			<OrderBadge {order} class="text-base" />
+			{order.attributes.hostname}
+			<OrderStatusComponent status={order.attributes.status} />
+		</Heading>
 	{/snippet}
-	{#snippet children()}
-		<!-- Actions Stepper -->
-		<OrderActions
-			{order}
-			mode="stepper"
-			class="mb-4"
-			bind:calculateModalOpen
-			bind:paymentModalOpen
-			bind:paymentClientSecret
-			bind:paymentPublishableKey
-		/>
 
-		<!-- Progress Bar for Active Generations -->
+	{#snippet meta()}
+		<OrderMeta {order} />
+	{/snippet}
+
+	{#snippet stepper()}
+		<OrderStepper
+			{order}
+			class="rounded border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 bg-[linear-gradient(rgba(255,255,255,0.9),rgba(255,255,255,0.9)),url('/pattern.svg')] dark:bg-[linear-gradient(rgba(16,24,40,0.6),rgba(16,24,40,0.6)),url('/pattern.svg')] bg-contain bg-repeat"
+			renderer={ActionButton}
+			onOpenPaymentModal={async (clientSecret, publishableKey) => {
+				paymentClientSecret = clientSecret;
+				paymentPublishableKey = publishableKey;
+				paymentModalOpen = true;
+				await ordersStore.refreshOrder(order.attributes.id);
+			}}
+			onOpenCalculateModal={() => {
+				calculateModalOpen = true;
+			}}
+		/>
+	{/snippet}
+
+	{#snippet progress()}
 		{#if order.attributes.status === OrderStatus.PROCESSING}
-			<div class="mb-4">
-				<ProgressBar
-					label="URLs"
-					current={order.attributes.processedUrls}
-					total={order.attributes.totalUrls!}
-					size="h-1.5"
-					showNumbers={true}
-				/>
-			</div>
+			<ProgressBar
+				label="URLs"
+				current={order.attributes.processedUrls}
+				total={order.attributes.totalUrls!}
+				size="h-1.5"
+				showNumbers={true}
+			/>
 		{/if}
-
-		<!-- Stats Section -->
-		<OrderStats
-			{order}
-			class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
-		/>
 	{/snippet}
-</OrderCard>
+
+	{#snippet stats()}
+		<div class="order-stats space-y-2">
+			<OrderOutput {order} class="stats-card" />
+			<OrderErrors {order} class="text-xs stats-card" />
+			<OrderInfo {order} class="stats-card" />
+		</div>
+	{/snippet}
+
+	{#snippet footer()}
+		<div class="flex justify-end">
+			<DeleteAction
+				{order}
+				transition={(deleteTransition || deleteConfig)!}
+				renderer={ActionButton}
+				disabled={!deleteTransition}
+			/>
+		</div>
+	{/snippet}
+</OrderDetailsLayout>
+
+<!-- Payment Modal -->
+{#if paymentModalOpen && paymentClientSecret && paymentPublishableKey}
+	<StripeElementsModal
+		bind:open={paymentModalOpen}
+		clientSecret={paymentClientSecret}
+		publishableKey={paymentPublishableKey}
+		onSuccess={async () => {
+			paymentModalOpen = false;
+			await ordersStore.refreshOrder(order.attributes.id);
+		}}
+		onClose={() => {
+			paymentModalOpen = false;
+		}}
+	/>
+{/if}
 
 <!-- Calculate Modal -->
 {#if calculateModalOpen}
 	<CalculateModal {order} bind:open={calculateModalOpen} />
 {/if}
 
-<!-- Payment Modal -->
-{#if paymentModalOpen && paymentClientSecret && paymentPublishableKey}
-	<StripeElementsModal
-		clientSecret={paymentClientSecret}
-		publishableKey={paymentPublishableKey}
-		onSuccess={handlePaymentSuccess}
-		onClose={handlePaymentClose}
-	/>
-{/if}
+<style>
+	@reference "tailwindcss";
+	.order-stats :global(.stats-card) {
+		@apply p-4 rounded border border-gray-200 bg-white;
+	}
+	:global(.dark) .order-stats :global(.stats-card) {
+		@apply border-gray-800 bg-gray-800;
+	}
+</style>

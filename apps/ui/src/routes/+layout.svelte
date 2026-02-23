@@ -63,19 +63,19 @@
 <ThemeProvider {theme}>
 	<div class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
 		{#if apiPage}
-			<Navigation sticky fullWidth={true} class="px-5" />
+			<Navigation sticky fullWidth={true} class="px-5 bg-gray-50 dark:bg-gray-900" />
 			<main class="flex-1 w-full">
 				{@render children()}
 			</main>
 		{:else}
-			<Navigation sticky class="px-2" />
+			<Navigation sticky class="px-2 bg-gray-50 dark:bg-gray-900" />
 			<main class="container flex-1 w-full mx-auto px-2 py-8">
 				{@render children()}
 			</main>
 		{/if}
 	</div>
 
-	<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+	<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
 		<div class="container mx-auto px-4">
 			<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
 		</div>

@@ -1,6 +1,5 @@
 import { HttpClient } from './api.service';
 import { configService } from './config.service';
-import { ORDER_ACTION_BUTTONS, type ActionButtonConfig } from '$lib/components/order-actions.config';
 import {
 	CreateOrderRequestDto,
 	CreateOrderResponseDto,
@@ -134,26 +133,6 @@ class OrdersService extends HttpClient {
 	getAvailableActions(order: OrderResponseDto): string[] {
 		if (!order._links) return [];
 		return Object.keys(order._links);
-	}
-
-	/**
-	 * Get enabled actions for order (checks both HATEOAS links and frontend config)
-	 */
-	getEnabledActions(order: OrderResponseDto): ActionButtonConfig[] {
-		if (!order._links) return [];
-
-		const availableActionIds = Object.keys(order._links);
-
-		return ORDER_ACTION_BUTTONS.filter((config) => {
-			// Check if any of the HATEOAS actions in the config are available
-			const hasHateoasAction = config.hateoasActions.some(action =>
-				availableActionIds.includes(action));
-
-			// Check if the action is enabled in the frontend config (default to true if not specified)
-			const isEnabledInConfig = config.enabled !== false;
-
-			return hasHateoasAction && isEnabledInConfig;
-		});
 	}
 }
 

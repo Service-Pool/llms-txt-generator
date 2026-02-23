@@ -10,11 +10,12 @@ import { HateoasAction } from '@api/shared';
 import type { Component } from 'svelte';
 import { button } from 'flowbite-svelte';
 import type { VariantProps } from 'tailwind-variants';
+import { StepActionIdEnum } from '$lib/domain/order/step-action-id.enum';
 
 type ButtonColor = NonNullable<VariantProps<typeof button>['color']>;
 
 interface ActionButtonConfig {
-	id: string;
+	id: StepActionIdEnum;
 	icon: Component;
 	label: string;
 	labelAlternative?: string;
@@ -26,7 +27,7 @@ interface ActionButtonConfig {
 
 const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 	{
-		id: 'calculate',
+		id: StepActionIdEnum.Calculate,
 		icon: RefreshOutline,
 		label: 'Set Model',
 		labelAlternative: 'Update Model',
@@ -36,7 +37,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		enabled: true
 	},
 	{
-		id: 'run',
+		id: StepActionIdEnum.Run,
 		icon: PlaySolid,
 		label: 'Start',
 		description: 'Start order processing',
@@ -45,7 +46,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		enabled: true
 	},
 	{
-		id: 'payment',
+		id: StepActionIdEnum.Payment,
 		icon: CreditCardSolid,
 		label: 'Pay Now',
 		description: 'Complete payment to start processing',
@@ -54,7 +55,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		enabled: true
 	},
 	{
-		id: 'download',
+		id: StepActionIdEnum.Download,
 		icon: DownloadSolid,
 		label: 'Download',
 		description: 'Download generated content',
@@ -63,7 +64,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		enabled: true
 	},
 	{
-		id: 'refund',
+		id: StepActionIdEnum.Refund,
 		icon: ExclamationCircleSolid,
 		label: 'Refund',
 		description: 'Request refund for failed order',
@@ -72,7 +73,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 		enabled: true
 	},
 	{
-		id: 'delete',
+		id: StepActionIdEnum.Delete,
 		icon: TrashBinSolid,
 		label: 'Delete',
 		description: 'Delete this order',
@@ -85,7 +86,7 @@ const ORDER_ACTION_BUTTONS: ActionButtonConfig[] = [
 /**
  * Get action config by id
  */
-function getActionConfig(id: string): ActionButtonConfig | undefined {
+function getActionConfig(id: StepActionIdEnum): ActionButtonConfig | undefined {
 	return ORDER_ACTION_BUTTONS.find(action => action.id === id);
 }
 

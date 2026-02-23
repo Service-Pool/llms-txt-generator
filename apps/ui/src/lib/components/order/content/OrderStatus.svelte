@@ -15,7 +15,13 @@
 	const config = $derived(ordersService.getStatusConfig(status));
 </script>
 
-<Badge color={config.color} {large} class="px-1.5 py-0.5 inline-flex items-center gap-1 {className}">
+<!--
+  OrderStatus
+
+  Content component - визуализация статуса заказа.
+  НЕ содержит бизнес-логику, только визуализацию.
+-->
+<Badge color={config.color} {large} class="px-1.5 py-0.5 inline-flex items-center gap-1 whitespace-nowrap {className}">
 	{config.label}
 	{#if icon}
 		{@render icon()}

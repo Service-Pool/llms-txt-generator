@@ -5,7 +5,6 @@
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AvailableAiModelDto } from '@api/shared';
-	import { getActionConfig } from '$lib/components/order-actions.config';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
@@ -16,9 +15,8 @@
 
 	let { order, open = $bindable(false), onSuccess, onClose }: Props = $props();
 
-	const config = getActionConfig('calculate')!;
 	const label = $derived(
-		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? config.labelAlternative : config.label
+		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? 'Update Model' : 'Set Model'
 	);
 
 	let availableModels = $state<AvailableAiModelDto[]>([]);
@@ -106,7 +104,7 @@
 			{availableModels}
 			{selectedModelId}
 			disabled={isCalculating}
-			onSelect={(modelId) => (selectedModelId = modelId)}
+			onSelect={(modelId: string) => (selectedModelId = modelId)}
 		/>
 
 		{#if order.attributes.totalUrls}
@@ -118,8 +116,8 @@
 
 	{#snippet footer()}
 		<Button onclick={handleClose} color="alternative" class="ml-auto">Cancel</Button>
-		<Button onclick={handleCalculate} disabled={!selectedModelId} loading={isCalculating} color={config.color}>
-			{config.label}
+		<Button onclick={handleCalculate} disabled={!selectedModelId} loading={isCalculating} color="purple">
+			{label}
 		</Button>
 	{/snippet}
 </Modal>

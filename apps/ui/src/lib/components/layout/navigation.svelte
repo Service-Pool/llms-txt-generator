@@ -64,7 +64,7 @@
 </script>
 
 <header
-	class="z-50 w-full bg-gray-50 dark:bg-gray-900 border-b transition-all duration-300 {className}"
+	class="z-50 w-full border-b transition-shadow duration-300 {className}"
 	class:sticky
 	class:top-0={sticky}
 	class:shadow-sm={isStuck}

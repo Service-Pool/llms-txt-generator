@@ -1,22 +1,23 @@
 <script lang="ts">
-	import { Button, SpeedDialButton } from 'flowbite-svelte';
-	import { getActionConfig } from '$lib/components/order-actions.config';
-	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import type { OrderResponseDto } from '@api/shared';
-
-	const config = getActionConfig('delete')!;
+	import type { TransitionDescriptorInterface, ActionRendererPropsInterface } from '$lib/domain/order';
+	import type { Component } from 'svelte';
+	import { ordersStore } from '$lib/stores/orders.store.svelte';
 
 	interface Props {
-		class?: string;
 		order: OrderResponseDto;
-		mode?: 'spd-button' | 'stepper';
-		loading?: boolean;
+		transition: TransitionDescriptorInterface;
+		renderer: Component<ActionRendererPropsInterface>;
+		class?: string;
 		disabled?: boolean;
+		loading?: boolean;
 	}
 
-	let { class: className = '', order, mode = 'stepper', loading = false, disabled = false }: Props = $props();
+	let { order, transition, renderer, class: className = '', disabled = false, loading = false }: Props = $props();
 
 	let isDeleting = $state(false);
+	const isLoading = $derived(loading || isDeleting);
+	const Renderer = $derived(renderer);
 
 	const handleDelete = async () => {
 		const confirmed = confirm(
@@ -31,6 +32,7 @@
 		try {
 			await ordersStore.deleteOrder(order.attributes.id);
 		} catch (exception) {
+			console.error('Delete failed:', exception);
 			throw exception;
 		} finally {
 			isDeleting = false;
@@ -38,21 +40,23 @@
 	};
 </script>
 
-{#if mode === 'stepper'}
-	<!-- Small button mode for stepper -->
-	<Button
-		size="xs"
-		color={config.color}
-		onclick={handleDelete}
-		disabled={disabled || loading || isDeleting}
-		loading={isDeleting}
-		class="whitespace-nowrap {className}"
-	>
-		{config.label}
-	</Button>
-{:else if mode === 'spd-button'}
-	<!-- Button mode for SpeedDial -->
-	<SpeedDialButton name={config.label} color={config.color} class={className} pill onclick={handleDelete}>
-		<config.icon size="md" />
-	</SpeedDialButton>
-{/if}
+<!--
+  DeleteAction
+
+  ПРАВИЛА:
+  ✅ Удаляет заказ через store (ordersStore.deleteOrder)
+  ✅ Показывает confirm dialog перед удалением
+  ✅ Рендерит переданный renderer с onclick
+  ✅ НЕ ПРОВЕРЯЕТ enabled (transition УЖЕ доступен из domain)
+  ❌ НЕ знает о визуализации (это в renderer)
+  ❌ НЕ имеет mode prop (renderer передаётся снаружи)
+
+  Props:
+  - order: OrderResponseDto - данные заказа
+  - transition: TransitionDescriptor - описание действия (из domain)
+  - renderer: Component - компонент для отображения
+  - class: string - CSS classes для renderer
+  - disabled: boolean - состояние disabled
+  - loading: boolean - состояние loading (external)
+-->
+<Renderer {transition} onclick={handleDelete} class={className} disabled={disabled || isLoading} loading={isLoading} />
