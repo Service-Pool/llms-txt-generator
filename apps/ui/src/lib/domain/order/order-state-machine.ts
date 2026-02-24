@@ -97,7 +97,8 @@ class OrderStateMachine {
 	 * - CREATED && !hasModel → 'calculate'
 	 * - CREATED || CALCULATED → 'payment' (или 'run' если priceTotal === 0)
 	 * - PAID || QUEUED → 'run'
-	 * - PROCESSING, COMPLETED, FAILED → 'download'
+	 * - PROCESSING → 'run' (заказ в процессе генерации)
+	 * - COMPLETED, FAILED → 'download' (обработка завершена)
 	 *
 	 * @param order - Заказ
 	 * @param steps - Список шагов
@@ -123,8 +124,11 @@ class OrderStateMachine {
 			targetActionId = isFree ? StepActionIdEnum.Run : StepActionIdEnum.Payment;
 		} else if (status === OrderStatus.PAID || status === OrderStatus.QUEUED) {
 			targetActionId = StepActionIdEnum.Run;
+		} else if (status === OrderStatus.PROCESSING) {
+			// Заказ в процессе генерации - шаг Run запущен, но не завершён
+			targetActionId = StepActionIdEnum.Run;
 		} else {
-			// PROCESSING, COMPLETED, FAILED, CANCELLED, REFUNDED
+			// COMPLETED, FAILED, CANCELLED, REFUNDED - обработка завершена
 			targetActionId = StepActionIdEnum.Download;
 		}
 

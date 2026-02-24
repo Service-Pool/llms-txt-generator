@@ -41,19 +41,23 @@ Instructions:
 - Use clear, professional language
 - Do not include meta information like "this page describes"
 - Write in present tense
-- Return ONLY a valid JSON array with exactly ${pages.length} objects
-- Each object must have a "summary" field with the summary text
 - Maintain the SAME ORDER as the pages above
-
-Example format:
-[{"summary": "First page summary here"}, {"summary": "Second page summary here"}]
-
-JSON Response:`;
+- Return an array of objects, each with a "summary" field`;
 
 			const request: GenerateRequest & { stream: false } = {
 				model: this.config.modelName,
 				prompt,
 				stream: false,
+				format: {
+					type: 'array',
+					items: {
+						type: 'object',
+						properties: {
+							summary: { type: 'string', description: 'Concise 2-3 sentence summary' }
+						},
+						required: ['summary']
+					}
+				},
 				options: {
 					temperature: this.config.options.temperature,
 					num_predict: this.config.options.maxTokens
@@ -61,17 +65,7 @@ JSON Response:`;
 			};
 
 			const response = await this.ollama.generate(request);
-			const fullText = response.response.trim();
-
-			// Парсим JSON ответ
-			let parsed: Array<{ summary: string }>;
-			try {
-				// Удаляем возможные markdown код-блоки
-				const jsonText = fullText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-				parsed = JSON.parse(jsonText) as Array<{ summary: string }>;
-			} catch (parseError) {
-				throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-			}
+			const parsed = JSON.parse(response.response) as Array<{ summary: string }>;
 
 			if (!Array.isArray(parsed)) {
 				throw new Error('Response is not a JSON array');
@@ -117,13 +111,19 @@ Instructions:
 - Be concise and informative
 - Use professional language
 - Do not mention "this website" or similar phrases, write directly about the content
-
-Description:`;
+- Return a JSON object with a "description" field`;
 
 			const request: GenerateRequest & { stream: false } = {
 				model: this.config.modelName,
 				prompt,
 				stream: false,
+				format: {
+					type: 'object',
+					properties: {
+						description: { type: 'string', description: 'Brief comprehensive website description' }
+					},
+					required: ['description']
+				},
 				options: {
 					temperature: this.config.options.temperature,
 					num_predict: this.config.options.maxTokens
@@ -131,8 +131,8 @@ Description:`;
 			};
 
 			const response = await this.ollama.generate(request);
-
-			const description = response.response.trim();
+			const parsed = JSON.parse(response.response) as { description: string };
+			const description = parsed.description.trim();
 
 			this.logger.log(`Generated website description from ${pages.length} page summaries`);
 

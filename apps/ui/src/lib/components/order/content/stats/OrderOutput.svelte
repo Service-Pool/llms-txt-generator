@@ -100,7 +100,12 @@
 				<Indicator size="xs" color="green" />
 			</span>
 			<div class="flex gap-1">
-				<Button color="light" class="p-2 w-8 h-8 border-none bg-inherit" onclick={handleCopyClick} disabled={isCopying}>
+				<Button
+					color="light"
+					class="p-5 w-8 h-8 rounded-full border-none bg-inherit"
+					onclick={handleCopyClick}
+					disabled={isCopying}
+				>
 					{#if copySuccess}
 						<FileCopySolid size="md" class="text-gray-800 dark:text-white" />
 					{:else}
@@ -111,7 +116,7 @@
 				<Button
 					size="sm"
 					color="light"
-					class="p-1 w-8 h-8 border-none bg-inherit"
+					class="p-5 w-8 h-8 rounded-full border-none bg-inherit"
 					onclick={handleDownloadClick}
 					disabled={isDownloading}
 				>

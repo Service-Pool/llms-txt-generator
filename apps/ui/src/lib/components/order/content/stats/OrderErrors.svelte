@@ -23,7 +23,7 @@
 			<Indicator size="xs" color="red" />
 		</div>
 
-		<List tag="ul" class="space-y-1">
+		<List tag="ul" class="space-y-1 overflow-auto max-h-120">
 			{#each order.attributes.errors as errMsg}
 				<Li>{errMsg}</Li>
 			{/each}

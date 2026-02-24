@@ -81,7 +81,7 @@
 		<!-- Actions Button -->
 		<SpeedDialTrigger
 			color="light"
-			class="p-1 w-6 h-6 border-none"
+			class="p-4! w-6 h-6 border-none rounded-full"
 			onmouseenter={() => (speedDialHover = true)}
 			onmouseleave={() => (speedDialHover = false)}
 		>
@@ -100,7 +100,7 @@
 			<ActionsSpeedDial
 				{order}
 				renderer={ActionSpeedDialButton}
-				class="w-9 h-9 shadow-md whitespace-nowrap rounded"
+				class="w-9 h-9 shadow-md whitespace-nowrap rounded-full"
 				onOpenPaymentModal={async (clientSecret, publishableKey) => {
 					paymentClientSecret = clientSecret;
 					paymentPublishableKey = publishableKey;
@@ -114,14 +114,14 @@
 		</SpeedDial>
 
 		<!-- Collapse/Expand Button -->
-		<Button color="light" class="p-1 w-6 h-6 border-none" onclick={onToggle}>
+		<Button color="light" class="p-4 w-6 h-6 border-none rounded-full" onclick={onToggle}>
 			<ChevronDownOutline size="md" class="{isExpanded ? 'rotate-180' : ''} transition-transform duration-200" />
 		</Button>
 
 		<!-- Open Order Details Page Button -->
 		<Button
 			color="light"
-			class="p-1 w-6 h-6 border-none"
+			class="p-4 w-6 h-6 border-none rounded-full"
 			onclick={() => goto(configService.routes.orderById(order.attributes.id))}
 		>
 			<ArrowUpRightFromSquareOutline size="sm" />

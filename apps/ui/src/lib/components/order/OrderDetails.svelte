@@ -20,6 +20,7 @@
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
 	import { Heading } from 'flowbite-svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { slide } from 'svelte/transition';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -74,13 +75,15 @@
 
 	{#snippet progress()}
 		{#if order.attributes.status === OrderStatus.PROCESSING}
-			<ProgressBar
-				label="URLs"
-				current={order.attributes.processedUrls}
-				total={order.attributes.totalUrls!}
-				size="h-1.5"
-				showNumbers={true}
-			/>
+			<div transition:slide={{ duration: 200 }}>
+				<ProgressBar
+					label="URLs"
+					current={order.attributes.processedUrls}
+					total={order.attributes.totalUrls!}
+					size="h-1.5"
+					showNumbers={true}
+				/>
+			</div>
 		{/if}
 	{/snippet}
 

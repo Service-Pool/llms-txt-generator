@@ -83,6 +83,9 @@ class OrderJobHandler {
 		// 2. Обновить статус на PROCESSING
 		await this.ordersService.updateOrderStatus(orderId, OrderStatus.PROCESSING);
 
+		// Отправить первое progress событие для уведомления фронта о PROCESSING
+		await job.updateProgress({});
+
 		try {
 			// 3. Получить список URLs из sitemap НА ЛЕТУ
 			const allUrls = await this.crawlersService.getAllSitemapUrls(order.hostname);

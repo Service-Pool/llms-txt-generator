@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
-	import { formatNumber } from '$lib/utils/number-format';
+	import { formatNumber, formatPrice } from '$lib/utils/number-format';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -19,7 +19,7 @@
 			items.push(order.attributes.currentAiModel.displayName);
 		}
 		if (order.attributes.priceTotal != null) {
-			items.push(`${order.attributes.currencySymbol} ${formatNumber(order.attributes.priceTotal)}`);
+			items.push(`${order.attributes.currencySymbol} ${formatPrice(order.attributes.priceTotal)}`);
 		}
 
 		return items;

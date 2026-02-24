@@ -2,6 +2,7 @@
 	import { Card, Spinner } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import type { AvailableAiModelDto } from '@api/shared';
+	import { formatPrice } from '$lib/utils/number-format';
 
 	interface Props {
 		availableModels: AvailableAiModelDto[];
@@ -64,7 +65,7 @@
 							{model.currencySymbol}
 						</span>
 						<span class="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-							{model.totalPrice.toFixed(2)}
+							{formatPrice(model.totalPrice)}
 						</span>
 					</div>
 				{:else}

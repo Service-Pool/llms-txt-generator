@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
 import { LLMProviderService, PageContent } from '../llm-provider.service';
 
@@ -39,35 +39,32 @@ Instructions:
 - Use clear, professional language
 - Do not include meta information like "this page describes"
 - Write in present tense
-- Return ONLY a valid JSON array with exactly ${pages.length} objects
-- Each object must have a "summary" field with the summary text
-- Maintain the SAME ORDER as the pages above
-
-Example format:
-[{"summary": "First page summary here"}, {"summary": "Second page summary here"}]
-
-JSON Response:`;
+- Maintain the SAME ORDER as the pages above`;
 
 			const response = await this.ai.models.generateContent({
 				model: this.config.modelName,
 				contents: prompt,
 				config: {
 					temperature: this.config.options.temperature,
-					maxOutputTokens: this.config.options.maxTokens
+					maxOutputTokens: this.config.options.maxTokens,
+					responseMimeType: 'application/json',
+					responseSchema: {
+						type: Type.ARRAY,
+						items: {
+							type: Type.OBJECT,
+							properties: {
+								summary: {
+									type: Type.STRING,
+									description: 'Concise 2-3 sentence summary of the page content'
+								}
+							},
+							required: ['summary']
+						}
+					}
 				}
 			});
 
-			const fullText = response.text.trim();
-
-			// Парсим JSON ответ
-			let parsed: Array<{ summary: string }>;
-			try {
-				// Удаляем возможные markdown код-блоки
-				const jsonText = fullText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-				parsed = JSON.parse(jsonText) as { summary: string }[];
-			} catch (parseError) {
-				throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
-			}
+			const parsed = JSON.parse(response.text) as Array<{ summary: string }>;
 
 			if (!Array.isArray(parsed)) {
 				throw new Error('Response is not a JSON array');
@@ -112,20 +109,30 @@ Instructions:
 - Describe the overall purpose and main topics of the website
 - Be concise and informative
 - Use professional language
-- Do not mention "this website" or similar phrases, write directly about the content
-
-Description:`;
+- Do not mention "this website" or similar phrases, write directly about the content`;
 
 			const response = await this.ai.models.generateContent({
 				model: this.config.modelName,
 				contents: prompt,
 				config: {
 					temperature: this.config.options.temperature,
-					maxOutputTokens: this.config.options.maxTokens
+					maxOutputTokens: this.config.options.maxTokens,
+					responseMimeType: 'application/json',
+					responseSchema: {
+						type: Type.OBJECT,
+						properties: {
+							description: {
+								type: Type.STRING,
+								description: 'Brief comprehensive website description'
+							}
+						},
+						required: ['description']
+					}
 				}
 			});
 
-			const description = response.text.trim();
+			const parsed = JSON.parse(response.text) as { description: string };
+			const description = parsed.description.trim();
 
 			this.logger.log(`Generated website description from ${pages.length} page summaries`);
 

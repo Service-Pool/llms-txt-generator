@@ -110,7 +110,7 @@ class HttpClient {
 			}
 
 			// Network errors, JSON parse errors, etc.
-			throw new UIError(ResponseCode.ERROR, exception instanceof Error ? exception.message : 'Network error');
+			throw new Error(exception instanceof Error ? exception.message : 'Network error');
 		}
 	}
 }

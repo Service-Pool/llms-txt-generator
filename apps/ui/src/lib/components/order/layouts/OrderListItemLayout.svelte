@@ -48,7 +48,7 @@
 
 		<!-- Actions Trigger (SpeedDial) -->
 		{#if actionsTrigger}
-			<div class="shrink-0 flex gap-3">
+			<div class="shrink-0 flex gap-2">
 				{@render actionsTrigger()}
 			</div>
 		{/if}

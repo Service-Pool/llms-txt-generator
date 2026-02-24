@@ -14,13 +14,14 @@ interface ExtractedContent {
 @Injectable()
 class ContentExtractionService {
 	private readonly logger = new Logger(ContentExtractionService.name);
+	private readonly MAX_WORDS = 300;
 
 	/**
 	 * Извлекает контент из URL
 	 * - Fetch HTML
 	 * - Парсинг через cheerio и readability
 	 * - Удаление всех HTML-тегов и JavaScript
-	 * - Обрезка до первых 3000 слов
+	 * - Обрезка до первых MAX_WORDS слов
 	 */
 	public async extractContent(url: string): Promise<ExtractedContent> {
 		try {
@@ -48,9 +49,9 @@ class ContentExtractionService {
 			// Очистка от лишних пробелов и переносов
 			const cleanedContent = textContent.replace(/\s+/g, ' ').trim();
 
-			// Обрезка до 3000 слов
+			// Обрезка до MAX_WORDS слов
 			const words = cleanedContent.split(/\s+/);
-			const truncatedContent = words.length > 3000 ? words.slice(0, 3000).join(' ') : cleanedContent;
+			const truncatedContent = words.length > this.MAX_WORDS ? words.slice(0, this.MAX_WORDS).join(' ') : cleanedContent;
 
 			return {
 				title: article.title || 'Untitled',
