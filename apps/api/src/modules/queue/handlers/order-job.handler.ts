@@ -105,7 +105,7 @@ class OrderJobHandler {
 
 					if (this.pageBatchProcessor.count >= batchSize) {
 						// Сгенерировать саммари для батча
-						const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
+						const processedPages = await this.pageBatchProcessor.process(order.modelId, provider, order.hostname);
 						allPages.push(...processedPages);
 
 						// Обновить processedUrls в Order
@@ -130,7 +130,7 @@ class OrderJobHandler {
 
 			// Обработать оставшийся батч
 			if (this.pageBatchProcessor.count > 0) {
-				const processedPages = await this.pageBatchProcessor.process(order.modelId, provider);
+				const processedPages = await this.pageBatchProcessor.process(order.modelId, provider, order.hostname);
 				allPages.push(...processedPages);
 
 				// Обновить processedUrls в Order

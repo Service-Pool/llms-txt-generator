@@ -26,7 +26,11 @@ class PageBatchProcessor {
 	 */
 	public async add(url: string): Promise<void> {
 		try {
+			this.logger.debug(`Starting content extraction for ${url}`);
+			const startTime = Date.now();
 			const { title, content } = await this.contentExtractionService.extractContent(url);
+			const duration = Date.now() - startTime;
+			this.logger.debug(`Content extracted in ${duration}ms for ${url}`);
 			this.pages.push(new PageContent(url, title, content));
 		} catch (error) {
 			this.logger.error(`Failed to extract content for ${url}:`, error);
@@ -59,16 +63,16 @@ class PageBatchProcessor {
 	 * Генерирует саммари для всех страниц в батче с использованием кэша и очищает батч
 	 * @param modelId ID модели для кэша и генерации
 	 * @param provider LLM провайдер для генерации саммари
+	 * @param hostname Hostname для кэша
 	 * @returns Копия обработанных страниц
 	 */
-	public async process(modelId: string, provider: LLMProviderService): Promise<PageContent[]> {
+	public async process(modelId: string, provider: LLMProviderService, hostname: string): Promise<PageContent[]> {
 		if (this.pages.length === 0) {
 			return [];
 		}
 
 		try {
-			// Получаем hostname для кэша (используем первый URL)
-			const { hostname } = this.cacheService.parseUrl(this.pages[0].url);
+			this.logger.debug(`Processing batch of ${this.pages.length} pages for ${hostname}`);
 			const hashKey = this.cacheService.buildHashKey(modelId, hostname);
 
 			// Проверяем кэш для каждой страницы и собираем некэшированные
