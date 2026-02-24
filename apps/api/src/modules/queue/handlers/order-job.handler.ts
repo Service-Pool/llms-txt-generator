@@ -145,8 +145,7 @@ class OrderJobHandler {
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
 
-			const { hostname } = this.cacheService.parseUrl(order.hostname);
-			const hashKey = this.cacheService.buildHashKey(order.modelId, hostname);
+			const hashKey = this.pageBatchProcessor.buildSummaryHashKey(order.modelId, order.hostname);
 			const description = await this.cacheService.get(hashKey, '__description__', async () => {
 				this.logger.debug(`Generating description for ${order.hostname} (cache miss)`);
 				return provider.generateDescription(allPages);

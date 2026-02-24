@@ -3,6 +3,11 @@ import { ContentExtractionService } from '../../content/services/content-extract
 import { CacheService } from './cache.service';
 import { PageContent, LLMProviderService } from './llm-provider.service';
 
+interface CachedPageData {
+	title: string;
+	summary: string;
+}
+
 /**
  * Сервис для обработки батча страниц:
  * - Хранение коллекции PageContent
@@ -73,7 +78,7 @@ class PageBatchProcessor {
 
 		try {
 			this.logger.debug(`Processing batch of ${this.pages.length} pages for ${hostname}`);
-			const hashKey = this.cacheService.buildHashKey(modelId, hostname);
+			const hashKey = this.buildSummaryHashKey(modelId, hostname);
 
 			// Проверяем кэш для каждой страницы и собираем некэшированные
 			const uncachedPages: PageContent[] = [];
@@ -84,7 +89,8 @@ class PageBatchProcessor {
 				const cached = await this.cacheService.get(hashKey, path);
 
 				if (cached) {
-					this.pages[i].summary = cached;
+					const data = JSON.parse(cached) as CachedPageData;
+					this.pages[i].summary = data.summary;
 					this.logger.debug(`Cache hit for ${this.pages[i].url}`);
 				} else {
 					uncachedPages.push(this.pages[i]);
@@ -104,9 +110,10 @@ class PageBatchProcessor {
 
 					page.summary = summary;
 
-					// Сохранить в кэш
+					// Сохранить в кэш (JSON с title и summary)
 					const { path } = this.cacheService.parseUrl(page.url);
-					await this.cacheService.set(hashKey, path, summary);
+					const cacheValue = JSON.stringify({ title: page.title, summary });
+					await this.cacheService.set(hashKey, path, cacheValue);
 				}
 			}
 
@@ -119,6 +126,14 @@ class PageBatchProcessor {
 			// Всегда очищаем батч после обработки
 			this.clear();
 		}
+	}
+
+	/**
+	 * Построить ключ для HASH в Redis с парсингом hostname
+	 */
+	public buildSummaryHashKey(modelId: string, hostnameOrUrl: string): string {
+		const { hostname } = this.cacheService.parseUrl(hostnameOrUrl);
+		return `summary:${modelId}:${hostname}`;
 	}
 }
 

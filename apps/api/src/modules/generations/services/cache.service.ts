@@ -3,8 +3,8 @@ import { Redis } from 'ioredis';
 import { AppConfigService } from '../../../config/config.service';
 
 /**
- * Сервис для кэширования результатов генерации в Redis
- * TTL: 24 часа (как указано в PRD)
+ * Generic Redis cache service
+ * TTL: 24 часа
  */
 @Injectable()
 class CacheService implements OnModuleInit {
@@ -34,13 +34,6 @@ class CacheService implements OnModuleInit {
 		this.redis.on('error', (error) => {
 			this.logger.error('Redis connection error:', error);
 		});
-	}
-
-	/**
-	 * Построить ключ для HASH в Redis
-	 */
-	public buildHashKey(modelId: string, hostname: string): string {
-		return `summary:${modelId}:${hostname}`;
 	}
 
 	/**
