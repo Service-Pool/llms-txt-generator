@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Ollama, GenerateRequest } from 'ollama';
 import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
-import { LLMProviderService, PageContent } from '../llm-provider.service';
+import { LLMProviderService, ProcessedPage } from '../llm-provider.service';
 
 class OllamaService extends LLMProviderService {
 	private readonly logger = new Logger(OllamaService.name);
@@ -24,7 +24,7 @@ class OllamaService extends LLMProviderService {
 	/**
 	 * Генерирует саммари для батча страниц через Ollama за один вызов
 	 */
-	public async generateBatchSummaries(pages: PageContent[]): Promise<string[]> {
+	public async generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]> {
 		try {
 			// Формируем промпт со всеми страницами
 			const pagesText = pages
@@ -94,7 +94,7 @@ Instructions:
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
-	public async generateDescription(pages: PageContent[]): Promise<string> {
+	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
 		try {
 			const summariesText = pages
 				.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)

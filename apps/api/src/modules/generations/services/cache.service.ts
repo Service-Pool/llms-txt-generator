@@ -89,17 +89,6 @@ class CacheService implements OnModuleInit {
 	}
 
 	/**
-	 * Парсинг URL на hostname и path
-	 */
-	public parseUrl(url: string): { hostname: string; path: string } {
-		const urlObj = new URL(url);
-		return {
-			hostname: urlObj.hostname,
-			path: urlObj.pathname
-		};
-	}
-
-	/**
 	 * Очистить весь кэш (для тестирования)
 	 */
 	public async flushAll(): Promise<void> {

@@ -1,4 +1,4 @@
-import { PageContent } from '../services/llm-provider.service';
+import { ProcessedPage } from '../services/llm-provider.service';
 
 /**
  * Utility class for formatting llms.txt output
@@ -11,7 +11,7 @@ class LlmsTxtFormatter {
 	 * @param pages - Array of pages with summaries
 	 * @returns Formatted llms.txt content
 	 */
-	public static format(hostname: string, description: string, pages: PageContent[]): string {
+	public static format(hostname: string, description: string, pages: ProcessedPage[]): string {
 		const lines: string[] = [
 			`# ${hostname}`,
 			'',

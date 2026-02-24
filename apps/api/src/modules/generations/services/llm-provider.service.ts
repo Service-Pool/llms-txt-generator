@@ -1,5 +1,6 @@
-class PageContent {
+class ProcessedPage {
 	private _summary: string | null = null;
+	private _error: string | null = null;
 
 	constructor(
 		private readonly _url: string,
@@ -26,6 +27,14 @@ class PageContent {
 	set summary(value: string) {
 		this._summary = value;
 	}
+
+	get error(): string | null {
+		return this._error;
+	}
+
+	set error(value: string) {
+		this._error = value;
+	}
 }
 
 /**
@@ -38,14 +47,14 @@ abstract class LLMProviderService {
 	 * @param pages - Массив страниц с контентом и заголовками
 	 * @returns Массив саммари в том же порядке
 	 */
-	abstract generateBatchSummaries(pages: PageContent[]): Promise<string[]>;
+	abstract generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]>;
 
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари страниц
 	 * @param pages - Массив страниц с саммари
 	 * @returns Общее описание сайта
 	 */
-	abstract generateDescription(pages: PageContent[]): Promise<string>;
+	abstract generateDescription(pages: ProcessedPage[]): Promise<string>;
 }
 
-export { PageContent, LLMProviderService };
+export { ProcessedPage, LLMProviderService };
