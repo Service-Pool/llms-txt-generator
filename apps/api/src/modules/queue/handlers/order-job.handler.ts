@@ -86,18 +86,19 @@ class OrderJobHandler {
 				batchSize,
 				order.totalUrls,
 				10,
-				(processed, total) => {
-					void this.ordersService.updateProgress(orderId, processed);
-					void job.updateProgress({});
+				async (processed, total, batchPages) => {
+					// Логировать ошибки батча
+					const failedPages = batchPages.filter(p => p.isFailure());
+					for (const page of failedPages) {
+						await this.ordersService.addError(orderId, `Failed to process ${page.url}: ${page.error}`);
+					}
+
+					// Обновить прогресс
+					await this.ordersService.updateProgress(orderId, processed);
+					await job.updateProgress({});
 					this.logger.debug(`Progress: ${processed}/${total} URLs processed`);
 				}
 			);
-
-			// Логировать ошибки
-			const failedPages = allPages.filter(p => p.isFailure());
-			for (const page of failedPages) {
-				await this.ordersService.addError(orderId, `Failed to process ${page.url}: ${page.error}`);
-			}
 
 			const successPages = allPages.filter(p => p.isSuccess());
 

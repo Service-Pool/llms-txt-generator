@@ -34,7 +34,7 @@ class PageProcessor {
 	 * @param batchSize - Размер батча для генерации summaries
 	 * @param limit - Максимальное количество URLs для обработки
 	 * @param concurrency - Максимальное количество параллельных запросов (default: 10)
-	 * @param onProgress - Callback для отслеживания прогресса (processed, total)
+	 * @param onProgress - Callback для отслеживания прогресса и обработки батчей (processed, total, batchPages)
 	 * @returns Массив обработанных страниц (успешные и с ошибками)
 	 */
 	public async processPages(
@@ -44,7 +44,7 @@ class PageProcessor {
 		batchSize: number,
 		limit?: number,
 		concurrency: number = 10,
-		onProgress?: (processed: number, total: number) => void
+		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
 		const allPages: ProcessedPage[] = [];
 		let processedCount = 0;
@@ -95,12 +95,12 @@ class PageProcessor {
 			// 6. Сохраняем в кэш
 			await Promise.all(allBatchPages.map(page => this.saveCache(page, modelId, hostname)));
 
-			const validPages = allBatchPages.filter((p): p is ProcessedPage => p !== undefined && p !== null);
-			allPages.push(...validPages);
-			processedCount += validPages.length;
+			const batchPages = allBatchPages.filter((p): p is ProcessedPage => p !== undefined && p !== null);
+			allPages.push(...batchPages);
+			processedCount += batchPages.length;
 
 			if (onProgress) {
-				onProgress(processedCount, limit || processedCount);
+				await onProgress(processedCount, limit || processedCount, batchPages);
 			}
 
 			this.logger.debug(`Processed ${processedCount} pages so far`);
