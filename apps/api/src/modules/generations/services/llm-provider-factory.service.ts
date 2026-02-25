@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LLMProviderService } from './llm-provider.service';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 import * as path from 'path';
 
 /**
@@ -17,7 +17,7 @@ class LLMProviderFactory {
 	 * @param modelId ID модели из MODELS_CONFIG
 	 * @returns Экземпляр соответствующего провайдера
 	 */
-	public async getProvider(modelId: string): Promise<LLMProviderService> {
+	public async getProvider(modelId: string): Promise<AbstractLlmService> {
 		this.logger.debug(`Getting LLM provider for model: ${modelId}`);
 
 		const modelConfig = this.aiModelsConfigService.getModelById(modelId);
@@ -49,7 +49,16 @@ class LLMProviderFactory {
 				throw new Error(`Service class ${className} not found in ${modelConfig.serviceClass}. Available exports: ${Object.keys(module).join(', ')}`);
 			}
 
-			return new (ServiceClass as new (...args: unknown[]) => LLMProviderService)(modelConfig);
+			// Проверка что ServiceClass является конструктором
+			if (typeof ServiceClass !== 'function') {
+				throw new Error(`${className} is not a constructor function`);
+			}
+
+			// Явная типизация конструктора
+			type AbstractLlmServiceConstructor = new (...args: unknown[]) => AbstractLlmService;
+			const instance = new (ServiceClass as AbstractLlmServiceConstructor)(modelConfig);
+
+			return instance;
 		} catch (error) {
 			this.logger.error(`Failed to load service: ${modelConfig.serviceClass}`, error);
 			throw new Error(`Failed to load LLM provider: ${error instanceof Error ? error.message : String(error)}`);

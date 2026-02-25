@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '../../../config/config.service';
-import { AiModelConfig } from '../entities/ai-model-config.entity';
+import { AppConfigService } from '@/config/config.service';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 
 /**
  * In-memory repository for AI Model configurations

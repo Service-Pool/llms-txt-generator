@@ -1,11 +1,11 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ClsModule } from 'nestjs-cls';
-import { OrdersModule } from '../orders/orders.module';
-import { UsersModule } from '../users/users.module';
-import { PaymentsController } from './controllers/payments.controller';
-import { WebhookController } from './controllers/webhook.controller';
-import { StripeService } from './services/stripe.service';
-import { PaymentUserAuthValidator } from '../../validators/payment.validator';
+import { OrdersModule } from '@/modules/orders/orders.module';
+import { UsersModule } from '@/modules/users/users.module';
+import { PaymentsController } from '@/modules/payments/controllers/payments.controller';
+import { WebhookController } from '@/modules/payments/controllers/webhook.controller';
+import { StripeService } from '@/modules/payments/services/stripe.service';
+import { PaymentUserAuthValidator } from '@/validators/payment.validator';
 
 @Module({
 	imports: [

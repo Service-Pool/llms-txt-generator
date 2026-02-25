@@ -4,7 +4,7 @@ import {
 	ValidatorConstraintInterface
 } from 'class-validator';
 import { Injectable } from '@nestjs/common';
-import { AiModelsConfigService } from '../modules/ai-models/services/ai-models-config.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 
 @Injectable()
 @ValidatorConstraint({ async: false })

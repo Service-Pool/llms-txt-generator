@@ -4,8 +4,8 @@ import {
 	ValidatorConstraintInterface
 } from 'class-validator';
 import { Injectable } from '@nestjs/common';
-import { OrdersService } from '../modules/orders/services/orders.service';
-import { OrderStatusMachine } from '../modules/orders/utils/order-status-machine';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
 
 @Injectable()
 @ValidatorConstraint({ async: true })

@@ -5,7 +5,7 @@ import {
 } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
-import { SessionData } from '../modules/auth/entities/session.entity';
+import { SessionData } from '@/modules/auth/entities/session.entity';
 
 @Injectable()
 @ValidatorConstraint({ async: true })

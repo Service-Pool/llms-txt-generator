@@ -1,5 +1,5 @@
-import { WebSocketEvent } from '../../enums/websocket-event.enum';
-import { type Deserializable } from '../../utils/response/types';
+import { WebSocketEvent } from '@/enums/websocket-event.enum';
+import { type Deserializable } from '@/utils/response/types';
 
 /**
  * WebSocket Events

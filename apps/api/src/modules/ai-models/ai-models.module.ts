@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AiModelsConfigService } from './services/ai-models-config.service';
-import { AiModelConfigRepository } from './repositories/ai-model-config.repository';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
+import { AiModelConfigRepository } from '@/modules/ai-models/repositories/ai-model-config.repository';
 
 @Module({
 	providers: [

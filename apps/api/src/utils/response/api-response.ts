@@ -1,5 +1,5 @@
-import { ResponseCode } from '../../enums/response-code.enum';
-import { type Deserializable } from './types';
+import { ResponseCode } from '@/enums/response-code.enum';
+import { type Deserializable } from '@/utils/response/types';
 import { getSchemaPath } from '@nestjs/swagger';
 
 /**

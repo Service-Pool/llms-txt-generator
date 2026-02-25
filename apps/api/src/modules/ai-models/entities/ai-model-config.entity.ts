@@ -1,4 +1,4 @@
-import { Currency } from '../../../enums/currency.enum';
+import { Currency } from '@/enums/currency.enum';
 
 interface AiModelOptions {
 	apiKey?: string;

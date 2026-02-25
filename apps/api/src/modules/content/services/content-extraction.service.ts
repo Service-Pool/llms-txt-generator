@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { load } from 'cheerio';
-import { RequestUtils } from '../../../utils/request/fetch';
-import { PageProcessingError } from '../../../exceptions/page-processing.exception';
+import { RequestUtils } from '@/utils/request/fetch';
+import { PageProcessingError } from '@/exceptions/page-processing.exception';
 import * as crypto from 'crypto';
 
 interface ExtractedContent {

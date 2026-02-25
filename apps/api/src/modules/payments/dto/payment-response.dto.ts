@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { HateoasAction } from '../../../enums/hateoas-action.enum';
+import { HateoasAction } from '@/enums/hateoas-action.enum';
 
 /**
  * HATEOAS link interface

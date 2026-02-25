@@ -3,15 +3,15 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ClsModule } from 'nestjs-cls';
-import { AppConfigModule } from '../config/config.module';
-import { AppConfigService } from '../config/config.service';
-import { QueueModule } from '../modules/queue/queue.module';
-import { OrdersModule } from '../modules/orders/orders.module';
-import { AiModelsModule } from '../modules/ai-models/ai-models.module';
-import { ContentModule } from '../modules/content/content.module';
-import { CrawlersModule } from '../modules/crawlers/crawlers.module';
-import { GenerationsModule } from '../modules/generations/generations.module';
-import { OrderWorkerCommand } from './commands/order-worker.command';
+import { AppConfigModule } from '@/config/config.module';
+import { AppConfigService } from '@/config/config.service';
+import { QueueModule } from '@/modules/queue/queue.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
+import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
+import { ContentModule } from '@/modules/content/content.module';
+import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
+import { GenerationsModule } from '@/modules/generations/generations.module';
+import { OrderWorkerCommand } from '@/cli/commands/order-worker.command';
 
 /**
  * CLI Module

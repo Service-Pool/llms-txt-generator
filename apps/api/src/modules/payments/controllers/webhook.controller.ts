@@ -8,10 +8,10 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
-import { OrdersService } from '../../orders/services/orders.service';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { StripeService } from '../services/stripe.service';
-import { UsersService } from '../../users/services/users.service';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { StripeService } from '@/modules/payments/services/stripe.service';
+import { UsersService } from '@/modules/users/services/users.service';
 import type { FastifyRequest } from 'fastify';
 
 @Controller('api/payments')

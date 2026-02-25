@@ -4,7 +4,7 @@ import {
 	ValidatorConstraintInterface
 } from 'class-validator';
 import { Injectable } from '@nestjs/common';
-import { CrawlersService } from '../modules/crawlers/services/crawlers.service';
+import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 
 @Injectable()
 @ValidatorConstraint({ async: true })

@@ -2,7 +2,7 @@ import { inspect } from 'util';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { LogLevel } from '../enums/log-level.enum';
+import { LogLevel } from '@/enums/log-level.enum';
 
 class LoggerFactory {
 	private readonly fileFormat: winston.Logform.Format;

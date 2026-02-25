@@ -1,10 +1,10 @@
-import { Logger } from '@nestjs/common';
 import { GoogleGenAI, Type } from '@google/genai';
-import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
-import { LLMProviderService, ProcessedPage } from '../llm-provider.service';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
+import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { LlmJsonValidator } from '@/utils/json-validator';
 
-class GeminiService extends LLMProviderService {
-	private readonly logger = new Logger(GeminiService.name);
+class GeminiService extends AbstractLlmService {
 	private readonly ai: GoogleGenAI;
 	private readonly config: AiModelConfig;
 
@@ -23,13 +23,11 @@ class GeminiService extends LLMProviderService {
 	 * Генерирует саммари для батча страниц через Gemini API за один вызов
 	 */
 	public async generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]> {
-		try {
-			// Формируем промпт со всеми страницами
-			const pagesText = pages
-				.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
-				.join('\n\n');
+		const pagesText = pages
+			.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
+			.join('\n\n');
 
-			const prompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
+		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
 
 ${pagesText}
 
@@ -41,65 +39,69 @@ Instructions:
 - Write in present tense
 - Maintain the SAME ORDER as the pages above`;
 
-			const response = await this.ai.models.generateContent({
-				model: this.config.modelName,
-				contents: prompt,
-				config: {
-					temperature: this.config.options.temperature,
-					maxOutputTokens: this.config.options.maxTokens,
-					responseMimeType: 'application/json',
-					responseSchema: {
-						type: Type.ARRAY,
-						items: {
-							type: Type.OBJECT,
-							properties: {
-								summary: {
-									type: Type.STRING,
-									description: 'Concise 2-3 sentence summary of the page content'
-								}
-							},
-							required: ['summary']
+		return this.withResilience(
+			async (currentPrompt) => {
+				const response = await this.ai.models.generateContent({
+					model: this.config.modelName,
+					contents: currentPrompt,
+					config: {
+						temperature: this.config.options.temperature,
+						maxOutputTokens: this.config.options.maxTokens,
+						responseMimeType: 'application/json',
+						responseSchema: {
+							type: Type.ARRAY,
+							items: {
+								type: Type.OBJECT,
+								properties: {
+									summary: {
+										type: Type.STRING,
+										description: 'Concise 2-3 sentence summary of the page content'
+									}
+								},
+								required: ['summary']
+							}
 						}
 					}
+				});
+
+				const parsed = LlmJsonValidator.parseJsonResponse<Array<{ summary: string }>>(response.text);
+
+				if (!Array.isArray(parsed)) {
+					throw new Error('Response is not a JSON array');
 				}
-			});
 
-			const parsed = JSON.parse(response.text) as Array<{ summary: string }>;
-
-			if (!Array.isArray(parsed)) {
-				throw new Error('Response is not a JSON array');
-			}
-
-			if (parsed.length !== pages.length) {
-				throw new Error(`Expected ${pages.length} summaries, got ${parsed.length}`);
-			}
-
-			const summaries = parsed.map((item, idx) => {
-				if (!item.summary || typeof item.summary !== 'string') {
-					throw new Error(`Invalid summary at index ${idx}: missing or invalid "summary" field`);
+				if (parsed.length !== pages.length) {
+					throw new Error(`Expected ${pages.length} summaries, got ${parsed.length}`);
 				}
-				return item.summary.trim();
-			});
 
-			this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+				const summaries = parsed.map((item, idx) => {
+					if (!item.summary || typeof item.summary !== 'string') {
+						throw new Error(`Invalid summary at index ${idx}: missing or invalid "summary" field`);
+					}
+					return item.summary.trim();
+				});
 
-			return summaries;
-		} catch (error) {
-			this.logger.error(`Failed to generate batch summaries:`, error);
-			throw new Error(`Gemini API error: ${error instanceof Error ? error.message : String(error)}`);
-		}
+				this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+
+				return summaries;
+			},
+			{
+				validator: result => LlmJsonValidator.validateStringArray(result),
+				operationName: 'generateBatchSummaries',
+				initialPrompt
+			}
+		);
 	}
 
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
 	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
-		try {
-			const summariesText = pages
-				.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
-				.join('\n');
+		const summariesText = pages
+			.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
+			.join('\n');
 
-			const prompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
+		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
 Page summaries:
 ${summariesText}
@@ -111,36 +113,41 @@ Instructions:
 - Use professional language
 - Do not mention "this website" or similar phrases, write directly about the content`;
 
-			const response = await this.ai.models.generateContent({
-				model: this.config.modelName,
-				contents: prompt,
-				config: {
-					temperature: this.config.options.temperature,
-					maxOutputTokens: this.config.options.maxTokens,
-					responseMimeType: 'application/json',
-					responseSchema: {
-						type: Type.OBJECT,
-						properties: {
-							description: {
-								type: Type.STRING,
-								description: 'Brief comprehensive website description'
-							}
-						},
-						required: ['description']
+		return this.withResilience(
+			async (currentPrompt) => {
+				const response = await this.ai.models.generateContent({
+					model: this.config.modelName,
+					contents: currentPrompt,
+					config: {
+						temperature: this.config.options.temperature,
+						maxOutputTokens: this.config.options.maxTokens,
+						responseMimeType: 'application/json',
+						responseSchema: {
+							type: Type.OBJECT,
+							properties: {
+								description: {
+									type: Type.STRING,
+									description: 'Brief comprehensive website description'
+								}
+							},
+							required: ['description']
+						}
 					}
-				}
-			});
+				});
 
-			const parsed = JSON.parse(response.text) as { description: string };
-			const description = parsed.description.trim();
+				const parsed = LlmJsonValidator.parseJsonResponse<{ description: string }>(response.text);
+				const description = parsed.description.trim();
 
-			this.logger.log(`Generated website description from ${pages.length} page summaries`);
+				this.logger.log(`Generated website description from ${pages.length} page summaries`);
 
-			return description;
-		} catch (error) {
-			this.logger.error('Failed to generate website description:', error);
-			throw new Error(`Gemini API error: ${error instanceof Error ? error.message : String(error)}`);
-		}
+				return description;
+			},
+			{
+				validator: result => LlmJsonValidator.validateString(result),
+				operationName: 'generateDescription',
+				initialPrompt
+			}
+		);
 	}
 }
 

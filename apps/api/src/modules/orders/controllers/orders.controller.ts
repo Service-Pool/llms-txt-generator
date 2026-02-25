@@ -1,11 +1,11 @@
-import { ApiResponse } from '../../../utils/response/api-response';
-import { HttpStatus } from '../../../enums/response-code.enum';
+import { ApiResponse } from '@/utils/response/api-response';
+import { HttpStatus } from '@/enums/response-code.enum';
 import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto } from '../dto/order-request.dto';
-import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '../dto/order-response.dto';
-import { OrdersService } from '../services/orders.service';
+import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
+import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '@/modules/orders/dto/order-response.dto';
+import { OrdersService } from '@/modules/orders/services/orders.service';
 
 @ApiTags('Orders')
 @Controller('api/orders')

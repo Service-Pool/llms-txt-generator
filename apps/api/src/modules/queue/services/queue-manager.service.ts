@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { Queue, Worker, Job, JobsOptions, ConnectionOptions } from 'bullmq';
-import { AppConfigService } from '../../../config/config.service';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { AppConfigService } from '@/config/config.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 
 /**
  * Queue Service для обработки Orders

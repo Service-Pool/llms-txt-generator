@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AppConfigService } from '../../../config/config.service';
-import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
+import { AppConfigService } from '@/config/config.service';
+import { StripeSessionStatus } from '@/enums/stripe-session-status.enum';
 import Stripe from 'stripe';
 
 @Injectable()

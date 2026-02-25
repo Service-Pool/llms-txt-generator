@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { type FastifyRequest } from 'fastify';
-import { SessionData } from '../entities/session.entity';
+import { SessionData } from '@/modules/auth/entities/session.entity';
 
 /**
  * SessionGuard - проверяет наличие авторизации

@@ -1,9 +1,9 @@
 import { Command, CommandRunner } from 'nest-commander';
 import { Logger } from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
-import { QueueManagerService } from '../../modules/queue/services/queue-manager.service';
-import { AiModelsConfigService } from '../../modules/ai-models/services/ai-models-config.service';
-import { OrderJobHandler } from '../../modules/queue/handlers/order-job.handler';
+import { QueueManagerService } from '@/modules/queue/services/queue-manager.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
+import { OrderJobHandler } from '@/modules/queue/handlers/order-job.handler';
 
 /**
  * CLI команда для запуска worker'а обработки заказов

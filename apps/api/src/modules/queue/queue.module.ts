@@ -1,16 +1,16 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { QueueManagerService } from './services/queue-manager.service';
-import { OrderJobHandler } from './handlers/order-job.handler';
-import { AiModelsModule } from '../ai-models/ai-models.module';
-import { CrawlersModule } from '../crawlers/crawlers.module';
-import { ContentModule } from '../content/content.module';
-import { GenerationsModule } from '../generations/generations.module';
-import { OrdersModule } from '../orders/orders.module';
+import { QueueManagerService } from '@/modules/queue/services/queue-manager.service';
+import { OrderJobHandler } from '@/modules/queue/handlers/order-job.handler';
+import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
+import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
+import { ContentModule } from '@/modules/content/content.module';
+import { GenerationsModule } from '@/modules/generations/generations.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
 
-import { StatsModule } from '../stats/stats.module';
-import { Order } from '../orders/entities/order.entity';
-import { User } from '../users/entities/user.entity';
+import { StatsModule } from '@/modules/stats/stats.module';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { User } from '@/modules/users/entities/user.entity';
 
 /**
  * Queue Module

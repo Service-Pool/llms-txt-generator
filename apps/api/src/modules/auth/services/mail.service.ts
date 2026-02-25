@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AppConfigService } from '../../../config/config.service';
+import { AppConfigService } from '@/config/config.service';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 

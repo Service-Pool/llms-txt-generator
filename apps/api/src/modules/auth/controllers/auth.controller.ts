@@ -1,16 +1,16 @@
-import { ApiResponse } from '../../../utils/response/api-response';
+import { ApiResponse } from '@/utils/response/api-response';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiBody } from '@nestjs/swagger';
-import { AppConfigService } from '../../../config/config.service';
-import { AuthService } from '../services/auth.service';
+import { AppConfigService } from '@/config/config.service';
+import { AuthService } from '@/modules/auth/services/auth.service';
 import { Controller, Post, Get, Body, Query, Session, HttpCode, Logger } from '@nestjs/common';
-import { HttpStatus } from '../../../enums/response-code.enum';
-import { RequestLoginLinkRequestDto, LoginRequestDto } from '../dto/auth-request.dto';
+import { HttpStatus } from '@/enums/response-code.enum';
+import { RequestLoginLinkRequestDto, LoginRequestDto } from '@/modules/auth/dto/auth-request.dto';
 import {
 	RequestLoginLinkResponseDto,
 	AuthLoginDtoResponse,
 	AuthLogoutDtoResponse,
 	AuthStatusDtoResponse
-} from '../dto/auth-response.dto';
+} from '@/modules/auth/dto/auth-response.dto';
 import { type Session as SessionType } from 'fastify';
 
 @ApiTags('Authentication')

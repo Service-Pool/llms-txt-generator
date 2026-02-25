@@ -1,10 +1,10 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Session } from 'fastify';
-import { AppConfigService } from '../../../config/config.service';
-import { MailService } from './mail.service';
-import { UsersService } from '../../users/services/users.service';
-import { OrdersService } from '../../orders/services/orders.service';
-import { User } from '../../users/entities/user.entity';
+import { AppConfigService } from '@/config/config.service';
+import { MailService } from '@/modules/auth/services/mail.service';
+import { UsersService } from '@/modules/users/services/users.service';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { User } from '@/modules/users/entities/user.entity';
 import * as crypto from 'crypto';
 
 @Injectable()

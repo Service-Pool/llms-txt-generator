@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ContentExtractionService } from './services/content-extraction.service';
+import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
 
 @Module({
 	providers: [

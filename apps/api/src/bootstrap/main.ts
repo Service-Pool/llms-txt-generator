@@ -3,34 +3,34 @@ import {
 	OrderResponseDto,
 	OrdersListResponseDto,
 	DownloadOrderResponseDto
-} from '../modules/orders/dto/order-response.dto';
-import { AvailableAiModelDto } from '../modules/ai-models/dto/available-ai-model.dto';
-import { StatsResponseDto } from '../modules/stats/dto/stats-response.dto';
+} from '@/modules/orders/dto/order-response.dto';
+import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { StatsResponseDto } from '@/modules/stats/dto/stats-response.dto';
 import {
 	RequestLoginLinkResponseDto,
 	AuthLoginDtoResponse,
 	AuthLogoutDtoResponse,
 	AuthStatusDtoResponse
-} from '../modules/auth/dto/auth-response.dto';
+} from '@/modules/auth/dto/auth-response.dto';
 import {
 	CheckoutSessionResponseDto,
 	PaymentIntentResponseDto
-} from '../modules/payments/dto/payment-response.dto';
-import { AppConfigService } from '../config/config.service';
-import { AppModule } from './app.module';
-import { createWinstonLogger } from '../config/config.logger';
+} from '@/modules/payments/dto/payment-response.dto';
+import { AppConfigService } from '@/config/config.service';
+import { AppModule } from '@/bootstrap/app.module';
+import { createWinstonLogger } from '@/config/config.logger';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { GlobalExceptionFilter } from '../filters/global-exception.filter';
+import { GlobalExceptionFilter } from '@/filters/global-exception.filter';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { HttpStatus, ResponseCode } from '../enums/response-code.enum';
-import { SessionService } from '../modules/auth/services/session.service';
+import { HttpStatus, ResponseCode } from '@/enums/response-code.enum';
+import { SessionService } from '@/modules/auth/services/session.service';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { TypeOrmSessionStore } from '../modules/auth/stores/typeorm-session.store';
+import { TypeOrmSessionStore } from '@/modules/auth/stores/typeorm-session.store';
 import { ValidationError, useContainer } from 'class-validator';
-import { ValidationException } from '../exceptions/validation.exception';
+import { ValidationException } from '@/exceptions/validation.exception';
 import { ValidationPipe } from '@nestjs/common';
-import { ApiResponse } from '../utils/response/api-response';
+import { ApiResponse } from '@/utils/response/api-response';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifySession from '@fastify/session';

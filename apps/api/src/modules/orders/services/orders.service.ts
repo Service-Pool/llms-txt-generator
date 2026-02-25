@@ -6,18 +6,18 @@ import {
 	UnauthorizedException,
 	Logger
 } from '@nestjs/common';
-import { CrawlersService } from '../../crawlers/services/crawlers.service';
-import { QueueManagerService } from '../../queue/services/queue-manager.service';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
-import { UsersService } from '../../users/services/users.service';
-import { StripeService } from '../../payments/services/stripe.service';
+import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
+import { QueueManagerService } from '@/modules/queue/services/queue-manager.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
+import { UsersService } from '@/modules/users/services/users.service';
+import { StripeService } from '@/modules/payments/services/stripe.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AiModelConfig } from '../../../modules/ai-models/entities/ai-model-config.entity';
-import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { Order } from '../entities/order.entity';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { OrderStatusMachine } from '../utils/order-status-machine';
-import { StripeSessionStatus } from '../../../enums/stripe-session-status.enum';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
+import { StripeSessionStatus } from '@/enums/stripe-session-status.enum';
 import { Repository, DataSource, IsNull } from 'typeorm';
 
 @Injectable()

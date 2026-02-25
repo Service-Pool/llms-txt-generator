@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { WebSocketEvent } from '../../../enums/websocket-event.enum';
+import { WebSocketEvent } from '@/enums/websocket-event.enum';
 import type { WebSocket } from '@fastify/websocket';
-import { StatsUpdateEvent, WebSocketResponse } from '../websocket.events';
-import { OrderResponseDto } from '../../orders/dto/order-response.dto';
+import { StatsUpdateEvent, WebSocketResponse } from '@/modules/websocket/websocket.events';
+import { OrderResponseDto } from '@/modules/orders/dto/order-response.dto';
 
 /**
  * WebSocket Service

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RequestUtils } from '../../../utils/request/fetch';
+import { RequestUtils } from '@/utils/request/fetch';
 import robotsParser from 'robots-parser';
 import Sitemapper, { SitemapperSiteData } from 'sitemapper';
 

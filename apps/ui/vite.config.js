@@ -103,6 +103,9 @@ const stubServerImports = {
 export default defineConfig({
 	plugins: [stubServerImports, sveltekit()],
 	resolve: {
+		alias: {
+			'@': path.resolve(__dirname, '../api/src')
+		},
 		extensions: ['.js', '.ts', '.json']
 	},
 	build: {

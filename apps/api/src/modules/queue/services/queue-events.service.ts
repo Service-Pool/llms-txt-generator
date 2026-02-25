@@ -2,12 +2,12 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QueueEvents } from 'bullmq';
-import { AppConfigService } from '../../../config/config.service';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
-import { WebSocketService } from '../../websocket/services/websocket.service';
-import { OrdersService } from '../../orders/services/orders.service';
-import { OrderResponseDto } from '../../orders/dto/order-response.dto';
-import { Order } from '../../orders/entities/order.entity';
+import { AppConfigService } from '@/config/config.service';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
+import { WebSocketService } from '@/modules/websocket/services/websocket.service';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderResponseDto } from '@/modules/orders/dto/order-response.dto';
+import { Order } from '@/modules/orders/entities/order.entity';
 
 /**
  * Queue Events Service

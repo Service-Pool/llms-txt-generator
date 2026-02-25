@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order } from '../../orders/entities/order.entity';
-import { OrderStatus } from '../../../enums/order-status.enum';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { OrderStatus } from '@/enums/order-status.enum';
 
 /**
  * Stats Service

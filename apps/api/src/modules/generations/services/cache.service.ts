@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { AppConfigService } from '../../../config/config.service';
+import { AppConfigService } from '@/config/config.service';
 
 /**
  * Generic Redis cache service

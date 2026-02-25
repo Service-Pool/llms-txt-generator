@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
 import { FastifyReply } from 'fastify';
-import { ApiResponse } from '../utils/response/api-response';
-import { ValidationException } from '../exceptions/validation.exception';
-import { HttpStatus, ResponseCode, resolveResponseCode } from '../enums/response-code.enum';
+import { ApiResponse } from '@/utils/response/api-response';
+import { ValidationException } from '@/exceptions/validation.exception';
+import { HttpStatus, ResponseCode, resolveResponseCode } from '@/enums/response-code.enum';
 
 @Catch()
 class GlobalExceptionFilter implements ExceptionFilter {

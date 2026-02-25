@@ -1,8 +1,8 @@
 import { IsString, IsNotEmpty, IsUrl, IsInt } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '../../../validators/host.validator';
-import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '../../../validators/order.validator';
-import { AiModelValidator } from '../../../validators/ai-model.validator';
+import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
+import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
+import { AiModelValidator } from '@/validators/ai-model.validator';
 import { Validate } from 'class-validator';
 import { Type } from 'class-transformer';
 

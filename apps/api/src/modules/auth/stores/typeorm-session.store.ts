@@ -1,6 +1,6 @@
 import { SessionStore } from '@fastify/session';
-import { SessionService } from '../services/session.service';
-import { SessionData } from '../entities/session.entity';
+import { SessionService } from '@/modules/auth/services/session.service';
+import { SessionData } from '@/modules/auth/entities/session.entity';
 
 /**
  * TypeORM Session Store for @fastify/session

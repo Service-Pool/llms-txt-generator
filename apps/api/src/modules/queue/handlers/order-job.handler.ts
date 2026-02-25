@@ -1,20 +1,14 @@
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
-import { Order } from '../../orders/entities/order.entity';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
-import { CrawlersService } from '../../crawlers/services/crawlers.service';
-import { CacheService } from '../../generations/services/cache.service';
-import { LLMProviderFactory } from '../../generations/services/llm-provider-factory.service';
-import { ProcessedPage } from '../../generations/services/llm-provider.service';
-import { PageBatchProcessor } from '../../generations/services/page-processor.service';
-import { LlmsTxtFormatter } from '../../generations/utils/llms-txt-formatter';
-import { OrdersService } from '../../orders/services/orders.service';
-import { StatsService } from '../../stats/services/stats.service';
-import { PageProcessingError } from '../../../exceptions/page-processing.exception';
-import { ResourceUnavailableError } from '../../../exceptions/resource-unavailable.exception';
+import { LLMProviderFactory } from '@/modules/generations/services/llm-provider-factory.service';
+import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { PageProcessor } from '@/modules/generations/services/page-processor.service';
+import { Repository } from 'typeorm';
 
 /**
  * Generation Job Handler
@@ -41,12 +35,9 @@ class OrderJobHandler {
 
 	constructor(
 		private readonly aiModelsConfigService: AiModelsConfigService,
-		private readonly crawlersService: CrawlersService,
-		private readonly cacheService: CacheService,
 		private readonly llmProviderFactory: LLMProviderFactory,
-		private readonly pageBatchProcessor: PageBatchProcessor,
+		private readonly pageProcessor: PageProcessor,
 		private readonly ordersService: OrdersService,
-		private readonly statsService: StatsService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
 	) { }
 
@@ -82,131 +73,64 @@ class OrderJobHandler {
 
 		// 2. Обновить статус на PROCESSING
 		await this.ordersService.updateOrderStatus(orderId, OrderStatus.PROCESSING);
-
-		// Отправить первое progress событие для уведомления фронта о PROCESSING
 		await job.updateProgress({});
 
 		try {
-			// 3. Получить список URLs из sitemap НА ЛЕТУ
-			const allUrls = await this.crawlersService.getAllSitemapUrls(order.hostname);
+			this.logger.log(`Processing order ${orderId} with batch size ${batchSize}`);
 
-			// 4. Ограничить до totalUrls из Order
-			const urlsToProcess = allUrls.slice(0, order.totalUrls || allUrls.length);
-			const totalUrls = urlsToProcess.length;
-
-			this.logger.log(`Processing order ${orderId}: ${totalUrls} URLs with batch size ${batchSize}`);
-
-			// 5. Обработка страниц батчами
-			const allPages: ProcessedPage[] = [];
-
-			for (const url of urlsToProcess) {
-				this.pageBatchProcessor.add(url);
-
-				if (this.pageBatchProcessor.count >= batchSize) {
-					try {
-						// Сгенерировать саммари для батча
-						const processedPages = await this.pageBatchProcessor.process(order.modelId, provider, order.hostname);
-
-						// Обработать ошибки извлечения контента
-						const failedPages = processedPages.filter(p => p.error);
-						for (const page of failedPages) {
-							await this.ordersService.addError(orderId, `Failed to process ${page.url}: ${page.error}`);
-						}
-
-						// Добавить только успешно обработанные страницы
-						const successPages = processedPages.filter(p => !p.error);
-						allPages.push(...successPages);
-
-						// Обновить processedUrls в Order
-						await this.ordersService.updateProgress(orderId, allPages.length);
-
-						// Отправить прогресс через BullMQ события
-						await job.updateProgress({});
-
-						this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed`);
-					} catch (error) {
-						// Ошибка обработки батча - записываем и продолжаем
-						if (error instanceof PageProcessingError || error instanceof ResourceUnavailableError) {
-							await this.ordersService.addError(orderId, error.message);
-							this.logger.warn(`Failed to process batch: ${error.message}`);
-							continue;
-						}
-						// Критическая ошибка - прерываем весь job
-						throw error;
-					}
+			// 3-5. Потоковая обработка всех страниц
+			const allPages = await this.pageProcessor.processPages(
+				order.hostname,
+				order.modelId,
+				provider,
+				batchSize,
+				order.totalUrls,
+				10,
+				(processed, total) => {
+					void this.ordersService.updateProgress(orderId, processed);
+					void job.updateProgress({});
+					this.logger.debug(`Progress: ${processed}/${total} URLs processed`);
 				}
+			);
+
+			// Логировать ошибки
+			const failedPages = allPages.filter(p => p.isFailure());
+			for (const page of failedPages) {
+				await this.ordersService.addError(orderId, `Failed to process ${page.url}: ${page.error}`);
 			}
 
-			// Обработать оставшийся батч
-			if (this.pageBatchProcessor.count > 0) {
-				try {
-					const processedPages = await this.pageBatchProcessor.process(order.modelId, provider, order.hostname);
-
-					// Обработать ошибки извлечения контента
-					const failedPages = processedPages.filter(p => p.error);
-					for (const page of failedPages) {
-						await this.ordersService.addError(orderId, `Failed to process ${page.url}: ${page.error}`);
-					}
-
-					// Добавить только успешно обработанные страницы
-					const successPages = processedPages.filter(p => !p.error);
-					allPages.push(...successPages);
-
-					// Обновить processedUrls в Order
-					await this.ordersService.updateProgress(orderId, allPages.length);
-
-					// Отправить прогресс через BullMQ события
-					await job.updateProgress({});
-
-					this.logger.debug(`Progress: ${allPages.length}/${totalUrls} URLs processed (final batch)`);
-				} catch (error) {
-					// Ошибка обработки последнего батча - логируем и продолжаем
-					if (error instanceof PageProcessingError || error instanceof ResourceUnavailableError) {
-						await this.ordersService.addError(orderId, error.message);
-						this.logger.warn(`Failed to process final batch: ${error.message}`);
-					} else {
-						throw error;
-					}
-				}
-			}
+			const successPages = allPages.filter(p => p.isSuccess());
 
 			// 6. Генерация Description сайта (с кэшем)
 			this.logger.log(`Generating website description for order ${orderId}`);
 
-			const hashKey = this.pageBatchProcessor.buildSummaryHashKey(order.modelId, order.hostname);
-			const description = await this.cacheService.get(hashKey, '__description__', async () => {
-				this.logger.debug(`Generating description for ${order.hostname} (cache miss)`);
-				return provider.generateDescription(allPages);
-			});
+			const description = await this.pageProcessor.processDescription(
+				order.modelId,
+				order.hostname,
+				provider,
+				successPages
+			);
 
 			// 7. Форматирование llms.txt
-			const output = LlmsTxtFormatter.format(order.hostname, description, allPages);
+			const output = LlmsTxtFormatter.format(order.hostname, description, successPages);
 
-			// 8-9. Сохранение результата - атомарное обновление
+			// 8-9. Сохранение результата
 			await this.orderRepository.update(orderId, {
 				output,
 				status: OrderStatus.COMPLETED,
 				completedAt: new Date()
 			});
 
-			// Отправить финальное событие через BullMQ ПОСЛЕ сохранения в БД
 			await job.updateProgress({});
 
-			// WebSocket события о завершении и статистике будут отправлены
-			// через QueueEventsService при получении BullMQ 'completed' события
-
-			this.logger.log(`Order ${orderId} completed successfully with ${allPages.length} pages`);
+			this.logger.log(`Order ${orderId} completed successfully with ${successPages.length} pages`);
 		} catch (error) {
-			// Сохранить ошибку в Order через OrdersService
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			await this.ordersService.updateOrderStatus(orderId, OrderStatus.FAILED);
 			await this.ordersService.addError(orderId, errorMessage);
 
-			// WebSocket события об ошибке будут отправлены через QueueEventsService
-			// при получении BullMQ 'failed' события
-
 			this.logger.error(`Order ${orderId} failed: ${errorMessage}`, error instanceof Error ? error.stack : undefined);
-			throw error; // Пробросить для retry BullMQ
+			throw error;
 		}
 	}
 }

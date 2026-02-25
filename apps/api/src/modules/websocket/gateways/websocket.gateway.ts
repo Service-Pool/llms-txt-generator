@@ -1,16 +1,16 @@
-import { AppConfigService } from '../../../config/config.service';
+import { AppConfigService } from '@/config/config.service';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from '../../orders/entities/order.entity';
+import { Order } from '@/modules/orders/entities/order.entity';
 import { Repository } from 'typeorm';
-import { Session } from '../../auth/entities/session.entity';
-import { StatsService } from '../../stats/services/stats.service';
-import { StatsUpdateEvent, WebSocketResponse } from '../websocket.events';
+import { Session } from '@/modules/auth/entities/session.entity';
+import { StatsService } from '@/modules/stats/services/stats.service';
+import { StatsUpdateEvent, WebSocketResponse } from '@/modules/websocket/websocket.events';
 import { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { type WebSocket } from 'ws';
-import { WebSocketEvent } from '../../../enums/websocket-event.enum';
-import { WebSocketService } from '../services/websocket.service';
+import { WebSocketEvent } from '@/enums/websocket-event.enum';
+import { WebSocketService } from '@/modules/websocket/services/websocket.service';
 
 interface SessionData {
 	userId: number | null;

@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Currency } from '../../../enums/currency.enum';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { User } from '../../users/entities/user.entity';
-import { AiModelConfig } from '../../ai-models/entities/ai-model-config.entity';
+import { Currency } from '@/enums/currency.enum';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { User } from '@/modules/users/entities/user.entity';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 
 @Entity('orders')
 class Order {

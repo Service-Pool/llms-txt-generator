@@ -1,22 +1,22 @@
-import { AppConfigModule } from '../config/config.module';
-import { AppConfigService } from '../config/config.service';
-import { AuthModule } from '../modules/auth/auth.module';
+import { AppConfigModule } from '@/config/config.module';
+import { AppConfigService } from '@/config/config.service';
+import { AuthModule } from '@/modules/auth/auth.module';
 import { ClsModule } from 'nestjs-cls';
 import { ConfigModule } from '@nestjs/config';
-import { ContentModule } from '../modules/content/content.module';
+import { ContentModule } from '@/modules/content/content.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Module } from '@nestjs/common';
-import { AiModelsModule } from '../modules/ai-models/ai-models.module';
-import { OrdersModule } from '../modules/orders/orders.module';
-import { PaymentsModule } from '../modules/payments/payments.module';
-import { CrawlersModule } from '../modules/crawlers/crawlers.module';
+import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
+import { PaymentsModule } from '@/modules/payments/payments.module';
+import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from '../modules/users/users.module';
-import { WebSocketModule } from '../modules/websocket/websocket.module';
-import { StatsModule } from '../modules/stats/stats.module';
+import { UsersModule } from '@/modules/users/users.module';
+import { WebSocketModule } from '@/modules/websocket/websocket.module';
+import { StatsModule } from '@/modules/stats/stats.module';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({

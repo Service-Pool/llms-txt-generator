@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { LLMProviderFactory } from './services/llm-provider-factory.service';
-import { CacheService } from './services/cache.service';
-import { PageBatchProcessor } from './services/page-processor.service';
-import { AiModelsModule } from '../ai-models/ai-models.module';
-import { ContentModule } from '../content/content.module';
+import { LLMProviderFactory } from '@/modules/generations/services/llm-provider-factory.service';
+import { CacheService } from '@/modules/generations/services/cache.service';
+import { PageProcessor } from '@/modules/generations/services/page-processor.service';
+import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
+import { ContentModule } from '@/modules/content/content.module';
+import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
 
 /**
  * Generations Module
@@ -13,16 +14,16 @@ import { ContentModule } from '../content/content.module';
  * They are instantiated dynamically by LLMProviderFactory based on model config.
  */
 @Module({
-	imports: [AiModelsModule, ContentModule],
+	imports: [AiModelsModule, ContentModule, CrawlersModule],
 	providers: [
 		LLMProviderFactory,
 		CacheService,
-		PageBatchProcessor
+		PageProcessor
 	],
 	exports: [
 		LLMProviderFactory,
 		CacheService,
-		PageBatchProcessor
+		PageProcessor
 	]
 })
 

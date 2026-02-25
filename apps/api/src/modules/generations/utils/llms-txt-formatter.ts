@@ -1,4 +1,4 @@
-import { ProcessedPage } from '../services/llm-provider.service';
+import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
 
 /**
  * Utility class for formatting llms.txt output

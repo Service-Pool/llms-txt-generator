@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AvailableAiModelDto } from '../../ai-models/dto/available-ai-model.dto';
-import { Order } from '../entities/order.entity';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
-import { HateoasAction } from '../../../enums/hateoas-action.enum';
-import { OrderStatusMachine } from '../utils/order-status-machine';
+import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { CURRENCY_SYMBOLS } from '@/enums/currency.enum';
+import { HateoasAction } from '@/enums/hateoas-action.enum';
+import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
 
 /**
  * HATEOAS link interface

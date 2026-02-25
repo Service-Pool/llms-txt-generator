@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { AiModelConfigRepository } from '../repositories/ai-model-config.repository';
-import { AvailableAiModelDto } from '../dto/available-ai-model.dto';
-import { AiModelConfig } from '../entities/ai-model-config.entity';
-import { AppConfigService } from '../../../config/config.service';
-import { Currency } from '../../../enums/currency.enum';
+import { AiModelConfigRepository } from '@/modules/ai-models/repositories/ai-model-config.repository';
+import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { AppConfigService } from '@/config/config.service';
+import { Currency } from '@/enums/currency.enum';
 
 /**
  * Service for working with AI Model configurations

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntitySubscriberInterface, EventSubscriber } from 'typeorm';
-import { Order } from '../entities/order.entity';
-import { AiModelsConfigService } from '../../ai-models/services/ai-models-config.service';
+import { Order } from '@/modules/orders/entities/order.entity';
+import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 
 @Injectable()
 @EventSubscriber()

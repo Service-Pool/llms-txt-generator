@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '../../users/entities/user.entity';
+import { User } from '@/modules/users/entities/user.entity';
 
 /**
  * Request Login Link Attributes

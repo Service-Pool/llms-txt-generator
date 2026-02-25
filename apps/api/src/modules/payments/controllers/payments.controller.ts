@@ -7,16 +7,16 @@ import {
 	BadRequestException,
 	UseGuards
 } from '@nestjs/common';
-import { ApiResponse } from '../../../utils/response/api-response';
+import { ApiResponse } from '@/utils/response/api-response';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiBody } from '@nestjs/swagger';
-import { SessionGuard } from '../../auth/guards/session.guard';
-import { AppConfigService } from '../../../config/config.service';
-import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '../dto/payment-response.dto';
-import { CreateCheckoutRequestDto } from '../dto/payment-request.dto';
-import { HttpStatus } from '../../../enums/response-code.enum';
-import { OrdersService } from '../../orders/services/orders.service';
-import { OrderStatus } from '../../../enums/order-status.enum';
-import { StripeService } from '../services/stripe.service';
+import { SessionGuard } from '@/modules/auth/guards/session.guard';
+import { AppConfigService } from '@/config/config.service';
+import { CheckoutSessionResponseDto, PaymentIntentResponseDto } from '@/modules/payments/dto/payment-response.dto';
+import { CreateCheckoutRequestDto } from '@/modules/payments/dto/payment-request.dto';
+import { HttpStatus } from '@/enums/response-code.enum';
+import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderStatus } from '@/enums/order-status.enum';
+import { StripeService } from '@/modules/payments/services/stripe.service';
 
 @ApiTags('Payments')
 @Controller('api/orders/:orderId/payment')

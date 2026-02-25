@@ -1,5 +1,5 @@
-import { AiModelConfig } from '../entities/ai-model-config.entity';
-import { Currency, CURRENCY_SYMBOLS } from '../../../enums/currency.enum';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { Currency, CURRENCY_SYMBOLS } from '@/enums/currency.enum';
 
 /**
  * DTO for available AI models with pricing and availability logic

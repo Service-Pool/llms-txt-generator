@@ -1,4 +1,4 @@
-import { ResourceUnavailableError } from '../../exceptions/resource-unavailable.exception';
+import { ResourceUnavailableError } from '@/exceptions/resource-unavailable.exception';
 
 class RequestUtils {
 	/**

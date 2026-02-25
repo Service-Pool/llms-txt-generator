@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { OrderStatus } from '../../../enums/order-status.enum';
+import { OrderStatus } from '@/enums/order-status.enum';
 
 /**
  * Order Status State Machine

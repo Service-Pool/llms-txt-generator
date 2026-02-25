@@ -1,10 +1,10 @@
-import { Logger } from '@nestjs/common';
 import { Ollama, GenerateRequest } from 'ollama';
-import { AiModelConfig } from '../../../ai-models/entities/ai-model-config.entity';
-import { LLMProviderService, ProcessedPage } from '../llm-provider.service';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
+import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { LlmJsonValidator } from '@/utils/json-validator';
 
-class OllamaService extends LLMProviderService {
-	private readonly logger = new Logger(OllamaService.name);
+class OllamaService extends AbstractLlmService {
 	private readonly ollama: Ollama;
 	private readonly config: AiModelConfig;
 
@@ -25,13 +25,11 @@ class OllamaService extends LLMProviderService {
 	 * Генерирует саммари для батча страниц через Ollama за один вызов
 	 */
 	public async generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]> {
-		try {
-			// Формируем промпт со всеми страницами
-			const pagesText = pages
-				.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
-				.join('\n\n');
+		const pagesText = pages
+			.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
+			.join('\n\n');
 
-			const prompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
+		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
 
 ${pagesText}
 
@@ -44,63 +42,67 @@ Instructions:
 - Maintain the SAME ORDER as the pages above
 - Return an array of objects, each with a "summary" field`;
 
-			const request: GenerateRequest & { stream: false } = {
-				model: this.config.modelName,
-				prompt,
-				stream: false,
-				format: {
-					type: 'array',
-					items: {
-						type: 'object',
-						properties: {
-							summary: { type: 'string', description: 'Concise 2-3 sentence summary' }
-						},
-						required: ['summary']
+		return this.withResilience(
+			async (currentPrompt) => {
+				const request: GenerateRequest & { stream: false } = {
+					model: this.config.modelName,
+					prompt: currentPrompt,
+					stream: false,
+					format: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								summary: { type: 'string', description: 'Concise 2-3 sentence summary' }
+							},
+							required: ['summary']
+						}
+					},
+					options: {
+						temperature: this.config.options.temperature,
+						num_predict: this.config.options.maxTokens
 					}
-				},
-				options: {
-					temperature: this.config.options.temperature,
-					num_predict: this.config.options.maxTokens
+				};
+
+				const response = await this.ollama.generate(request);
+				const parsed = LlmJsonValidator.parseJsonResponse<Array<{ summary: string }>>(response.response);
+
+				if (!Array.isArray(parsed)) {
+					throw new Error('Response is not a JSON array');
 				}
-			};
 
-			const response = await this.ollama.generate(request);
-			const parsed = JSON.parse(response.response) as Array<{ summary: string }>;
-
-			if (!Array.isArray(parsed)) {
-				throw new Error('Response is not a JSON array');
-			}
-
-			if (parsed.length !== pages.length) {
-				throw new Error(`Expected ${pages.length} summaries, got ${parsed.length}`);
-			}
-
-			const summaries = parsed.map((item, idx) => {
-				if (!item.summary || typeof item.summary !== 'string') {
-					throw new Error(`Invalid summary at index ${idx}: missing or invalid "summary" field`);
+				if (parsed.length !== pages.length) {
+					throw new Error(`Expected ${pages.length} summaries, got ${parsed.length}`);
 				}
-				return item.summary.trim();
-			});
 
-			this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+				const summaries = parsed.map((item, idx) => {
+					if (!item.summary || typeof item.summary !== 'string') {
+						throw new Error(`Invalid summary at index ${idx}: missing or invalid "summary" field`);
+					}
+					return item.summary.trim();
+				});
 
-			return summaries;
-		} catch (error) {
-			this.logger.error(`Failed to generate batch summaries:`, error);
-			throw new Error(`Ollama API error: ${error instanceof Error ? error.message : String(error)}`);
-		}
+				this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+
+				return summaries;
+			},
+			{
+				validator: result => LlmJsonValidator.validateStringArray(result),
+				operationName: 'generateBatchSummaries',
+				initialPrompt
+			}
+		);
 	}
 
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
 	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
-		try {
-			const summariesText = pages
-				.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
-				.join('\n');
+		const summariesText = pages
+			.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
+			.join('\n');
 
-			const prompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
+		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
 Page summaries:
 ${summariesText}
@@ -113,34 +115,39 @@ Instructions:
 - Do not mention "this website" or similar phrases, write directly about the content
 - Return a JSON object with a "description" field`;
 
-			const request: GenerateRequest & { stream: false } = {
-				model: this.config.modelName,
-				prompt,
-				stream: false,
-				format: {
-					type: 'object',
-					properties: {
-						description: { type: 'string', description: 'Brief comprehensive website description' }
+		return this.withResilience(
+			async (currentPrompt) => {
+				const request: GenerateRequest & { stream: false } = {
+					model: this.config.modelName,
+					prompt: currentPrompt,
+					stream: false,
+					format: {
+						type: 'object',
+						properties: {
+							description: { type: 'string', description: 'Brief comprehensive website description' }
+						},
+						required: ['description']
 					},
-					required: ['description']
-				},
-				options: {
-					temperature: this.config.options.temperature,
-					num_predict: this.config.options.maxTokens
-				}
-			};
+					options: {
+						temperature: this.config.options.temperature,
+						num_predict: this.config.options.maxTokens
+					}
+				};
 
-			const response = await this.ollama.generate(request);
-			const parsed = JSON.parse(response.response) as { description: string };
-			const description = parsed.description.trim();
+				const response = await this.ollama.generate(request);
+				const parsed = LlmJsonValidator.parseJsonResponse<{ description: string }>(response.response);
+				const description = parsed.description.trim();
 
-			this.logger.log(`Generated website description from ${pages.length} page summaries`);
+				this.logger.log(`Generated website description from ${pages.length} page summaries`);
 
-			return description;
-		} catch (error) {
-			this.logger.error('Failed to generate website description:', error);
-			throw new Error(`Ollama API error: ${error instanceof Error ? error.message : String(error)}`);
-		}
+				return description;
+			},
+			{
+				validator: result => LlmJsonValidator.validateString(result),
+				operationName: 'generateDescription',
+				initialPrompt
+			}
+		);
 	}
 }
 

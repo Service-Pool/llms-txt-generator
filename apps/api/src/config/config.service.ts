@@ -1,8 +1,8 @@
 import { config as dotenvConfig } from 'dotenv';
-import { Currency } from '../enums/currency.enum';
+import { Currency } from '@/enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { AiModelConfig } from '../modules/ai-models/entities/ai-model-config.entity';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 

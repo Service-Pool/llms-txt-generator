@@ -1,9 +1,9 @@
-import { ApiResponse } from '../../../utils/response/api-response';
+import { ApiResponse } from '@/utils/response/api-response';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse } from '@nestjs/swagger';
 import { Controller, Get } from '@nestjs/common';
-import { HttpStatus } from '../../../enums/response-code.enum';
-import { StatsResponseDto } from '../dto/stats-response.dto';
-import { StatsService } from '../services/stats.service';
+import { HttpStatus } from '@/enums/response-code.enum';
+import { StatsResponseDto } from '@/modules/stats/dto/stats-response.dto';
+import { StatsService } from '@/modules/stats/services/stats.service';
 
 /**
  * Stats Controller

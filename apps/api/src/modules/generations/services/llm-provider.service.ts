@@ -1,12 +1,23 @@
+/**
+ * Результат обработки страницы
+ * Использует паттерн Factory для создания только валидных состояний
+ */
 class ProcessedPage {
-	private _summary: string | null = null;
-	private _error: string | null = null;
-
-	constructor(
+	private constructor(
 		private readonly _url: string,
 		private readonly _title: string,
-		private readonly _content: string
+		private readonly _content: string,
+		private _summary: string | null = null,
+		private _error: string | null = null
 	) { }
+
+	public static success(url: string, title: string, content: string, summary?: string): ProcessedPage {
+		return new ProcessedPage(url, title, content, summary ?? null, null);
+	}
+
+	public static failure(url: string, error: string): ProcessedPage {
+		return new ProcessedPage(url, '', '', null, error);
+	}
 
 	get url(): string {
 		return this._url;
@@ -32,29 +43,13 @@ class ProcessedPage {
 		return this._error;
 	}
 
-	set error(value: string) {
-		this._error = value;
+	public isSuccess(): boolean {
+		return this._error === null;
+	}
+
+	public isFailure(): boolean {
+		return this._error !== null;
 	}
 }
 
-/**
- * Базовый абстрактный класс для всех LLM провайдеров
- * Конкретные провайдеры (Gemini, Ollama) наследуют этот класс
- */
-abstract class LLMProviderService {
-	/**
-	 * Генерирует саммари для батча страниц за один вызов LLM
-	 * @param pages - Массив страниц с контентом и заголовками
-	 * @returns Массив саммари в том же порядке
-	 */
-	abstract generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]>;
-
-	/**
-	 * Генерирует общее описание сайта на основе всех саммари страниц
-	 * @param pages - Массив страниц с саммари
-	 * @returns Общее описание сайта
-	 */
-	abstract generateDescription(pages: ProcessedPage[]): Promise<string>;
-}
-
-export { ProcessedPage, LLMProviderService };
+export { ProcessedPage };

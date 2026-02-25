@@ -1,13 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WebSocketService } from './services/websocket.service';
-import { WebSocketGateway } from './gateways/websocket.gateway';
-import { StatsModule } from '../stats/stats.module';
-import { OrdersModule } from '../orders/orders.module';
-import { AiModelsModule } from '../ai-models/ai-models.module';
-import { QueueEventsService } from '../queue/services/queue-events.service';
-import { Session } from '../auth/entities/session.entity';
-import { Order } from '../orders/entities/order.entity';
+import { WebSocketService } from '@/modules/websocket/services/websocket.service';
+import { WebSocketGateway } from '@/modules/websocket/gateways/websocket.gateway';
+import { StatsModule } from '@/modules/stats/stats.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
+import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
+import { QueueEventsService } from '@/modules/queue/services/queue-events.service';
+import { Session } from '@/modules/auth/entities/session.entity';
+import { Order } from '@/modules/orders/entities/order.entity';
 
 @Module({
 	imports: [
