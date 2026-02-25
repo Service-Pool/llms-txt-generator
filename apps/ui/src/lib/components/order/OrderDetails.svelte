@@ -88,7 +88,7 @@
 	{/snippet}
 
 	{#snippet stats()}
-		<div class="order-stats space-y-2">
+		<div class="order-stats mt-2 space-y-2">
 			<OrderOutput {order} class="stats-card" />
 			<OrderErrors {order} class="text-xs stats-card" />
 			<OrderInfo {order} class="stats-card" />

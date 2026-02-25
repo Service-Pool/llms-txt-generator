@@ -62,14 +62,16 @@
   Композиция OrderListItemLayout со slots.
   Использует ActionsSpeedDial для действий.
 -->
-<OrderListItemLayout class="p-2 pt-4 space-y-4" {isExpanded}>
+<OrderListItemLayout class="p-4" {isExpanded}>
 	{#snippet header()}
 		<div class="flex items-center flex-wrap gap-1">
-			<h3 class="text-sm font-semibold truncate flex items-center gap-2">
+			<h3 class="text-sm font-semibold truncate flex items-start gap-2">
 				<OrderBadge {order} class="mr-1" />
-				{order.attributes.hostname}
+				<span class="inline-block max-w-55 truncate">{order.attributes.hostname}</span>
 			</h3>
-			<OrderStatus status={order.attributes.status} />
+			<span>
+				<OrderStatus status={order.attributes.status} />
+			</span>
 		</div>
 	{/snippet}
 
@@ -129,7 +131,7 @@
 	{/snippet}
 
 	{#snippet expandableContent()}
-		<div class="order-stats space-y-2">
+		<div class="order-stats mt-4 space-y-2">
 			<OrderOutput {order} class="stats-card" />
 			<OrderErrors {order} class="stats-card  text-xs space-y-2" />
 			<OrderInfo {order} class="stats-card" />

@@ -23,7 +23,7 @@
 			<Indicator size="xs" color="red" />
 		</div>
 
-		<List tag="ul" class="space-y-1 overflow-auto max-h-60 whitespace-nowrap font-mono">
+		<List tag="ul" class="py-2 space-y-1 overflow-auto max-h-60 whitespace-nowrap font-mono">
 			{#each order.attributes.errors as errMsg}
 				<Li><code>{errMsg}</code></Li>
 			{/each}
