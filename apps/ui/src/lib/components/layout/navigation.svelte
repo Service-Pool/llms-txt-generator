@@ -74,7 +74,7 @@
 	class:border-transparent={!isStuck}
 >
 	<div class="mx-auto" class:container={!fullWidth}>
-		<Navbar {fluid} class="sm:px-0 px-0">
+		<Navbar {fluid} class="sm:px-2 px-2">
 			<NavBrand href="/" class="mb-1">
 				<!-- светлая -->
 				<svg class="w-10 h-10 sm:h-9 me-3 dark:hidden">

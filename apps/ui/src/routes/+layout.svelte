@@ -68,7 +68,7 @@
 				{@render children()}
 			</main>
 		{:else}
-			<Navigation sticky class="px-2 bg-gray-50 dark:bg-gray-900" />
+			<Navigation sticky class="bg-gray-50 dark:bg-gray-900" />
 			<main class="container flex-1 w-full mx-auto px-2 py-8">
 				{@render children()}
 			</main>
