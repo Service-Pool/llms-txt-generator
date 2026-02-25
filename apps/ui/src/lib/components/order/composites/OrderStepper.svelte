@@ -6,6 +6,7 @@
 	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
 	import { CalculateAction, PaymentAction, RunAction, DownloadAction } from '$lib/components/order';
 	import { getActionConfig } from '$lib/components/order-actions.config';
+	import { OrderStatus } from '@api/shared';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -146,6 +147,10 @@
 			<div class="h-8">
 				{#if current > stepperState.maxAllowedStep}
 					<P align="center" height="8" size="xs" space="normal" italic>Complete previous step first</P>
+				{:else if order.attributes.status === OrderStatus.FAILED}
+					<P align="center" height="8" size="xs" space="normal" italic class="text-red-600 dark:text-red-400">
+						Generation failed. Check errors for details.
+					</P>
 				{:else if !currentTransition}
 					<P align="center" height="8" size="xs" space="normal" italic>Step is already completed</P>
 				{/if}

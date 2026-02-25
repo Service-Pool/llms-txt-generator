@@ -127,8 +127,11 @@ class OrderStateMachine {
 		} else if (status === OrderStatus.PROCESSING) {
 			// Заказ в процессе генерации - шаг Run запущен, но не завершён
 			targetActionId = StepActionIdEnum.Run;
+		} else if (status === OrderStatus.FAILED) {
+			// Генерация провалилась - остаёмся на шаге Run
+			targetActionId = StepActionIdEnum.Run;
 		} else {
-			// COMPLETED, FAILED, CANCELLED, REFUNDED - обработка завершена
+			// COMPLETED, CANCELLED, REFUNDED - обработка завершена
 			targetActionId = StepActionIdEnum.Download;
 		}
 
