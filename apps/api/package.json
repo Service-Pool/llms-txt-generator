@@ -17,7 +17,7 @@
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
 		"lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-		"typeorm": "typeorm-ts-node-commonjs -d src/config/config.service.ts",
+		"typeorm": "NODE_OPTIONS='-r tsconfig-paths/register' typeorm-ts-node-commonjs -d src/config/config.service.ts",
 		"migration:generate": "npm run typeorm -- migration:generate src/migrations/migration",
 		"migration:run": "npm run build && npm run typeorm -- migration:run",
 		"migration:revert": "npm run build && npm run typeorm -- migration:revert"

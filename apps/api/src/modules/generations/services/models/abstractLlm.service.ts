@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
+import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import {
 	retry,
 	circuitBreaker,

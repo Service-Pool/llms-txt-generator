@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
+import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
 import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
@@ -26,8 +26,8 @@ class PageProcessor {
 
 	/**
 	 * Обработка всех страниц сайта через потоковый pipeline.
-	 * Выполняет параллельную загрузку с контролем concurrency, проверку кэша,
-	 * генерацию summaries батчами и сохранение результатов в Redis.
+	 * Сначала проверяет кэш для каждого URL, парсит только некэшированные страницы,
+	 * генерирует summaries батчами и сохраняет результаты в Redis.
 	 * @param hostname - Hostname сайта для обработки
 	 * @param modelId - ID модели LLM для генерации и ключа кэша
 	 * @param llmProvider - Провайдер LLM для генерации summaries
@@ -54,13 +54,48 @@ class PageProcessor {
 		for await (const batchUrls of this.batcher(urlStream, batchSize)) {
 			this.logger.debug(`Processing batch of ${batchUrls.length} URLs`);
 
-			const fetchedPages = await this.parallelMap(batchUrls, url => this.fetchContent(url), concurrency);
-			const checkedPages = await Promise.all(fetchedPages.map(page => this.checkCache(page, modelId, hostname)));
+			// 1. Проверяем кэш для всех URL в батче
+			const hashKey = this.buildSummaryHashKey(modelId, hostname);
+			const cacheChecks = await Promise.all(batchUrls.map(async (url) => {
+				const { path: pathname } = this.parseUrl(url);
+				const cached = await this.cacheService.get(hashKey, pathname);
+				return { url, cached };
+			}));
 
-			await this.generateBatchSummary(checkedPages, llmProvider);
-			await Promise.all(checkedPages.map(page => this.saveCache(page, modelId, hostname)));
+			// 2. Разделяем на кэшированные страницы и URL для парсинга
+			const cachedPages: ProcessedPage[] = [];
+			const urlsToFetch: string[] = [];
 
-			const validPages = checkedPages.filter((p): p is ProcessedPage => p !== undefined && p !== null);
+			for (const { url, cached } of cacheChecks) {
+				if (cached) {
+					try {
+						const data = JSON.parse(cached) as CachedPageData;
+						cachedPages.push(ProcessedPage.success(url, data.title, '', data.summary));
+					} catch {
+						urlsToFetch.push(url);
+					}
+				} else {
+					urlsToFetch.push(url);
+				}
+			}
+
+			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
+
+			// 3. Парсим только некэшированные URL
+			const fetchedPages = urlsToFetch.length > 0
+				? await this.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
+				: [];
+
+			// 4. Объединяем кэшированные и спарсенные страницы
+			const allBatchPages = [...cachedPages, ...fetchedPages];
+
+			// 5. Генерируем summary только для страниц без summary (спарсенные)
+			await this.generateBatchSummary(allBatchPages, llmProvider);
+
+			// 6. Сохраняем в кэш
+			await Promise.all(allBatchPages.map(page => this.saveCache(page, modelId, hostname)));
+
+			const validPages = allBatchPages.filter((p): p is ProcessedPage => p !== undefined && p !== null);
 			allPages.push(...validPages);
 			processedCount += validPages.length;
 

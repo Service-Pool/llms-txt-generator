@@ -1,6 +1,6 @@
 import { Ollama, GenerateRequest } from 'ollama';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
-import { ProcessedPage } from '@/modules/generations/services/llm-provider.service';
+import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { LlmJsonValidator } from '@/utils/json-validator';
 

@@ -64,7 +64,7 @@ class Order {
 	@Column({ type: 'datetime', nullable: true, utc: true })
 	completedAt: Date | null;
 
-	@Column({ type: 'text', nullable: true })
+	@Column({ type: 'longtext', nullable: true })
 	output: string | null;
 
 	@Column({ type: 'json', nullable: true })
