@@ -23,9 +23,9 @@
 			<Indicator size="xs" color="red" />
 		</div>
 
-		<List tag="ul" class="space-y-1 overflow-auto max-h-120">
+		<List tag="ul" class="space-y-1 overflow-auto max-h-60 whitespace-nowrap font-mono">
 			{#each order.attributes.errors as errMsg}
-				<Li>{errMsg}</Li>
+				<Li><code>{errMsg}</code></Li>
 			{/each}
 		</List>
 	</div>

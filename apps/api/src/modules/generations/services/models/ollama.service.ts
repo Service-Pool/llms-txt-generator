@@ -2,7 +2,7 @@ import { Ollama, GenerateRequest } from 'ollama';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
-import { LlmJsonValidator } from '@/utils/json-validator';
+import { LlmResponseValidator } from '@/modules/generations/services/validators/llm-response.validator';
 
 class OllamaService extends AbstractLlmService {
 	private readonly ollama: Ollama;
@@ -42,8 +42,9 @@ Instructions:
 - Maintain the SAME ORDER as the pages above
 - Return an array of objects, each with a "summary" field`;
 
-		return this.withResilience(
-			async (currentPrompt) => {
+		// Получаем валидированный ответ от LLM
+		const validated = await this.withResilience<Array<{ summary: string }>>(
+			async (currentPrompt, _attemptNumber) => {
 				const request: GenerateRequest & { stream: false } = {
 					model: this.config.modelName,
 					prompt: currentPrompt,
@@ -65,33 +66,25 @@ Instructions:
 				};
 
 				const response = await this.ollama.generate(request);
-				const parsed = LlmJsonValidator.parseJsonResponse<Array<{ summary: string }>>(response.response);
 
-				if (!Array.isArray(parsed)) {
-					throw new Error('Response is not a JSON array');
-				}
-
-				if (parsed.length !== pages.length) {
-					throw new Error(`Expected ${pages.length} summaries, got ${parsed.length}`);
-				}
-
-				const summaries = parsed.map((item, idx) => {
-					if (!item.summary || typeof item.summary !== 'string') {
-						throw new Error(`Invalid summary at index ${idx}: missing or invalid "summary" field`);
-					}
-					return item.summary.trim();
-				});
-
-				this.logger.debug(`Generated ${summaries.length} summaries in batch`);
-
-				return summaries;
+				return response.response;
 			},
 			{
-				validator: result => LlmJsonValidator.validateStringArray(result),
-				operationName: 'generateBatchSummaries',
-				initialPrompt
+				initialPrompt,
+				validators: [
+					(result, attemptNumber) => { LlmResponseValidator.validateCount(result, pages.length, attemptNumber); },
+					(result, attemptNumber) => { LlmResponseValidator.validateSummaryFields(result, attemptNumber); }
+				],
+				operationName: 'generateBatchSummaries'
 			}
 		);
+
+		// Трансформируем в финальный формат (после валидации)
+		const summaries = validated.map(item => item.summary.trim());
+
+		this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+
+		return summaries;
 	}
 
 	/**
@@ -115,7 +108,7 @@ Instructions:
 - Do not mention "this website" or similar phrases, write directly about the content
 - Return a JSON object with a "description" field`;
 
-		return this.withResilience(
+		const result = await this.withResilience<{ description: string }>(
 			async (currentPrompt) => {
 				const request: GenerateRequest & { stream: false } = {
 					model: this.config.modelName,
@@ -135,19 +128,21 @@ Instructions:
 				};
 
 				const response = await this.ollama.generate(request);
-				const parsed = LlmJsonValidator.parseJsonResponse<{ description: string }>(response.response);
-				const description = parsed.description.trim();
-
-				this.logger.log(`Generated website description from ${pages.length} page summaries`);
-
-				return description;
+				return response.response;
 			},
 			{
-				validator: result => LlmJsonValidator.validateString(result),
-				operationName: 'generateDescription',
-				initialPrompt
+				initialPrompt,
+				validators: [
+					(result, attemptNumber) => { LlmResponseValidator.validateDescriptionField(result, attemptNumber); }
+				],
+				operationName: 'generateDescription'
 			}
 		);
+
+		const description = result.description.trim();
+		this.logger.log(`Generated website description from ${pages.length} page summaries`);
+
+		return description;
 	}
 }
 

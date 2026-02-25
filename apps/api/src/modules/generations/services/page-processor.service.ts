@@ -83,7 +83,7 @@ class PageProcessor {
 
 			// 3. Парсим только некэшированные URL
 			const fetchedPages = urlsToFetch.length > 0
-				? await this.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
+				? await this.parallelMap(urlsToFetch, url => this.fetchContent('https://opencut.app/why-not-capcut'), concurrency)
 				: [];
 
 			// 4. Объединяем кэшированные и спарсенные страницы
@@ -157,39 +157,6 @@ class PageProcessor {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			return ProcessedPage.failure(url, message);
-		}
-	}
-
-	/**
-	 * Проверка наличия summary в Redis кэше.
-	 * Если найден, возвращает ProcessedPage с заполненным summary.
-	 * @param page - Страница для проверки кэша
-	 * @param modelId - ID модели для построения ключа кэша
-	 * @param hostname - Hostname для построения ключа кэша
-	 * @returns Страница с summary из кэша или исходная страница
-	 */
-	private async checkCache(page: ProcessedPage, modelId: string, hostname: string): Promise<ProcessedPage> {
-		if (page.isFailure()) {
-			return page;
-		}
-
-		try {
-			const hashKey = this.buildSummaryHashKey(modelId, hostname);
-			const { path: pathname } = this.parseUrl(page.url);
-			const cached = await this.cacheService.get(hashKey, pathname);
-
-			if (cached) {
-				try {
-					const data = JSON.parse(cached) as CachedPageData;
-					return ProcessedPage.success(page.url, data.title, page.content, data.summary);
-				} catch {
-					return page;
-				}
-			}
-
-			return page;
-		} catch {
-			return page;
 		}
 	}
 

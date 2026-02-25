@@ -86,14 +86,7 @@
 						<InputAddon>
 							<EnvelopeSolid size="sm" class="text-gray-500 dark:text-gray-400" />
 						</InputAddon>
-						<Input
-							id="email"
-							type="email"
-							class="pl-8"
-							bind:value={email}
-							placeholder="name@company.com"
-							required
-							disabled={success}
+						<Input id="email" type="email" bind:value={email} placeholder="name@company.com" required disabled={success}
 						></Input>
 					</ButtonGroup>
 				</div>
