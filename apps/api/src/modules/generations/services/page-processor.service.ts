@@ -83,7 +83,7 @@ class PageProcessor {
 
 			// 3. Парсим только некэшированные URL
 			const fetchedPages = urlsToFetch.length > 0
-				? await this.parallelMap(urlsToFetch, url => this.fetchContent('https://opencut.app/why-not-capcut'), concurrency)
+				? await this.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
 				: [];
 
 			// 4. Объединяем кэшированные и спарсенные страницы

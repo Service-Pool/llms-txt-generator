@@ -1,8 +1,7 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentParameters } from '@google/genai';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
-import { LlmResponseValidator } from '@/modules/generations/services/validators/llm-response.validator';
 
 class GeminiService extends AbstractLlmService {
 	private readonly ai: GoogleGenAI;
@@ -41,8 +40,8 @@ Instructions:
 
 		// Получаем валидированный ответ от LLM
 		const validated = await this.withResilience<Array<{ summary: string }>>(
-			async (currentPrompt, _attemptNumber) => {
-				const response = await this.ai.models.generateContent({
+			async (currentPrompt) => {
+				const request: GenerateContentParameters = {
 					model: this.config.modelName,
 					contents: currentPrompt,
 					config: {
@@ -63,17 +62,18 @@ Instructions:
 							}
 						}
 					}
-				});
+				};
 
+				const response = await this.ai.models.generateContent(request);
 				return response.text;
 			},
 			{
 				initialPrompt,
-				validators: [
-					(result, attemptNumber) => { LlmResponseValidator.validateCount(result, pages.length, attemptNumber); },
-					(result, attemptNumber) => { LlmResponseValidator.validateSummaryFields(result, attemptNumber); }
-				],
-				operationName: 'generateBatchSummaries'
+				operationName: 'generateBatchSummaries',
+				validation: {
+					expectedCount: pages.length,
+					requireSummaryFields: true
+				}
 			}
 		);
 
@@ -131,10 +131,10 @@ Instructions:
 			},
 			{
 				initialPrompt,
-				validators: [
-					(result, attemptNumber) => { LlmResponseValidator.validateDescriptionField(result, attemptNumber); }
-				],
-				operationName: 'generateDescription'
+				operationName: 'generateDescription',
+				validation: {
+					requireDescriptionField: true
+				}
 			}
 		);
 

@@ -1,35 +1,18 @@
 import { Logger } from '@nestjs/common';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
-import {
-	circuitBreaker,
-	timeout,
-	wrap,
-	handleAll,
-	handleWhen,
-	retry,
-	ExponentialBackoff,
-	IPolicy,
-	ConsecutiveBreaker,
-	TimeoutStrategy
-} from 'cockatiel';
 import { LlmJsonValidationException } from '@/exceptions/llm-json-validation.exception';
 import { LlmResponseCountMismatchException } from '@/exceptions/llm-response-count-mismatch.exception';
 import { LlmInvalidSummaryFieldException } from '@/exceptions/llm-invalid-summary-field.exception';
 
 /**
- * Конфигурация resilience политик для LLM провайдеров
+ * Конфигурация resilience для LLM операций
  */
-export interface ResilienceConfig {
+interface ResilienceConfig {
 	retry: {
 		maxAttempts: number;
 		initialDelayMs: number;
 		maxDelayMs: number;
 		backoffMultiplier: number;
-	};
-	circuitBreaker: {
-		halfOpenAfterMs: number;
-		failureThreshold: number;
-		successThreshold: number;
 	};
 	timeout: {
 		durationMs: number;
@@ -37,43 +20,44 @@ export interface ResilienceConfig {
 }
 
 /**
- * Опции для выполнения операции с resilience
+ * Конфигурация валидации для результата LLM
  */
-interface ResilienceOptions<T> {
-	/**
-	 * Pipeline валидаторов для проверки результата.
-	 * Каждый валидатор может бросить специфичное исключение:
-	 * - LlmResponseCountMismatchException
-	 * - LlmInvalidSummaryFieldException
-	 * - LlmJsonValidationException
-	 * Если валидатор не бросает исключение - результат считается валидным.
-	 */
-	validators?: Array<(result: T, attemptNumber: number) => void>;
+interface ValidationConfig {
+	/** Ожидаемое количество элементов в массиве */
+	expectedCount?: number;
+	/** Проверять наличие поля summary в каждом элементе массива */
+	requireSummaryFields?: boolean;
+	/** Проверять наличие поля description в объекте */
+	requireDescriptionField?: boolean;
+}
+
+/**
+ * Опции для выполнения операции с retry и timeout
+ */
+interface ResilienceOptions {
+	/** Исходный промпт для LLM */
+	initialPrompt: string;
+	/** Название операции для логирования */
+	operationName: string;
+	/** Конфигурация валидации результата */
+	validation?: ValidationConfig;
+	/** Повторять попытки при ошибках валидации */
 	retryOnValidationError?: boolean;
-	operationName?: string;
-	initialPrompt?: string;
 }
 
 /**
  * Базовый абстрактный класс для всех LLM провайдеров.
- * Предоставляет встроенную resilience логику через Template Method pattern.
+ * Предоставляет retry + timeout логику.
  * Конкретные провайдеры (Gemini, Ollama) наследуют этот класс.
  */
 abstract class AbstractLlmService {
-	/**
-	 * Дефолтная конфигурация для LLM операций
-	 */
+	/** Дефолтная конфигурация */
 	private static readonly DEFAULT_RESILIENCE_CONFIG: ResilienceConfig = {
 		retry: {
 			maxAttempts: 3,
 			initialDelayMs: 1000,
 			maxDelayMs: 8000,
 			backoffMultiplier: 2
-		},
-		circuitBreaker: {
-			halfOpenAfterMs: 30000,
-			failureThreshold: 5,
-			successThreshold: 2
 		},
 		timeout: {
 			durationMs: 60000
@@ -82,162 +66,245 @@ abstract class AbstractLlmService {
 
 	protected readonly logger = new Logger(this.constructor.name);
 	protected readonly resilienceConfig: ResilienceConfig;
-	protected readonly policy: IPolicy;
 
 	constructor(config: ResilienceConfig = AbstractLlmService.DEFAULT_RESILIENCE_CONFIG) {
 		this.resilienceConfig = config;
-		this.policy = this.buildResiliencePolicy();
 	}
 
 	/**
 	 * Генерирует саммари для батча страниц за один вызов LLM
-	 * @param pages - Массив страниц с контентом и заголовками
-	 * @returns Массив саммари в том же порядке
 	 */
 	abstract generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]>;
 
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари страниц
-	 * @param pages - Массив страниц с саммари
-	 * @returns Общее описание сайта
 	 */
 	abstract generateDescription(pages: ProcessedPage[]): Promise<string>;
 
 	/**
-	 * Template Method: выполнение операции с retry, circuit breaker и validation.
-	 * Subclasses должны использовать этот метод для всех обращений к LLM API.
-	 * @param fn - Async операция для выполнения (принимает текущий промпт и номер попытки, возвращает raw JSON строку)
-	 * @param options - Опции resilience (validator, retry settings, initial prompt)
-	 * @returns Результат операции (распарсенный и валидированный)
+	 * Выполнение LLM операции с retry и timeout
+	 * @param fn - Функция вызова LLM API (принимает промпт, возвращает raw JSON строку)
+	 * @param options - Настройки retry, timeout, валидации
+	 * @returns Распарсенный и валидированный результат
 	 */
 	protected async withResilience<T>(
-		fn: (currentPrompt: string, attemptNumber: number) => Promise<string>,
-		options: ResilienceOptions<T> = {}
+		fn: (currentPrompt: string) => Promise<string>,
+		options: ResilienceOptions
 	): Promise<T> {
-		const { initialPrompt, validators = [], retryOnValidationError = true, operationName = 'LLM operation' } = options;
+		const {
+			initialPrompt,
+			operationName,
+			validation = {},
+			retryOnValidationError = true
+		} = options;
 
-		// Мутабельный контекст для передачи между попытками retry
-		let attemptNumber = 0;
+		const { maxAttempts, initialDelayMs, maxDelayMs, backoffMultiplier } = this.resilienceConfig.retry;
+		const { durationMs: timeoutMs } = this.resilienceConfig.timeout;
+
 		let currentPrompt = initialPrompt;
+		let lastError: Error | null = null;
 
-		// Создаём динамический retry policy для validation ошибок (если включено)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		let combinedPolicy: IPolicy<any, any> = this.policy; // базовая policy (circuit breaker + timeout)
+		// Retry loop
+		for (let attemptNumber = 1; attemptNumber <= maxAttempts; attemptNumber++) {
+			try {
+				this.logger.debug(`${operationName}: attempt ${attemptNumber}/${maxAttempts}`);
 
-		if (retryOnValidationError) {
-			const retryPolicy = retry(
-				// Retry только на validation исключениях
-				handleWhen(err =>
-					err instanceof LlmJsonValidationException
-					|| err instanceof LlmResponseCountMismatchException
-					|| err instanceof LlmInvalidSummaryFieldException),
-				{
-					maxAttempts: this.resilienceConfig.retry.maxAttempts,
-					backoff: new ExponentialBackoff({
-						initialDelay: this.resilienceConfig.retry.initialDelayMs,
-						maxDelay: this.resilienceConfig.retry.maxDelayMs,
-						exponent: this.resilienceConfig.retry.backoffMultiplier
-					})
+				// Вызов LLM API с timeout
+				const responseString = await this.executeWithTimeout(
+					() => fn(currentPrompt),
+					timeoutMs,
+					`${operationName} timed out after ${timeoutMs}ms`
+				);
+
+				// Парсинг JSON
+				const parsed = this.parseJsonResponse<T>(responseString, attemptNumber);
+
+				// Валидация
+				this.validateResponse(parsed, validation, attemptNumber);
+
+				// Успех
+				this.logger.debug(`${operationName}: success on attempt ${attemptNumber}`);
+				return parsed;
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
+
+				// Проверяем, является ли это ошибкой валидации
+				const isValidationError = error instanceof LlmJsonValidationException
+					|| error instanceof LlmResponseCountMismatchException
+					|| error instanceof LlmInvalidSummaryFieldException;
+
+				// Если это validation error и retry включен - пробуем еще раз
+				if (isValidationError && retryOnValidationError && attemptNumber < maxAttempts) {
+					const message = `${operationName}: validation failed on attempt ${attemptNumber}: ${lastError.message}`;
+					this.logger.warn(message);
+
+					// Модифицируем промпт для retry
+					currentPrompt = this.buildRetryPrompt(initialPrompt, error, attemptNumber);
+
+					// Экспоненциальная задержка перед retry
+					const delayMs = Math.min(
+						initialDelayMs * Math.pow(backoffMultiplier, attemptNumber - 1),
+						maxDelayMs
+					);
+
+					this.logger.debug(`${operationName}: retrying after ${delayMs}ms`);
+					await this.sleep(delayMs);
+
+					continue; // Следующая попытка
 				}
-			);
 
-			// Настройка callback для retry события
-			retryPolicy.onRetry((context) => {
-				// Callback вызывается ПЕРЕД следующей попыткой - модифицируем промпт
-				const { attempt } = context;
-
-				// Проверяем что это error, а не value (для result-based retry)
-				if (!('error' in context)) {
-					return;
-				}
-
-				const err = context.error;
-
-				if (err instanceof LlmJsonValidationException) {
-					this.logger.warn(`Validation failed for ${operationName} (attempt ${attempt}): ${err.message}`);
-					currentPrompt = this.buildRetryPrompt(initialPrompt, err.invalidResponse, attempt);
-				} else if (err instanceof LlmResponseCountMismatchException) {
-					this.logger.warn(`Count mismatch for ${operationName} (attempt ${attempt}): ${err.message}`);
-					currentPrompt = this.buildRetryPrompt(initialPrompt, err.invalidResponse, attempt);
-				} else if (err instanceof LlmInvalidSummaryFieldException) {
-					this.logger.warn(`Invalid summary field at index ${err.summaryIndex} for ${operationName} (attempt ${attempt}): ${err.message}`);
-					const retryHint = `\n\nIMPORTANT: Each item in the array MUST have a "summary" field with a string value. Invalid item at index ${err.summaryIndex} in previous attempt.`;
-					currentPrompt = initialPrompt + retryHint;
-				}
-
-				this.logger.debug(`Retrying ${operationName} after backoff (attempt ${attempt + 1}/${this.resilienceConfig.retry.maxAttempts})`);
-			});
-
-			// Композиция: retry -> circuit breaker -> timeout
-			combinedPolicy = wrap(retryPolicy, this.policy);
+				// Не валидация или retry отключен - пробрасываем ошибку
+				throw error;
+			}
 		}
 
-		// Выполняем операцию с validation ВНУТРИ execute - теперь cockatiel обрабатывает retry
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-		const result = await combinedPolicy.execute(async () => {
-			attemptNumber++;
-
-			// Вызываем LLM API
-			const responseString = await fn(currentPrompt, attemptNumber);
-
-			// Парсим JSON (может бросить LlmJsonValidationException)
-			const parsed = this.parseJsonResponse<T>(responseString, attemptNumber);
-
-			// Прогоняем результат через pipeline валидаторов (могут бросить исключения)
-			for (const validator of validators) {
-				validator(parsed, attemptNumber);
-			}
-
-			// Если дошли сюда - все ок, возвращаем результат
-			return parsed;
-		});
-
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-		return result;
+		// Все попытки исчерпаны
+		this.logger.error(`${operationName}: all ${maxAttempts} attempts failed`);
+		throw lastError || new Error(`${operationName}: all attempts failed`);
 	}
 
 	/**
-	 * Построение промпта для повторной попытки при ошибке валидации
-	 * @param originalPrompt - Исходный промпт
-	 * @param invalidResponse - Невалидный ответ от LLM
-	 * @param attemptNumber - Номер попытки
-	 * @returns Модифицированный промпт с описанием ошибки
+	 * Выполнение async операции с timeout
 	 */
-	protected buildRetryPrompt(originalPrompt: string, invalidResponse: unknown, attemptNumber: number): string {
-		const errorMessage = `
-**CRITICAL ERROR - Attempt ${attemptNumber}**: 
+	private async executeWithTimeout<T>(
+		fn: () => Promise<T>,
+		timeoutMs: number,
+		timeoutMessage: string
+	): Promise<T> {
+		return Promise.race([
+			fn(),
+			new Promise<T>((_, reject) => {
+				setTimeout(() => {
+					reject(new Error(timeoutMessage));
+				}, timeoutMs);
+			})
+		]);
+	}
+
+	/**
+	 * Валидация результата на основе конфига
+	 */
+	private validateResponse<T>(
+		result: T,
+		validation: ValidationConfig,
+		attemptNumber: number
+	): void {
+		const { expectedCount, requireSummaryFields, requireDescriptionField } = validation;
+
+		// Проверка количества элементов
+		if (expectedCount !== undefined) {
+			if (!Array.isArray(result)) {
+				throw new LlmJsonValidationException(
+					'Expected array result',
+					result,
+					attemptNumber
+				);
+			}
+
+			if (result.length !== expectedCount) {
+				throw new LlmResponseCountMismatchException(
+					`Expected ${expectedCount} items, got ${result.length}`,
+					expectedCount,
+					result.length,
+					result,
+					attemptNumber
+				);
+			}
+		}
+
+		// Проверка полей summary в массиве
+		if (requireSummaryFields) {
+			if (!Array.isArray(result)) {
+				throw new LlmJsonValidationException(
+					'Expected array for summary validation',
+					result,
+					attemptNumber
+				);
+			}
+
+			result.forEach((item, index) => {
+				if (typeof item !== 'object' || item === null) {
+					throw new LlmInvalidSummaryFieldException(
+						`Item at index ${index} is not an object`,
+						index,
+						item,
+						attemptNumber
+					);
+				}
+
+				const obj = item as Record<string, unknown>;
+				if (!obj.summary || typeof obj.summary !== 'string' || obj.summary.trim() === '') {
+					throw new LlmInvalidSummaryFieldException(
+						`Item at index ${index} has invalid summary field`,
+						index,
+						item,
+						attemptNumber
+					);
+				}
+			});
+		}
+
+		// Проверка поля description в объекте
+		if (requireDescriptionField) {
+			if (typeof result !== 'object' || result === null) {
+				throw new LlmJsonValidationException(
+					'Expected object for description validation',
+					result,
+					attemptNumber
+				);
+			}
+
+			const obj = result as Record<string, unknown>;
+			if (!obj.description || typeof obj.description !== 'string' || obj.description.trim() === '') {
+				throw new LlmJsonValidationException(
+					'Missing or invalid description field',
+					result,
+					attemptNumber
+				);
+			}
+		}
+	}
+
+	/**
+	 * Построение промпта для retry при ошибке валидации
+	 */
+	private buildRetryPrompt(
+		originalPrompt: string,
+		error: unknown,
+		attemptNumber: number
+	): string {
+		let errorDetails = '';
+
+		if (error instanceof LlmResponseCountMismatchException) {
+			errorDetails = `Count mismatch: expected ${error.expected}, got ${error.received}`;
+		} else if (error instanceof LlmInvalidSummaryFieldException) {
+			errorDetails = `Invalid summary field at index ${error.summaryIndex}`;
+		} else if (error instanceof LlmJsonValidationException) {
+			errorDetails = `Validation error: ${error.message}`;
+		} else if (error instanceof Error) {
+			errorDetails = error.message;
+		}
+
+		return `**CRITICAL ERROR - Attempt ${attemptNumber}**
 Your previous response did not match the required format.
 
-Invalid response received:
-${JSON.stringify(invalidResponse, null, 2)}
+Error: ${errorDetails}
 
 Requirements:
-1. Return ONLY valid JSON matching the exact structure specified in the original request
+1. Return ONLY valid JSON matching the exact structure specified below
 2. NO markdown code blocks (no \`\`\`json)
-3. NO additional text or explanations outside the JSON
+3. NO additional text or explanations
 4. Ensure all required fields are present and have correct types
 
 Original request:
 ${originalPrompt}`;
-
-		return errorMessage;
 	}
 
 	/**
-	 * Построение базовой resilience политики (circuit breaker + timeout)
-	 * Retry создаётся динамически в withResilience для контроля над промптом
+	 * Задержка выполнения
 	 */
-	private buildResiliencePolicy(): IPolicy {
-		const { circuitBreaker: cbConfig, timeout: timeoutConfig } = this.resilienceConfig;
-
-		const breakerPolicy = circuitBreaker(handleAll, {
-			halfOpenAfter: cbConfig.halfOpenAfterMs,
-			breaker: new ConsecutiveBreaker(cbConfig.failureThreshold)
-		});
-
-		const timeoutPolicy = timeout(timeoutConfig.durationMs, TimeoutStrategy.Cooperative);
-
-		return wrap(breakerPolicy, timeoutPolicy);
+	private sleep(ms: number): Promise<void> {
+		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
 	/**

@@ -2,7 +2,6 @@ import { Ollama, GenerateRequest } from 'ollama';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
-import { LlmResponseValidator } from '@/modules/generations/services/validators/llm-response.validator';
 
 class OllamaService extends AbstractLlmService {
 	private readonly ollama: Ollama;
@@ -44,7 +43,7 @@ Instructions:
 
 		// Получаем валидированный ответ от LLM
 		const validated = await this.withResilience<Array<{ summary: string }>>(
-			async (currentPrompt, _attemptNumber) => {
+			async (currentPrompt) => {
 				const request: GenerateRequest & { stream: false } = {
 					model: this.config.modelName,
 					prompt: currentPrompt,
@@ -71,11 +70,11 @@ Instructions:
 			},
 			{
 				initialPrompt,
-				validators: [
-					(result, attemptNumber) => { LlmResponseValidator.validateCount(result, pages.length, attemptNumber); },
-					(result, attemptNumber) => { LlmResponseValidator.validateSummaryFields(result, attemptNumber); }
-				],
-				operationName: 'generateBatchSummaries'
+				operationName: 'generateBatchSummaries',
+				validation: {
+					expectedCount: pages.length,
+					requireSummaryFields: true
+				}
 			}
 		);
 
@@ -132,10 +131,10 @@ Instructions:
 			},
 			{
 				initialPrompt,
-				validators: [
-					(result, attemptNumber) => { LlmResponseValidator.validateDescriptionField(result, attemptNumber); }
-				],
-				operationName: 'generateDescription'
+				operationName: 'generateDescription',
+				validation: {
+					requireDescriptionField: true
+				}
 			}
 		);
 
