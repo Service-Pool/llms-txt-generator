@@ -5,14 +5,16 @@
 
 	interface Props {
 		status: OrderStatus;
+		queuePosition?: number | null;
 		large?: boolean;
 		class?: string;
 		icon?: import('svelte').Snippet;
 	}
 
-	let { status, large = false, class: className = '', icon }: Props = $props();
+	let { status, queuePosition, large = false, class: className = '', icon }: Props = $props();
 
 	const config = $derived(ordersService.getStatusConfig(status));
+	const showPosition = $derived(queuePosition !== null);
 </script>
 
 <!--
@@ -23,6 +25,9 @@
 -->
 <Badge color={config.color} {large} class="px-1.5 py-0.5 inline-flex items-center gap-1 whitespace-nowrap {className}">
 	{config.label}
+	{#if showPosition}
+		<span class="font-semibold">#{queuePosition}</span>
+	{/if}
 	{#if icon}
 		{@render icon()}
 	{/if}

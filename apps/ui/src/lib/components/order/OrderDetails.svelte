@@ -48,7 +48,7 @@
 		<Heading tag="h2" class="text-xl flex flex-wrap items-center gap-2">
 			<OrderBadge {order} class="text-base" />
 			{order.attributes.hostname}
-			<OrderStatusComponent status={order.attributes.status} />
+			<OrderStatusComponent status={order.attributes.status} queuePosition={order.attributes.queuePosition} />
 		</Heading>
 	{/snippet}
 

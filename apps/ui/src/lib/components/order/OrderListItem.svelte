@@ -70,7 +70,7 @@
 				<span class="inline-block max-w-55 truncate">{order.attributes.hostname}</span>
 			</h3>
 			<span>
-				<OrderStatus status={order.attributes.status} />
+				<OrderStatus status={order.attributes.status} queuePosition={order.attributes.queuePosition} />
 			</span>
 		</div>
 	{/snippet}
