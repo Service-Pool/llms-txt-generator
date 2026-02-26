@@ -1,9 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
+import { LlmBaseException } from '@/exceptions/llm-base.exception';
 import { LlmJsonValidationException } from '@/exceptions/llm-json-validation.exception';
 import { LlmResponseCountMismatchException } from '@/exceptions/llm-response-count-mismatch.exception';
 import { LlmInvalidSummaryFieldException } from '@/exceptions/llm-invalid-summary-field.exception';
 import { llmLogger } from '@/config/config.logger';
+import { SimpleCircuitBreaker } from '@/modules/generations/services/circuit-breaker';
 
 /**
  * Конфигурация resilience для LLM операций
@@ -48,7 +50,7 @@ interface ResilienceOptions {
 
 /**
  * Базовый абстрактный класс для всех LLM провайдеров.
- * Предоставляет retry + timeout логику.
+ * Предоставляет retry + timeout логику + circuit breaker защиту.
  * Конкретные провайдеры (Gemini, Ollama) наследуют этот класс.
  */
 abstract class AbstractLlmService {
@@ -64,6 +66,14 @@ abstract class AbstractLlmService {
 			durationMs: 60000
 		}
 	};
+
+	/**
+	 * Circuit breaker для этого LLM провайдера.
+	 * Открывается после 5 последовательных API ошибок, закрывается через 30 секунд.
+	 * Игнорирует ошибки валидации.
+	 * Каждый провайдер (Ollama, Gemini) имеет свой собственный breaker.
+	 */
+	private readonly breaker = new SimpleCircuitBreaker(5, 30000);
 
 	protected readonly logger = new Logger(this.constructor.name);
 	protected readonly llmLogger = llmLogger;
@@ -111,12 +121,12 @@ abstract class AbstractLlmService {
 			try {
 				this.logger.debug(`${operationName}: attempt ${attemptNumber}/${maxAttempts}`);
 
-				// Вызов LLM API с timeout
-				const responseString = await this.executeWithTimeout(
-					() => fn(currentPrompt),
-					timeoutMs,
-					`${operationName} timed out after ${timeoutMs}ms`
-				);
+				// Вызов LLM API с timeout и circuit breaker защитой
+				const llmCallFn = () => fn(currentPrompt);
+				const timeoutMessage = `${operationName} timed out after ${timeoutMs}ms`;
+				const executeWithTimeoutFn = () => this.executeWithTimeout(llmCallFn, timeoutMs, timeoutMessage);
+
+				const responseString = await this.breaker.execute(executeWithTimeoutFn);
 
 				// Парсинг JSON
 				const parsed = this.parseJsonResponse<T>(responseString, attemptNumber);
@@ -131,9 +141,7 @@ abstract class AbstractLlmService {
 				lastError = error instanceof Error ? error : new Error(String(error));
 
 				// Проверяем, является ли это ошибкой валидации
-				const isValidationError = error instanceof LlmJsonValidationException
-					|| error instanceof LlmResponseCountMismatchException
-					|| error instanceof LlmInvalidSummaryFieldException;
+				const isValidationError = error instanceof LlmBaseException;
 
 				// Если это validation error и retry включен - пробуем еще раз
 				if (isValidationError && retryOnValidationError && attemptNumber < maxAttempts) {

@@ -1,13 +1,15 @@
+import { LlmBaseException } from '@/exceptions/llm-base.exception';
+
 /**
  * Ошибка валидации JSON ответа от LLM
  */
-class LlmJsonValidationException extends Error {
+class LlmJsonValidationException extends LlmBaseException {
 	constructor(
 		message: string,
 		public readonly invalidResponse: unknown,
-		public readonly attemptNumber: number
+		attemptNumber: number
 	) {
-		super(message);
+		super(message, attemptNumber);
 		this.name = 'LlmJsonValidationException';
 	}
 }

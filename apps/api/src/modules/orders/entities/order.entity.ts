@@ -88,6 +88,13 @@ class Order {
 	 * Contains model configuration if modelId is set.
 	 */
 	aiModelConfig: AiModelConfig | null = null;
+
+	/**
+	 * Synthetic property populated by OrdersService.findById().
+	 * Contains queue position if order is in QUEUED status.
+	 * Null if order is not in queue or already processing.
+	 */
+	queuePosition?: number | null = null;
 }
 
 export { Order };

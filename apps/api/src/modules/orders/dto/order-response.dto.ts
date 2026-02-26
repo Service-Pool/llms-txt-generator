@@ -319,6 +319,13 @@ class OrderAttributes {
 	})
 	processedUrls: number;
 
+	@ApiProperty({
+		description: 'Position in queue (1-indexed). Null if not queued or already processing',
+		example: 3,
+		required: false
+	})
+	queuePosition?: number | null;
+
 	@ApiProperty({ description: 'Order processing start date' })
 	startedAt: Date | null;
 
@@ -366,6 +373,7 @@ class OrderAttributes {
 		attrs.pricePerUrl = entity.pricePerUrl;
 		attrs.priceTotal = entity.priceTotal;
 		attrs.processedUrls = entity.processedUrls;
+		attrs.queuePosition = entity.queuePosition ?? null;
 		attrs.startedAt = entity.startedAt;
 		attrs.status = entity.status;
 		attrs.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
@@ -409,6 +417,7 @@ class OrderAttributes {
 		attrs.pricePerUrl = json.pricePerUrl as number | null;
 		attrs.priceTotal = json.priceTotal as number | null;
 		attrs.processedUrls = json.processedUrls as number;
+		attrs.queuePosition = json.queuePosition as number | null | undefined;
 		attrs.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
 		attrs.status = json.status as OrderStatus;
 		attrs.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;

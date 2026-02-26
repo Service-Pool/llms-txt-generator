@@ -1,17 +1,19 @@
+import { LlmBaseException } from '@/exceptions/llm-base.exception';
+
 /**
  * Исключение для случаев, когда LLM вернул некорректный формат саммари
  * (отсутствует поле summary или оно не строка)
  *
  * При перехвате этого исключения можно повторить запрос с уточнённым промптом
  */
-class LlmInvalidSummaryFieldException extends Error {
+class LlmInvalidSummaryFieldException extends LlmBaseException {
 	constructor(
 		message: string,
 		public readonly summaryIndex: number,
 		public readonly invalidItem: unknown,
-		public readonly attemptNumber: number
+		attemptNumber: number
 	) {
-		super(message);
+		super(message, attemptNumber);
 		this.name = 'LlmInvalidSummaryFieldException';
 	}
 }

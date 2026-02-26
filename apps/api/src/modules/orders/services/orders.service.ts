@@ -241,9 +241,12 @@ class OrdersService {
 			await this.syncPaymentStatus(order);
 			// Reload order after potential status update
 			const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
-			return updatedOrder || order;
+			const finalOrder = updatedOrder || order;
+			await this.enrichWithQueuePosition(finalOrder);
+			return finalOrder;
 		}
 
+		await this.enrichWithQueuePosition(order);
 		return order;
 	}
 
@@ -284,10 +287,41 @@ class OrdersService {
 				take: limit
 			});
 
+			await this.enrichWithQueuePosition(updatedOrders);
 			return { orders: updatedOrders, total };
 		}
 
+		await this.enrichWithQueuePosition(orders);
 		return { orders, total };
+	}
+
+	/**
+	 * Enrich order(s) with queue position if in QUEUED status
+	 */
+	private async enrichWithQueuePosition(order: Order): Promise<void>;
+	private async enrichWithQueuePosition(orders: Order[]): Promise<void>;
+	private async enrichWithQueuePosition(orderOrOrders: Order | Order[]): Promise<void> {
+		const orders = Array.isArray(orderOrOrders) ? orderOrOrders : [orderOrOrders];
+
+		// Filter only queued orders that have necessary data
+		const queuedOrders = orders.filter(order => order.status === OrderStatus.QUEUED && order.jobId && order.aiModelConfig);
+
+		if (queuedOrders.length === 0) {
+			return;
+		}
+
+		// Fetch positions in parallel
+		const positionPromises = queuedOrders.map(async (order) => {
+			try {
+				order.queuePosition = await this.queueManagerService.getQueuePosition(order.aiModelConfig.queueName, order.jobId);
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error);
+				this.logger.warn(`Failed to get queue position for order ${order.id}: ${errorMessage}`);
+				order.queuePosition = null;
+			}
+		});
+
+		await Promise.all(positionPromises);
 	}
 
 	/**
@@ -315,6 +349,7 @@ class OrdersService {
 			throw new NotFoundException(`Order with ID ${id} not found`);
 		}
 
+		await this.enrichWithQueuePosition(order);
 		return order;
 	}
 

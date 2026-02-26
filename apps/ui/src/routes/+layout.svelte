@@ -73,13 +73,13 @@
 				{@render children()}
 			</main>
 		{/if}
-	</div>
 
-	<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-		<div class="container mx-auto px-4">
-			<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
-		</div>
-	</Footer>
+		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+			<div class="container mx-auto px-4">
+				<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
+			</div>
+		</Footer>
+	</div>
 
 	<ErrorToast />
 </ThemeProvider>
