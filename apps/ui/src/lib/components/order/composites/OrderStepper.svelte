@@ -106,7 +106,10 @@
 
 	<!-- Action Button - ONE button for current step -->
 	{#if currentStepActionId && (currentTransition || fallbackConfig)}
-		<Card class="max-w-none py-1 pt-13 pb-5 {className}">
+		<Card
+			class="max-w-none py-1 pt-13 pb-5 focus-grid"
+			style="--dot-color: {currentTransition?.color || fallbackConfig?.color || '#cfcfcf'}"
+		>
 			<div class="flex justify-center gap-2">
 				{#if currentStepActionId === StepActionIdEnum.Calculate}
 					<CalculateAction
@@ -161,6 +164,26 @@
 
 <style>
 	@reference "tailwindcss";
+	/* Focus Grid Background Effect */
+	.order-action-stepper :global(.focus-grid) {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.order-action-stepper :global(.focus-grid::before) {
+		content: '';
+		position: absolute;
+		inset: 0;
+		opacity: 0.3;
+		background-image: radial-gradient(var(--dot-color, #cfcfcf) 1px, transparent 1px);
+		background-size: 19px 20px;
+		mask-image: radial-gradient(circle at center, black 0%, black 50%, transparent 100%);
+	}
+
+	/* Dark mode - invert dot color */
+	:global(.dark) .order-action-stepper :global(.focus-grid::before) {
+		filter: invert(1) hue-rotate(180deg);
+	}
 
 	/* DetailedStepper - override primary colors to purple */
 	.order-action-stepper :global(span.border-primary-600.bg-primary-600) {

@@ -85,4 +85,46 @@ class LoggerFactory {
 	};
 }
 
-export const createWinstonLogger = () => new LoggerFactory().create();
+const createWinstonLogger = () => new LoggerFactory().create();
+
+// Отдельный Winston instance для LLM логов (без NestJS обертки)
+const llmLogger = winston.createLogger({
+	transports: [
+		new winston.transports.Console({
+			format: winston.format.combine(
+				winston.format.timestamp({ format: 'HH:mm:ss' }),
+				winston.format.colorize(),
+				winston.format.printf((info) => {
+					const ctx = Reflect.get(info, 'context');
+					const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+					const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+					const message = typeof info.message === 'string' ? info.message : '';
+					return `${timestamp} ${info.level} ${context}${message}`;
+				})
+			),
+			level: LogLevel.DEBUG
+		}),
+		new DailyRotateFile({
+			filename: 'var/logs/%DATE%-llm.log',
+			datePattern: 'YYYY-MM-DD',
+			maxSize: '20m',
+			maxFiles: '2d',
+			format: winston.format.combine(
+				winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+				winston.format.errors({ stack: true }),
+				winston.format.printf((info) => {
+					const ctx = Reflect.get(info, 'context');
+					const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+					const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+					const message = typeof info.message === 'string' ? info.message : '';
+					const stack = info.stack ? `\n${inspect(info.stack, { depth: null })}` : '';
+					return `${timestamp} ${info.level} ${context}${message}${stack}`;
+				})
+			),
+			level: LogLevel.DEBUG
+		})
+	],
+	level: LogLevel.DEBUG
+});
+
+export { createWinstonLogger, llmLogger };

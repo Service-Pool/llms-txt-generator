@@ -41,7 +41,7 @@
 		>
 			<div
 				class="absolute inset-0 opacity-10 dark:invert"
-				style="background-image: url('/pattern.svg'); background-size: cover; background-repeat: repeat;"
+				style="background-image: url('/pattern-01.svg'); background-size: cover; background-repeat: repeat;"
 			></div>
 
 			<div class="relative z-10 flex-1 space-y-3">

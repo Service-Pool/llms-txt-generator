@@ -3,6 +3,7 @@ import { ProcessedPage } from '@/modules/generations/models/processed-page.model
 import { LlmJsonValidationException } from '@/exceptions/llm-json-validation.exception';
 import { LlmResponseCountMismatchException } from '@/exceptions/llm-response-count-mismatch.exception';
 import { LlmInvalidSummaryFieldException } from '@/exceptions/llm-invalid-summary-field.exception';
+import { llmLogger } from '@/config/config.logger';
 
 /**
  * Конфигурация resilience для LLM операций
@@ -65,6 +66,7 @@ abstract class AbstractLlmService {
 	};
 
 	protected readonly logger = new Logger(this.constructor.name);
+	protected readonly llmLogger = llmLogger;
 	protected readonly resilienceConfig: ResilienceConfig;
 
 	constructor(config: ResilienceConfig = AbstractLlmService.DEFAULT_RESILIENCE_CONFIG) {

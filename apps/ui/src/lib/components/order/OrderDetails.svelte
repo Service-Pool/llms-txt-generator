@@ -59,7 +59,7 @@
 	{#snippet stepper()}
 		<OrderStepper
 			{order}
-			class="rounded border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 bg-[linear-gradient(rgba(255,255,255,0.9),rgba(255,255,255,0.9)),url('/pattern.svg')] dark:bg-[linear-gradient(rgba(16,24,40,0.6),rgba(16,24,40,0.6)),url('/pattern.svg')] bg-contain bg-repeat"
+			class="rounded border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800"
 			renderer={ActionButton}
 			onOpenPaymentModal={async (clientSecret, publishableKey) => {
 				paymentClientSecret = clientSecret;

@@ -28,13 +28,17 @@ class OllamaService extends AbstractLlmService {
 			.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
 			.join('\n\n');
 
-		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
+		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for web pages.
 
 ${pagesText}
 
+IMPORTANT: Create EXACTLY ONE summary for each page listed above.
+Even if a page has multiple sections, summarize the ENTIRE page content in a SINGLE summary (do NOT create separate summaries for sections).
+
 Instructions:
-- Create a summary for EACH page in 2-3 sentences
-- Focus on the main purpose and key information
+- Write exactly ${pages.length} summary (one per page number shown above)
+- Each summary should be 2-3 sentences covering the main purpose
+- Focus on the page's overall topic, not individual sections
 - Use clear, professional language
 - Do not include meta information like "this page describes"
 - Write in present tense
@@ -64,7 +68,13 @@ Instructions:
 					}
 				};
 
+				// this.llmLogger.debug(`[Ollama] Sending prompt (${currentPrompt.length} chars):\n${currentPrompt}`);
+				// this.llmLogger.debug(`[Ollama] Request format: ${JSON.stringify(request.format)}`);
+
 				const response = await this.ollama.generate(request);
+
+				// this.llmLogger.debug(`[Ollama] Raw response (${response.response.length} chars):\n${response.response}`);
+				// this.llmLogger.debug(`[Ollama] Response metadata: model=${response.model}, done=${response.done}, total_duration=${response.total_duration}`);
 
 				return response.response;
 			},
@@ -126,7 +136,14 @@ Instructions:
 					}
 				};
 
+				// this.llmLogger.debug(`[Ollama] Sending description prompt (${currentPrompt.length} chars):\n${currentPrompt}`);
+				// this.llmLogger.debug(`[Ollama] Request format: ${JSON.stringify(request.format)}`);
+
 				const response = await this.ollama.generate(request);
+
+				// this.llmLogger.debug(`[Ollama] Raw description response (${response.response.length} chars):\n${response.response}`);
+				// this.llmLogger.debug(`[Ollama] Response metadata: model=${response.model}, done=${response.done}, total_duration=${response.total_duration}`);
+
 				return response.response;
 			},
 			{

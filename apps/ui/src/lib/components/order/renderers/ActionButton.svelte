@@ -34,14 +34,16 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading
 -->
-<Button
-	size="md"
-	color={transition.color}
-	{disabled}
-	{loading}
-	{onclick}
-	class={className}
-	title={transition.description}
->
-	{label}
-</Button>
+<div class="bg-white rounded z-10">
+	<Button
+		size="md"
+		color={transition.color}
+		{disabled}
+		{loading}
+		{onclick}
+		class={className}
+		title={transition.description}
+	>
+		{label}
+	</Button>
+</div>

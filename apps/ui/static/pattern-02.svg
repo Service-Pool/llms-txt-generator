@@ -1,0 +1,14 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#f8f9fa"/>
+  
+  <!-- Large overlapping circles -->
+  <circle cx="-200" cy="300" r="450" fill="#e0e0e0" opacity="0.4"/>
+  <circle cx="400" cy="-100" r="500" fill="#d0d0d0" opacity="0.35"/>
+  <circle cx="1100" cy="200" r="600" fill="#e5e5e5" opacity="0.4"/>
+  <circle cx="800" cy="700" r="480" fill="#dadada" opacity="0.38"/>
+  <circle cx="1600" cy="400" r="550" fill="#e0e0e0" opacity="0.36"/>
+  <circle cx="2100" cy="900" r="500" fill="#d5d5d5" opacity="0.4"/>
+  <circle cx="300" cy="1200" r="520" fill="#e8e8e8" opacity="0.35"/>
+  <circle cx="1400" cy="1150" r="480" fill="#dddddd" opacity="0.37"/>
+</svg>
