@@ -109,13 +109,10 @@ export default defineConfig({
 		extensions: ['.js', '.ts', '.json']
 	},
 	build: {
-		sourcemap: true
+		sourcemap: process.env.NODE_ENV !== 'production'
 	},
 	esbuild: {
-		sourcemap: true
-	},
-	css: {
-		devSourcemap: true
+		sourcemap: process.env.NODE_ENV !== 'production'
 	},
 	server: {
 		host: '0.0.0.0',

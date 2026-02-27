@@ -2,7 +2,7 @@
 	"name": "@llms-txt/ui",
 	"version": "20.0.0",
 	"scripts": {
-		"build": "vite build",
+		"build": "NODE_ENV=production vite build",
 		"preview": "vite preview --host 0.0.0.0 --port $PORT",
 		"app": "node dist/index.js",
 		"app:dev": "vite dev --host 0.0.0.0 --port $PORT",
