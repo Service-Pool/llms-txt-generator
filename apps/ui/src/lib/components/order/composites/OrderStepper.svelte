@@ -117,7 +117,7 @@
 						{renderer}
 						{onOpenCalculateModal}
 						class={btnMinWidth}
-						disabled={!currentTransition || current > stepperState.maxAllowedStep}
+						disabled={current > stepperState.maxAllowedStep}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Payment}
 					<PaymentAction
@@ -126,7 +126,7 @@
 						{renderer}
 						{onOpenPaymentModal}
 						class={btnMinWidth}
-						disabled={!currentTransition || current > stepperState.maxAllowedStep}
+						disabled={current > stepperState.maxAllowedStep}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Run}
 					<RunAction
@@ -134,7 +134,7 @@
 						transition={(currentTransition || fallbackConfig)!}
 						{renderer}
 						class={btnMinWidth}
-						disabled={!currentTransition || current > stepperState.maxAllowedStep}
+						disabled={current > stepperState.maxAllowedStep}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Download}
 					<DownloadAction
@@ -142,7 +142,7 @@
 						transition={(currentTransition || fallbackConfig)!}
 						{renderer}
 						class={btnMinWidth}
-						disabled={!currentTransition || current > stepperState.maxAllowedStep}
+						disabled={current > stepperState.maxAllowedStep}
 					/>
 				{/if}
 			</div>
@@ -154,8 +154,6 @@
 					<P align="center" height="8" size="xs" space="normal" italic class="text-red-600 dark:text-red-400">
 						Generation failed. Check errors for details.
 					</P>
-				{:else if !currentTransition}
-					<P align="center" height="8" size="xs" space="normal" italic>Step is already completed</P>
 				{/if}
 			</div>
 		</Card>
