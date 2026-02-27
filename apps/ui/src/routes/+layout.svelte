@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import ErrorToast from '$lib/components/ui/error-toast.svelte';
 	import Navigation from '$lib/components/layout/navigation.svelte';
+	import { configService } from '$lib/services/config.service';
 
 	const { children } = $props();
 
@@ -42,7 +43,7 @@
 	};
 
 	const loadClarity = () => {
-		const clarityId = import.meta.env.PUBLIC_CLARITY_ID;
+		const clarityId = configService.clarity.id;
 		if (!clarityId) return;
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

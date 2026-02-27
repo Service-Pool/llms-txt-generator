@@ -13,7 +13,7 @@
 	}
 </script>
 
-<ToastContainer position="top-right">
+<ToastContainer position="top-right" class="z-100">
 	{#each errorStore.value as error (error.id)}
 		<Toast
 			color="red"

@@ -16,6 +16,11 @@ class ConfigService {
 		paymentMethod: (String(env.PUBLIC_STRIPE_PAYMENT_METHOD)) as 'checkout' | 'elements'
 	};
 
+	// Analytics config
+	public readonly clarity: { id: string | undefined } = {
+		id: env.PUBLIC_CLARITY_ID
+	};
+
 	// Endpoints config - centralized route definitions
 	public readonly endpoints = {
 		orders: {
