@@ -197,10 +197,19 @@ class AppConfigService {
 	})();
 
 	public readonly queue = {
-		retryLimit: 2,
-		retryDelay: 10,
-		removeOnComplete: true,
-		removeOnFail: true
+		attempts: 3,
+		backoff: {
+			type: 'exponential',
+			delay: 5000 // 5s
+		},
+		removeOnComplete: {
+			count: 10,
+			age: 24 * 3600 // 24 hours
+		},
+		removeOnFail: {
+			count: 100,
+			age: 7 * 24 * 3600 // 7 days
+		}
 	};
 
 	public readonly stripe = {

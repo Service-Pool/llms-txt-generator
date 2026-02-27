@@ -18,21 +18,15 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 		private readonly configService: AppConfigService,
 		private readonly aiModelsConfigService: AiModelsConfigService
 	) {
-		// Настройки повторов согласно PRD 9.4
+		// Настройки повторов из конфига
 		this.jobOptions = {
-			attempts: 3, // Максимум 3 попытки
+			attempts: this.configService.queue.attempts,
 			backoff: {
-				type: 'exponential',
-				delay: 5000 // 5s, 10s, 20s
+				type: this.configService.queue.backoff.type,
+				delay: this.configService.queue.backoff.delay
 			},
-			removeOnComplete: {
-				count: 100, // Хранить последние 100 завершенных jobs
-				age: 24 * 3600 // Удалять старше 24 часов
-			},
-			removeOnFail: {
-				count: 100, // Хранить последние 1000 failed jobs для анализа
-				age: 7 * 24 * 3600 // Удалять старше 7 дней
-			}
+			removeOnComplete: this.configService.queue.removeOnComplete,
+			removeOnFail: this.configService.queue.removeOnFail
 		};
 
 		this.redisConnection = {
