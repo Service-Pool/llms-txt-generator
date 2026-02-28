@@ -128,6 +128,11 @@ interface ActionRendererPropsInterface {
 	 * Loading state
 	 */
 	loading?: boolean;
+
+	/**
+	 * Button size (for renderers that support it)
+	 */
+	size?: NonNullable<VariantProps<typeof button>['size']>;
 }
 
 export {

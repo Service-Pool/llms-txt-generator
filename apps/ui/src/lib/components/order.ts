@@ -32,6 +32,7 @@ export { default as PaymentAction } from './order/actions/PaymentAction.svelte';
 export { default as RunAction } from './order/actions/RunAction.svelte';
 export { default as DownloadAction } from './order/actions/DownloadAction.svelte';
 export { default as DeleteAction } from './order/actions/DeleteAction.svelte';
+export { default as RefundAction } from './order/actions/RefundAction.svelte';
 
 // === Modals (модальные окна) ===
 export { default as CalculateModal } from './order/modals/CalculateModal.svelte';

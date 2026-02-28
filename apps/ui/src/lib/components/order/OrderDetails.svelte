@@ -12,11 +12,12 @@
 		OrderStepper,
 		ActionButton,
 		DeleteAction,
+		RefundAction,
 		StripeElementsModal,
 		CalculateModal
 	} from '$lib/components/order';
 	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
-	import { getActionConfig } from '$lib/components/order-actions.config';
+	import { configService } from '$lib/services/config.service';
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
 	import { Heading } from 'flowbite-svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
@@ -31,7 +32,9 @@
 	// Get available transitions
 	const transitions = $derived(OrderStateMachine.getAvailableTransitions(order));
 	const deleteTransition = $derived(transitions.find((t) => t.id === StepActionIdEnum.Delete));
-	const deleteConfig = $derived(getActionConfig(StepActionIdEnum.Delete));
+	const deleteConfig = $derived(configService.getActionConfig(StepActionIdEnum.Delete));
+	const refundTransition = $derived(transitions.find((t) => t.id === StepActionIdEnum.Refund));
+	const refundConfig = $derived(configService.getActionConfig(StepActionIdEnum.Refund));
 
 	// Payment modal state
 	let paymentModalOpen = $state(false);
@@ -96,12 +99,22 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<div class="flex justify-end">
+		<div class="flex justify-end gap-2">
+			{#if refundTransition}
+				<RefundAction
+					{order}
+					transition={(refundTransition || refundConfig)!}
+					renderer={ActionButton}
+					disabled={!refundTransition}
+					size="sm"
+				/>
+			{/if}
 			<DeleteAction
 				{order}
 				transition={(deleteTransition || deleteConfig)!}
 				renderer={ActionButton}
 				disabled={!deleteTransition}
+				size="sm"
 			/>
 		</div>
 	{/snippet}

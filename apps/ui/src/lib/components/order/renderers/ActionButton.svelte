@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { TransitionDescriptorInterface } from '$lib/domain/order';
-	import { Button } from 'flowbite-svelte';
+	import type { VariantProps } from 'tailwind-variants';
+	import { Button, button } from 'flowbite-svelte';
 
 	interface Props {
 		transition: TransitionDescriptorInterface;
@@ -8,9 +9,10 @@
 		class?: string;
 		disabled?: boolean;
 		loading?: boolean;
+		size?: NonNullable<VariantProps<typeof button>['size']>;
 	}
 
-	let { transition, onclick, class: className = '', disabled = false, loading = false }: Props = $props();
+	let { transition, onclick, class: className = '', disabled = false, loading = false, size = 'md' }: Props = $props();
 
 	// Use labelAlternative if available (e.g., "Update Model" vs "Set Model")
 	const label = $derived(transition.labelAlternative || transition.label);
@@ -36,7 +38,7 @@
 -->
 <div class="bg-white rounded z-10">
 	<Button
-		size="md"
+		{size}
 		color={transition.color}
 		{disabled}
 		{loading}

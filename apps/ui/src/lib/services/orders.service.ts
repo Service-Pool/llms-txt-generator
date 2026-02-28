@@ -30,7 +30,7 @@ const STATUS_MAP: Record<OrderStatus, StatusConfig> = {
 	[OrderStatus.FAILED]: { label: 'Failed', color: 'red' },
 	[OrderStatus.PAYMENT_FAILED]: { label: 'Payment Failed', color: 'red' },
 	[OrderStatus.CANCELLED]: { label: 'Cancelled', color: 'gray' },
-	[OrderStatus.REFUNDED]: { label: 'Refunded', color: 'gray' }
+	[OrderStatus.REFUNDED]: { label: 'Refunded', color: 'orange' }
 };
 
 /**

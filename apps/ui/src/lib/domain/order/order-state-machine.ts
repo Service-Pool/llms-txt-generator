@@ -1,5 +1,5 @@
 import { OrderStatus, type OrderResponseDto } from '@api/shared';
-import { ORDER_ACTION_BUTTONS } from '$lib/components/order-actions.config';
+import { configService } from '$lib/services/config.service';
 import { StepActionIdEnum } from './step-action-id.enum';
 import type { StepDescriptorInterface, StepperStateInterface, TransitionDescriptorInterface } from './types';
 
@@ -35,7 +35,7 @@ class OrderStateMachine {
 
 		const availableActionIds = Object.keys(order._links);
 
-		return ORDER_ACTION_BUTTONS.filter((config) => {
+		return configService.orderActions.filter((config) => {
 			// Проверяем наличие хотя бы одного HATEOAS действия
 			const hasHateoasAction = config.hateoasActions.some(action => availableActionIds.includes(action));
 
@@ -77,7 +77,26 @@ class OrderStateMachine {
 		const maxAllowedStep = this._calculateMaxAllowedStep(order, steps);
 
 		// 3. Определяем текущий шаг
-		const current = currentStep ?? maxAllowedStep;
+		// Для терминальных статусов (maxAllowedStep = 0) показываем соответствующий шаг визуально
+		let current: number;
+		if (currentStep !== undefined) {
+			current = currentStep;
+		} else if (maxAllowedStep === 0) {
+			// Терминальные статусы: показываем шаг где заказ остановился
+			const status: OrderStatus = order.attributes.status as OrderStatus;
+			if (status === OrderStatus.REFUNDED) {
+				// REFUNDED был после FAILED на шаге Run
+				current = steps.find(s => s.actionId === StepActionIdEnum.Run)?.id ?? steps.length;
+			} else if (status === OrderStatus.CANCELLED) {
+				// CANCELLED - показываем первый шаг
+				current = 1;
+			} else {
+				// Fallback - последний шаг
+				current = steps.length;
+			}
+		} else {
+			current = maxAllowedStep;
+		}
 
 		// 4. Определяем ID действия для текущего шага
 		const currentStepActionId = steps.find(s => s.id === current)?.actionId;
@@ -98,16 +117,23 @@ class OrderStateMachine {
 	 * - CREATED || CALCULATED → 'payment' (или 'run' если priceTotal === 0)
 	 * - PAID || QUEUED → 'run'
 	 * - PROCESSING → 'run' (заказ в процессе генерации)
-	 * - COMPLETED, FAILED → 'download' (обработка завершена)
+	 * - COMPLETED → 'download' (обработка завершена, можно скачать)
+	 * - FAILED → 'run' (генерация провалилась, можно повторить или сделать refund)
+	 * - CANCELLED, REFUNDED → 0 (терминальные статусы без доступных действий)
 	 *
 	 * @param order - Заказ
 	 * @param steps - Список шагов
-	 * @returns Номер максимально допустимого шага (1-based)
+	 * @returns Номер максимально допустимого шага (1-based), 0 если нет доступных действий
 	 */
 	private static _calculateMaxAllowedStep(order: OrderResponseDto, steps: StepDescriptorInterface[]): number {
-		const status = order.attributes.status;
+		const status: OrderStatus = order.attributes.status as OrderStatus;
 		const hasModel = !!order.attributes.currentAiModel;
 		const isFree = order.attributes.priceTotal === 0;
+
+		// Терминальные статусы без доступных действий в stepper
+		if (status === OrderStatus.CANCELLED || status === OrderStatus.REFUNDED) {
+			return 0;
+		}
 
 		// Определяем целевое действие на основе статуса
 		let targetActionId: StepActionIdEnum;
@@ -130,9 +156,12 @@ class OrderStateMachine {
 		} else if (status === OrderStatus.FAILED) {
 			// Генерация провалилась - остаёмся на шаге Run
 			targetActionId = StepActionIdEnum.Run;
-		} else {
-			// COMPLETED, CANCELLED, REFUNDED - обработка завершена
+		} else if (status === OrderStatus.COMPLETED) {
+			// Генерация завершена успешно - показываем Download
 			targetActionId = StepActionIdEnum.Download;
+		} else {
+			// Fallback для неожиданных статусов
+			targetActionId = StepActionIdEnum.Calculate;
 		}
 
 		// Находим номер шага по actionId

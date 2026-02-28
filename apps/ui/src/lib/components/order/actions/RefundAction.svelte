@@ -2,7 +2,9 @@
 	import type { OrderResponseDto } from '@api/shared';
 	import type { TransitionDescriptorInterface, ActionRendererPropsInterface } from '$lib/domain/order';
 	import type { Component } from 'svelte';
+	import { paymentsService } from '$lib/services/payments.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
+	import { formatPrice } from '$lib/utils/number-format';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -16,38 +18,41 @@
 
 	let { order, transition, renderer, class: className = '', disabled = false, loading = false, size }: Props = $props();
 
-	let isDeleting = $state(false);
-	const isLoading = $derived(loading || isDeleting);
+	let isRefunding = $state(false);
+	const isLoading = $derived(loading || isRefunding);
 	const Renderer = $derived(renderer);
 
-	const handleDelete = async () => {
+	const handleRefund = async () => {
+		const amount = `${order.attributes.currencySymbol} ${formatPrice(order.attributes.priceTotal || 0)}`;
 		const confirmed = confirm(
-			`Are you sure you want to delete order #${order.attributes.id}? This action cannot be undone.`
+			`Are you sure you want to refund ${amount} for order #${order.attributes.id}? This action cannot be undone.`
 		);
 
 		if (!confirmed) {
 			return;
 		}
 
-		isDeleting = true;
+		isRefunding = true;
 		try {
-			await ordersStore.deleteOrder(order.attributes.id);
+			await paymentsService.requestRefund(order.attributes.id);
+			await ordersStore.refreshOrder(order.attributes.id);
 		} catch (exception) {
-			console.error('Delete failed:', exception);
+			console.error('Refund failed:', exception);
 			throw exception;
 		} finally {
-			isDeleting = false;
+			isRefunding = false;
 		}
 	};
 </script>
 
 <!--
-  DeleteAction
+  RefundAction
 
   ПРАВИЛА:
-  ✅ Удаляет заказ через store (ordersStore.deleteOrder)
-  ✅ Показывает confirm dialog перед удалением
+  ✅ Запрашивает возврат через paymentsService.requestRefund()
+  ✅ Показывает confirm dialog с суммой перед возвратом
   ✅ Рендерит переданный renderer с onclick
+  ✅ Обновляет заказ после успешного возврата
   ✅ НЕ ПРОВЕРЯЕТ enabled (transition УЖЕ доступен из domain)
   ❌ НЕ знает о визуализации (это в renderer)
   ❌ НЕ имеет mode prop (renderer передаётся снаружи)
@@ -60,4 +65,4 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading (external)
 -->
-<Renderer {transition} onclick={handleDelete} class={className} disabled={disabled || isLoading} loading={isLoading} {size} />
+<Renderer {transition} onclick={handleRefund} class={className} disabled={disabled || isLoading} loading={isLoading} {size} />

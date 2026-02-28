@@ -5,7 +5,7 @@
 	import { DetailedStepper, Card, P } from 'flowbite-svelte';
 	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
 	import { CalculateAction, PaymentAction, RunAction, DownloadAction } from '$lib/components/order';
-	import { getActionConfig } from '$lib/components/order-actions.config';
+	import { configService } from '$lib/services/config.service';
 	import { OrderStatus } from '@api/shared';
 
 	interface Props {
@@ -57,12 +57,18 @@
 			current = stepperState.maxAllowedStep;
 			prevMaxAllowed = stepperState.maxAllowedStep;
 		}
+		// If maxAllowedStep decreased to 0 (terminal status like CANCELLED, REFUNDED)
+		else if (stepperState.maxAllowedStep === 0 && prevMaxAllowed > 0) {
+			current = stepperState.currentStep; // Use suggested step for terminal status
+			prevMaxAllowed = stepperState.maxAllowedStep;
+		}
 		// Update prevMaxAllowed even if not advanced
 		else if (stepperState.maxAllowedStep !== prevMaxAllowed) {
 			prevMaxAllowed = stepperState.maxAllowedStep;
 		}
 		// Validation: don't allow going further than allowed
-		if (current > stepperState.maxAllowedStep && !allowAllSteps) {
+		// Exception: if maxAllowedStep = 0 (terminal status), keep current step for display
+		if (current > stepperState.maxAllowedStep && !allowAllSteps && stepperState.maxAllowedStep > 0) {
 			current = stepperState.maxAllowedStep;
 		}
 	});
@@ -76,7 +82,7 @@
 	const currentTransition = $derived(transitions.find((t) => t.id === currentStepActionId));
 
 	// For unavailable steps, get config from static config (not HATEOAS)
-	const fallbackConfig = $derived(getActionConfig(currentStepActionId!));
+	const fallbackConfig = $derived(configService.getActionConfig(currentStepActionId!));
 
 	const btnMinWidth = 'min-w-35';
 </script>
@@ -148,11 +154,19 @@
 			</div>
 
 			<div class="h-8">
-				{#if current > stepperState.maxAllowedStep}
+				{#if current > stepperState.maxAllowedStep && stepperState.maxAllowedStep > 0}
 					<P align="center" height="8" size="xs" space="normal" italic>Complete previous step first</P>
 				{:else if order.attributes.status === OrderStatus.FAILED}
 					<P align="center" height="8" size="xs" space="normal" italic class="text-red-600 dark:text-red-400">
 						Generation failed. Check errors for details.
+					</P>
+				{:else if order.attributes.status === OrderStatus.CANCELLED}
+					<P align="center" height="8" size="xs" space="normal" italic class="text-gray-600 dark:text-gray-400">
+						Order has been cancelled.
+					</P>
+				{:else if order.attributes.status === OrderStatus.REFUNDED}
+					<P align="center" height="8" size="xs" space="normal" italic class="text-gray-600 dark:text-gray-400">
+						Order failed and payment has been refunded.
 					</P>
 				{/if}
 			</div>
