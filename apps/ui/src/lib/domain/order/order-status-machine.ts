@@ -34,12 +34,10 @@ const STATUS_CONFIG: Record<OrderStatus, StatusStepConfig> = {
 		navigableActionIds: [StepActionIdEnum.Calculate]
 	},
 	[OrderStatus.CALCULATED]: {
-		// price = 0 → Payment не нужен, активен Generate
-		// price > 0 → нужна оплата, активен Payment
 		preferredActionId: order => (order.attributes.priceTotal ?? 0) > 0
 			? StepActionIdEnum.Payment
 			: StepActionIdEnum.Run,
-		navigableActionIds: [StepActionIdEnum.Calculate] // можно вернуться на Configure
+		navigableActionIds: [StepActionIdEnum.Calculate]
 	},
 	[OrderStatus.PENDING_PAYMENT]: {
 		preferredActionId: () => StepActionIdEnum.Payment,
