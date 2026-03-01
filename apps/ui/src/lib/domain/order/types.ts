@@ -102,6 +102,13 @@ interface StepperStateInterface {
 	 * Шаги на которые можно перейти кликом в stepper (навигация)
 	 */
 	navigableStepIds: number[];
+
+	/**
+	 * Разрешена ли кнопка для данного статуса заказа.
+	 * false для статусов где действие уже выполняется (QUEUED, PROCESSING).
+	 * Не учитывает навигацию — итоговый isActionEnabled вычисляется в компоненте.
+	 */
+	isButtonEnabled: boolean;
 }
 
 /**

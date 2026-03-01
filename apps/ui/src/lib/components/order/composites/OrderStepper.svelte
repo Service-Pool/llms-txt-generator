@@ -85,9 +85,12 @@
 
 	const btnMinWidth = 'min-w-35';
 
-	// Кнопка активна если текущий шаг — preferred (основное действие) или navigable (можно действовать)
+	// Кнопка активна если:
+	//   1. статус разрешает кнопку (isButtonEnabled — false для QUEUED/PROCESSING)
+	//   2. пользователь находится на preferred-шаге или navigable-шаге
 	const isActionEnabled = $derived(
-		current === stepperState.preferredStepId || stepperState.navigableStepIds.includes(current)
+		stepperState.isButtonEnabled &&
+		(current === stepperState.preferredStepId || stepperState.navigableStepIds.includes(current))
 	);
 </script>
 

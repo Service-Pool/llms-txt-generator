@@ -25,7 +25,8 @@ const ALL_STEPS: Omit<StepDescriptorInterface, 'id'>[] = [
 
 type StatusStepConfig = {
 	preferredActionId: (order: OrderResponseDto) => StepActionIdEnum;
-	navigableActionIds: StepActionIdEnum[]; // шаги на которые можно перӡйти кликом в stepper
+	navigableActionIds: StepActionIdEnum[]; // шаги на которые можно перейти кликом в stepper
+	buttonEnabled?: boolean; // активна ли кнопка действия (default: true)
 };
 
 const STATUS_CONFIG: Record<OrderStatus, StatusStepConfig> = {
@@ -53,11 +54,13 @@ const STATUS_CONFIG: Record<OrderStatus, StatusStepConfig> = {
 	},
 	[OrderStatus.QUEUED]: {
 		preferredActionId: () => StepActionIdEnum.Run,
-		navigableActionIds: [StepActionIdEnum.Run]
+		navigableActionIds: [],
+		buttonEnabled: false // генерация уже запущена, повторный запуск невозможен
 	},
 	[OrderStatus.PROCESSING]: {
 		preferredActionId: () => StepActionIdEnum.Run,
-		navigableActionIds: [StepActionIdEnum.Run]
+		navigableActionIds: [],
+		buttonEnabled: false // генерация уже запущена, повторный запуск невозможен
 	},
 	[OrderStatus.FAILED]: {
 		preferredActionId: () => StepActionIdEnum.Run,
@@ -69,11 +72,13 @@ const STATUS_CONFIG: Record<OrderStatus, StatusStepConfig> = {
 	},
 	[OrderStatus.CANCELLED]: {
 		preferredActionId: () => StepActionIdEnum.Calculate,
-		navigableActionIds: []
+		navigableActionIds: [],
+		buttonEnabled: false // терминальный статус, действия недоступны
 	},
 	[OrderStatus.REFUNDED]: {
 		preferredActionId: () => StepActionIdEnum.Run,
-		navigableActionIds: []
+		navigableActionIds: [],
+		buttonEnabled: false // терминальный статус, возврат средств выполнен
 	}
 };
 
@@ -129,12 +134,18 @@ class OrderStatusMachine {
 		// 5. currentStepActionId — действие для текущего шага
 		const currentStepActionId = steps.find(s => s.id === current)?.actionId;
 
+		// 6. isButtonEnabled — разрешена ли кнопка для данного статуса заказа
+		//    false для статусов где действие уже выполняется (QUEUED, PROCESSING)
+		//    Не учитывает текущий шаг навигации — это делает компонент через $derived
+		const isButtonEnabled = config.buttonEnabled !== false;
+
 		return {
 			steps,
 			currentStep: current,
 			preferredStepId,
 			currentStepActionId,
-			navigableStepIds
+			navigableStepIds,
+			isButtonEnabled
 		};
 	}
 }
