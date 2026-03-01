@@ -1,8 +1,11 @@
 <script lang="ts">
+	import type { OrderResponseDto } from '@api/shared';
+	import { OrderStatus } from '@api/shared';
 	import type { TransitionDescriptorInterface, ActionRendererPropsInterface } from '$lib/domain/order';
 	import type { Component } from 'svelte';
 
 	interface Props {
+		order: OrderResponseDto;
 		transition: TransitionDescriptorInterface;
 		renderer: Component<ActionRendererPropsInterface>;
 		onOpenCalculateModal?: () => void;
@@ -12,6 +15,7 @@
 	}
 
 	let {
+		order,
 		transition,
 		renderer,
 		onOpenCalculateModal,
@@ -21,6 +25,11 @@
 	}: Props = $props();
 
 	const Renderer = $derived(renderer);
+
+	// Use label for CREATED orders, labelAlternative for others
+	const actionLabel = $derived(
+		order.attributes.status === OrderStatus.CREATED ? transition.label : transition.labelAlternative || transition.label
+	);
 
 	const handleClick = () => {
 		onOpenCalculateModal?.();
@@ -45,4 +54,4 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading
 -->
-<Renderer {transition} onclick={handleClick} class={className} {disabled} {loading} />
+<Renderer {transition} label={actionLabel} onclick={handleClick} class={className} {disabled} {loading} />

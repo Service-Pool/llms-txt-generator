@@ -65,4 +65,12 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading (external)
 -->
-<Renderer {transition} onclick={handleRefund} class={className} disabled={disabled || isLoading} loading={isLoading} {size} />
+<Renderer
+	{transition}
+	label={transition.label}
+	onclick={handleRefund}
+	class={className}
+	disabled={disabled || isLoading}
+	loading={isLoading}
+	{size}
+/>

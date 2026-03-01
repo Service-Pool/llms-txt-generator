@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Badge } from 'flowbite-svelte';
 	import type { OrderStatus } from '@api/shared';
-	import { ordersService } from '$lib/services/orders.service';
+	import { configService } from '$lib/services/config.service';
 
 	interface Props {
 		status: OrderStatus;
@@ -13,7 +13,7 @@
 
 	let { status, queuePosition, large = false, class: className = '', icon }: Props = $props();
 
-	const config = $derived(ordersService.getStatusConfig(status));
+	const config = $derived(configService.orderStatuses[status] || { label: status, color: 'gray' });
 	const showPosition = $derived(queuePosition !== null);
 </script>
 

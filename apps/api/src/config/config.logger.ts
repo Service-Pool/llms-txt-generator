@@ -7,6 +7,7 @@ import { LogLevel } from '@/enums/log-level.enum';
 class LoggerFactory {
 	private readonly fileFormat: winston.Logform.Format;
 	private readonly consoleFormat: winston.Logform.Format;
+	private readonly mode: string = process.env.APP_MODE;
 
 	public constructor() {
 		this.fileFormat = winston.format.combine(
@@ -22,11 +23,10 @@ class LoggerFactory {
 		);
 	}
 
-	public create() {
-		const mode = process.env.APP_MODE;
+	public createAppLogger() {
 		const transports: winston.transport[] = [];
 
-		if (mode !== 'test') {
+		if (this.mode !== 'test') {
 			transports.push(new winston.transports.Console({
 				format: this.consoleFormat,
 				level: LogLevel.DEBUG
@@ -54,7 +54,48 @@ class LoggerFactory {
 
 		return WinstonModule.createLogger({
 			transports,
-			level: mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
+			level: this.mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
+		});
+	}
+
+	public createLlmLogger() {
+		return winston.createLogger({
+			transports: [
+				new winston.transports.Console({
+					format: winston.format.combine(
+						winston.format.timestamp({ format: 'HH:mm:ss' }),
+						winston.format.colorize(),
+						winston.format.printf((info) => {
+							const ctx = Reflect.get(info, 'context');
+							const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+							const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+							const message = typeof info.message === 'string' ? info.message : '';
+							return `${timestamp} ${info.level} ${context}${message}`;
+						})
+					),
+					level: this.mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
+				}),
+				new DailyRotateFile({
+					filename: 'var/logs/%DATE%-llm.log',
+					datePattern: 'YYYY-MM-DD',
+					maxSize: '20m',
+					maxFiles: '2d',
+					format: winston.format.combine(
+						winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+						winston.format.errors({ stack: true }),
+						winston.format.printf((info) => {
+							const ctx = Reflect.get(info, 'context');
+							const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
+							const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
+							const message = typeof info.message === 'string' ? info.message : '';
+							const stack = info.stack ? `\n${inspect(info.stack, { depth: null })}` : '';
+							return `${timestamp} ${info.level} ${context}${message}${stack}`;
+						})
+					),
+					level: this.mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
+				})
+			],
+			level: this.mode === 'production' ? LogLevel.INFO : LogLevel.DEBUG
 		});
 	}
 
@@ -85,46 +126,8 @@ class LoggerFactory {
 	};
 }
 
-const createWinstonLogger = () => new LoggerFactory().create();
-
-// Отдельный Winston instance для LLM логов (без NestJS обертки)
-const llmLogger = winston.createLogger({
-	transports: [
-		new winston.transports.Console({
-			format: winston.format.combine(
-				winston.format.timestamp({ format: 'HH:mm:ss' }),
-				winston.format.colorize(),
-				winston.format.printf((info) => {
-					const ctx = Reflect.get(info, 'context');
-					const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
-					const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
-					const message = typeof info.message === 'string' ? info.message : '';
-					return `${timestamp} ${info.level} ${context}${message}`;
-				})
-			),
-			level: LogLevel.DEBUG
-		}),
-		new DailyRotateFile({
-			filename: 'var/logs/%DATE%-llm.log',
-			datePattern: 'YYYY-MM-DD',
-			maxSize: '20m',
-			maxFiles: '2d',
-			format: winston.format.combine(
-				winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-				winston.format.errors({ stack: true }),
-				winston.format.printf((info) => {
-					const ctx = Reflect.get(info, 'context');
-					const context = ctx && typeof ctx === 'string' ? `[${ctx}] ` : '';
-					const timestamp = typeof info.timestamp === 'string' ? info.timestamp : '';
-					const message = typeof info.message === 'string' ? info.message : '';
-					const stack = info.stack ? `\n${inspect(info.stack, { depth: null })}` : '';
-					return `${timestamp} ${info.level} ${context}${message}${stack}`;
-				})
-			),
-			level: LogLevel.DEBUG
-		})
-	],
-	level: LogLevel.DEBUG
-});
+const factory = new LoggerFactory();
+const createWinstonLogger = () => factory.createAppLogger();
+const llmLogger = factory.createLlmLogger();
 
 export { createWinstonLogger, llmLogger };

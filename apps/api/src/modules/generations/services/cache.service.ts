@@ -10,7 +10,6 @@ import { AppConfigService } from '@/config/config.service';
 class CacheService implements OnModuleInit {
 	private readonly logger = new Logger(CacheService.name);
 	private redis: Redis;
-	private readonly TTL_SECONDS = 60 * 60 * 24; // 24 часа
 
 	constructor(private readonly configService: AppConfigService) { }
 
@@ -20,7 +19,7 @@ class CacheService implements OnModuleInit {
 			port: this.configService.redis.port,
 			// password: this.configService.redis.password,
 			// db: this.configService.redis.db,
-			maxRetriesPerRequest: 3,
+			maxRetriesPerRequest: this.configService.redis.maxRetriesPerRequest.cache,
 			retryStrategy: (times: number) => {
 				const delay = Math.min(times * 50, 2000);
 				return delay;
@@ -63,7 +62,7 @@ class CacheService implements OnModuleInit {
 			const computed = await callback();
 
 			await this.redis.hset(hashKey, field, computed);
-			await this.redis.expire(hashKey, this.TTL_SECONDS);
+			await this.redis.expire(hashKey, this.configService.redis.cacheSummary.ttlSeconds);
 
 			this.logger.debug(`Cached computed value for key=${hashKey}, field=${field}`);
 
@@ -81,7 +80,7 @@ class CacheService implements OnModuleInit {
 	public async set(hashKey: string, field: string, value: string): Promise<void> {
 		try {
 			await this.redis.hset(hashKey, field, value);
-			await this.redis.expire(hashKey, this.TTL_SECONDS);
+			await this.redis.expire(hashKey, this.configService.redis.cacheSummary.ttlSeconds);
 			this.logger.debug(`Cached value for key=${hashKey}, field=${field}`);
 		} catch (error) {
 			this.logger.error(`Error in set() for key=${hashKey}, field=${field}:`, error);

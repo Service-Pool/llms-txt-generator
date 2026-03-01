@@ -13,16 +13,16 @@ type OrdersBroadcastMessage = | { type: 'ORDER_CREATED'; order: OrderResponseDto
  *
  * ⚠️ DOMAIN LOGIC:
  * This store does NOT contain domain logic (transitions, stepper state, etc).
- * For domain logic, use OrderStateMachine from $lib/domain/order.
+ * For domain logic, use OrderStatusMachine from $lib/domain/order.
  *
- * Example usage with OrderStateMachine:
+ * Example usage with OrderStatusMachine:
  * ```typescript
  * import { ordersStore } from '$lib/stores/orders.store.svelte';
- * import { OrderStateMachine } from '$lib/domain/order';
+ * import { OrderStatusMachine } from '$lib/domain/order';
  *
  * const order = ordersStore.getById(123);
- * const transitions = OrderStateMachine.getAvailableTransitions(order);
- * const stepperState = OrderStateMachine.getStepperState(order);
+ * const transitions = OrderStatusMachine.getAvailableTransitions(order);
+ * const stepperState = OrderStatusMachine.getStepperState(order);
  * ```
  */
 class OrdersStore {

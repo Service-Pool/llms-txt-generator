@@ -7,13 +7,19 @@ import {
 	ExclamationCircleSolid,
 	TrashBinSolid
 } from 'flowbite-svelte-icons';
-import { HateoasAction } from '@api/shared';
+import { HateoasAction, OrderStatus } from '@api/shared';
 import type { Component } from 'svelte';
 import { button } from 'flowbite-svelte';
 import type { VariantProps } from 'tailwind-variants';
 import { StepActionIdEnum } from '$lib/domain/order/step-action-id.enum';
 
 type ButtonColor = NonNullable<VariantProps<typeof button>['color']>;
+type StatusColor = 'primary' | 'secondary' | 'gray' | 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'fuchsia' | 'purple' | 'pink' | 'rose';
+
+interface StatusConfig {
+	label: string;
+	color: StatusColor;
+}
 
 export interface ActionButtonConfig {
 	id: StepActionIdEnum;
@@ -87,6 +93,21 @@ class ConfigService {
 		}
 	};
 
+	// Order statuses config
+	public readonly orderStatuses: Record<OrderStatus, StatusConfig> = {
+		[OrderStatus.CREATED]: { label: 'Draft', color: 'secondary' },
+		[OrderStatus.CALCULATED]: { label: 'Calculated', color: 'indigo' },
+		[OrderStatus.PENDING_PAYMENT]: { label: 'Pending Payment', color: 'yellow' },
+		[OrderStatus.PAID]: { label: 'Paid', color: 'green' },
+		[OrderStatus.QUEUED]: { label: 'Queued', color: 'purple' },
+		[OrderStatus.PROCESSING]: { label: 'Processing', color: 'purple' },
+		[OrderStatus.COMPLETED]: { label: 'Completed', color: 'green' },
+		[OrderStatus.FAILED]: { label: 'Failed', color: 'red' },
+		[OrderStatus.PAYMENT_FAILED]: { label: 'Payment Failed', color: 'red' },
+		[OrderStatus.CANCELLED]: { label: 'Cancelled', color: 'gray' },
+		[OrderStatus.REFUNDED]: { label: 'Refunded', color: 'gray' }
+	};
+
 	// Order actions config
 	public readonly orderActions: ActionButtonConfig[] = [
 		{
@@ -103,6 +124,7 @@ class ConfigService {
 			id: StepActionIdEnum.Run,
 			icon: PlaySolid,
 			label: 'Start',
+			labelAlternative: 'Restart',
 			description: 'Start order processing',
 			color: 'green',
 			hateoasActions: [HateoasAction.RUN],
@@ -131,7 +153,7 @@ class ConfigService {
 			icon: ExclamationCircleSolid,
 			label: 'Refund',
 			description: 'Request refund for failed order',
-			color: 'red',
+			color: 'gray',
 			hateoasActions: [HateoasAction.REFUND],
 			enabled: true
 		},
@@ -181,4 +203,6 @@ class ConfigService {
 }
 
 // Singleton instance
-export const configService = new ConfigService();
+const configService = new ConfigService();
+
+export { type StatusColor, type StatusConfig, configService };

@@ -18,21 +18,12 @@ interface HateoasLink {
 /**
  * Truncate text to specified number of words
  */
-function truncateToWords(text: string | null, maxWords: number): string | null {
+function truncateToWords(text: string | null, length: number): string | null {
 	if (!text) {
 		return text;
 	}
 
-	const wordMatches = [...text.matchAll(/\S+/g)];
-
-	if (wordMatches.length <= maxWords) {
-		return text;
-	}
-
-	const lastWordMatch = wordMatches[maxWords - 1];
-	const truncatePosition = lastWordMatch.index + lastWordMatch[0].length;
-
-	return `${text.substring(0, truncatePosition)}...`;
+	return text.length > length ? text.substring(0, length) + '...' : text;
 }
 
 /**
@@ -127,6 +118,12 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 			break;
 
 		case OrderStatus.FAILED:
+			// Allow retry (FAILED → PROCESSING transition)
+			links[HateoasAction.RUN] = {
+				href: `/api/orders/${entity.id}/run`,
+				method: 'POST',
+				description: 'Retry generation'
+			};
 			if (entity.stripePaymentIntentSecret) {
 				links[HateoasAction.REFUND] = {
 					href: `/api/orders/${entity.id}/payment/refund`,
@@ -369,7 +366,7 @@ class OrderAttributes {
 		attrs.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
 		attrs.errors = entity.errors;
 		attrs.hostname = entity.hostname;
-		attrs.output = truncateToWords(entity.output, 300);
+		attrs.output = truncateToWords(entity.output, 3000);
 		attrs.pricePerUrl = entity.pricePerUrl;
 		attrs.priceTotal = entity.priceTotal;
 		attrs.processedUrls = entity.processedUrls;

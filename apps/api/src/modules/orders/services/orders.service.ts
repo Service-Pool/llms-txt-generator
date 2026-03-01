@@ -124,6 +124,22 @@ class OrdersService {
 			return this.queueOrder(order, modelConfig);
 		}
 
+		// FAILED status - retry processing (payment already completed)
+		if (order.status === OrderStatus.FAILED) {
+			// Удаляем старый job если он существует
+			if (order.jobId) {
+				await this.queueManagerService.removeJob(modelConfig.queueName, order.jobId, ['completed', 'failed']);
+			}
+			order.errors = null;
+			order.processedUrls = 0;
+			order.output = null;
+			order.startedAt = null;
+			order.completedAt = null;
+			await this.orderRepository.save(order);
+
+			return this.queueOrder(order, modelConfig);
+		}
+
 		throw new BadRequestException(`Cannot run order in status: ${order.status}`);
 	}
 
@@ -340,9 +356,12 @@ class OrdersService {
 	 * @param withDeleted - if true, includes soft-deleted orders (for webhooks)
 	 */
 	public async findById(id: number, withDeleted = false): Promise<Order> {
-		const order = await this.orderRepository.findOne({
-			where: { id },
-			withDeleted
+		const order = await this.orderRepository.manager.transaction(async (manager) => {
+			return await manager.findOne(Order, {
+				where: { id },
+				withDeleted,
+				lock: { mode: 'pessimistic_read' }
+			});
 		});
 
 		if (!order) {

@@ -1,7 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { Queue, Worker, Job, JobsOptions, ConnectionOptions } from 'bullmq';
+import { Queue, Worker, Job, JobsOptions, ConnectionOptions, JobState } from 'bullmq';
 import { AppConfigService } from '@/config/config.service';
 import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
+import { QueueConfigRepository } from '../repositories/queue-config.repository';
 
 /**
  * Queue Service для обработки Orders
@@ -16,23 +17,24 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 
 	constructor(
 		private readonly configService: AppConfigService,
-		private readonly aiModelsConfigService: AiModelsConfigService
+		private readonly aiModelsConfigService: AiModelsConfigService,
+		private readonly queueConfigRepository: QueueConfigRepository
 	) {
 		// Настройки повторов из конфига
 		this.jobOptions = {
-			attempts: this.configService.queue.attempts,
+			attempts: this.configService.jobConfig.attempts,
 			backoff: {
-				type: this.configService.queue.backoff.type,
-				delay: this.configService.queue.backoff.delay
+				type: this.configService.jobConfig.backoff.type,
+				delay: this.configService.jobConfig.backoff.delay
 			},
-			removeOnComplete: this.configService.queue.removeOnComplete,
-			removeOnFail: this.configService.queue.removeOnFail
+			removeOnComplete: this.configService.jobConfig.removeOnComplete,
+			removeOnFail: this.configService.jobConfig.removeOnFail
 		};
 
 		this.redisConnection = {
 			host: this.configService.redis.host,
 			port: this.configService.redis.port,
-			maxRetriesPerRequest: null // Required for BullMQ
+			maxRetriesPerRequest: this.configService.redis.maxRetriesPerRequest.bullmq as number | null
 		};
 	}
 
@@ -52,7 +54,7 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 				connection: this.redisConnection,
 				streams: {
 					events: {
-						maxLen: 1000 // Хранить только последние 1000 событий
+						maxLen: this.configService.jobConfig.streams.maxLen
 					}
 				}
 			});
@@ -98,8 +100,8 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 			throw new Error(`Queue not found: ${queueName}`);
 		}
 
-		// JobId формируется как "order-{orderId}" для уникальности и легкого поиска
-		const jobId = `order-${orderId}`;
+		// Создаем jobId используя приватный метод для единообразия
+		const jobId = this.createJobId(orderId);
 
 		const job = await queue.add(
 			'generation', // job name
@@ -153,22 +155,45 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
-	 * Удалить job из очереди
+	 * Удалить job из конкретной очереди
+	 * Используется для очистки джобов в указанных статусах
 	 *
+	 * @param queueName - Имя очереди
 	 * @param jobId - ID job для удаления
+	 * @param statuses - Статусы джобов для удаления. Если пустой массив, удаляет в любом статусе
 	 */
-	public async removeJob(jobId: string): Promise<void> {
-		// Попытаться найти и удалить из всех очередей
-		for (const [queueName, queue] of this.queues.entries()) {
-			const job = await queue.getJob(jobId);
-			if (job) {
-				await job.remove();
-				this.logger.log(`Job ${jobId} removed from queue ${queueName}`);
-				return;
-			}
+	public async removeJob(queueName: string, jobId: string, statuses: JobState[]): Promise<void> {
+		const queue = this.queues.get(queueName);
+
+		if (!queue) {
+			this.logger.warn(`Queue not found: ${queueName}`);
+			return;
 		}
 
-		this.logger.warn(`Job ${jobId} not found in any queue`);
+		try {
+			const job = await queue.getJob(jobId);
+
+			if (!job) {
+				// Job не существует - всё в порядке
+				return;
+			}
+
+			const state = await job.getState();
+
+			// Если массив статусов пустой, удаляем в любом статусе
+			// Иначе удаляем только в указанных статусах
+			// Джобы в состоянии 'unknown' не удаляем для безопасности
+			if (state === 'unknown') {
+				this.logger.warn(`Job ${jobId} is in unknown state, not removing`);
+			} else if (statuses.length === 0 || statuses.includes(state)) {
+				await job.remove();
+				this.logger.log(`Job ${jobId} (${state}) removed from queue ${queueName}`);
+			} else {
+				this.logger.warn(`Job ${jobId} is in state '${state}', not removing (allowed: [${statuses.join(', ')}])`);
+			}
+		} catch (error) {
+			this.logger.error(`Error removing job ${jobId} from queue ${queueName}:`, error);
+		}
 	}
 
 	/**
@@ -183,6 +208,13 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 		queueName: string,
 		handler: (job: Job<{ orderId: number }>) => Promise<void>
 	): Worker<{ orderId: number }> {
+		// Получить конфигурацию worker'а для этой очереди
+		const queueConfig = this.queueConfigRepository.findByName(queueName);
+
+		if (!queueConfig) {
+			throw new Error(`Queue config not found for queue: ${queueName}`);
+		}
+
 		const worker = new Worker<{ orderId: number }>(
 			queueName,
 			async (job) => {
@@ -190,8 +222,9 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 			},
 			{
 				connection: this.redisConnection,
-				lockDuration: 30000, // 30 секунд на обработку одного батча
-				stalledInterval: 30000 // Проверка зависших jobs каждые 30 секунд
+				lockDuration: queueConfig.lockDuration,
+				stalledInterval: queueConfig.stalledInterval,
+				concurrency: queueConfig.concurrency
 			}
 		);
 
@@ -216,9 +249,39 @@ class QueueManagerService implements OnModuleInit, OnModuleDestroy {
 			this.logger.error(`Worker error for queue ${queueName}:`, error);
 		});
 
-		this.logger.log(`Worker created for queue ${queueName}`);
+		this.logger.log(`Worker created for queue ${queueName} (concurrency: ${queueConfig.concurrency})`);
 
 		return worker;
+	}
+
+	/**
+	 * Создать jobId из orderId (приватный - используется только внутри сервиса)
+	 * @param orderId - ID заказа
+	 * @returns jobId для BullMQ
+	 */
+	private createJobId(orderId: number): string {
+		return `order-${orderId}`;
+	}
+
+	/**
+	 * Извлечь orderId из BullMQ jobId (публичный - используется внешними сервисами)
+	 * @param jobId - ID джоба из BullMQ
+	 * @returns orderId или null если не удалось извлечь
+	 */
+	public extractOrderId(jobId: string): number | null {
+		// Обрабатываем формат "order-{id}"
+		const orderMatch = jobId.match(/^order-(\d+)$/);
+		if (orderMatch) {
+			return parseInt(orderMatch[1], 10);
+		}
+
+		// Если это просто число, пытаемся парсить напрямую (для совместимости)
+		const directNumber = parseInt(jobId, 10);
+		if (!isNaN(directNumber)) {
+			return directNumber;
+		}
+
+		return null;
 	}
 
 	/**

@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueManagerService } from '@/modules/queue/services/queue-manager.service';
 import { OrderJobHandler } from '@/modules/queue/handlers/order-job.handler';
+import { QueueConfigRepository } from '@/modules/queue/repositories/queue-config.repository';
 import { AiModelsModule } from '@/modules/ai-models/ai-models.module';
 import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
 import { ContentModule } from '@/modules/content/content.module';
@@ -28,7 +29,7 @@ import { User } from '@/modules/users/entities/user.entity';
 		StatsModule,
 		forwardRef(() => OrdersModule)
 	],
-	providers: [QueueManagerService, OrderJobHandler],
+	providers: [QueueManagerService, OrderJobHandler, QueueConfigRepository],
 	exports: [QueueManagerService, OrderJobHandler]
 })
 

@@ -17,7 +17,7 @@ class OrderStatusMachine {
 		[OrderStatus.PAID]: [OrderStatus.QUEUED],
 		[OrderStatus.QUEUED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
 		[OrderStatus.PROCESSING]: [OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED],
-		[OrderStatus.FAILED]: [OrderStatus.REFUNDED, OrderStatus.PROCESSING], // Allow retry transitions
+		[OrderStatus.FAILED]: [OrderStatus.QUEUED, OrderStatus.REFUNDED, OrderStatus.PROCESSING], // Allow retry transitions
 		// Terminal statuses - no transitions allowed
 		[OrderStatus.COMPLETED]: [],
 		[OrderStatus.CANCELLED]: [],

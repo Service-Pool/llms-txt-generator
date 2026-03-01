@@ -3,7 +3,7 @@
 	import type { Component } from 'svelte';
 	import type { ActionRendererPropsInterface } from '$lib/domain/order';
 	import { DetailedStepper, Card, P } from 'flowbite-svelte';
-	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
+	import { OrderStatusMachine, StepActionIdEnum } from '$lib/domain/order';
 	import { CalculateAction, PaymentAction, RunAction, DownloadAction } from '$lib/components/order';
 	import { configService } from '$lib/services/config.service';
 	import { OrderStatus } from '@api/shared';
@@ -27,64 +27,68 @@
 	}: Props = $props();
 
 	// Get stepper state from domain
-	const stepperState = $derived(OrderStateMachine.getStepperState(order));
+	const stepperState = $derived(OrderStatusMachine.getStepperState(order));
 
 	// Current step tracking (user can manually switch steps)
 	let current = $state(1); // Will be synced in $effect
-	let prevMaxAllowed = $state(1);
+	let lastPreferredStepId = $state(1);
 	let prevStepsCount = $state(0);
 
-	// Sync current with maxAllowedStep when order changes
+	// Sync current with preferredStepId when order changes
 	$effect(() => {
-		const stepsCount = stepperState.steps.length;
+		const { preferredStepId, currentStep, steps } = stepperState;
+		const stepsCount = steps.length;
 
 		// Initialize on first run
 		if (prevStepsCount === 0) {
-			current = stepperState.currentStep;
-			prevMaxAllowed = stepperState.maxAllowedStep;
+			current = currentStep;
+			lastPreferredStepId = preferredStepId;
 			prevStepsCount = stepsCount;
 			return;
 		}
 
-		// If steps structure changed (Payment added/removed)
+		// Determine new current step
+		let newCurrent = current;
+
 		if (stepsCount !== prevStepsCount) {
-			current = stepperState.maxAllowedStep;
-			prevMaxAllowed = stepperState.maxAllowedStep;
-			prevStepsCount = stepsCount;
+			// Steps structure changed (Payment added/removed)
+			newCurrent = preferredStepId;
+		} else if (preferredStepId > lastPreferredStepId) {
+			// Order advanced to new step
+			newCurrent = preferredStepId;
+		} else if (preferredStepId === 0 && lastPreferredStepId > 0) {
+			// Terminal status reached
+			newCurrent = currentStep;
 		}
-		// If maxAllowedStep increased (order status updated)
-		else if (stepperState.maxAllowedStep > prevMaxAllowed) {
-			current = stepperState.maxAllowedStep;
-			prevMaxAllowed = stepperState.maxAllowedStep;
-		}
-		// If maxAllowedStep decreased to 0 (terminal status like CANCELLED, REFUNDED)
-		else if (stepperState.maxAllowedStep === 0 && prevMaxAllowed > 0) {
-			current = stepperState.currentStep; // Use suggested step for terminal status
-			prevMaxAllowed = stepperState.maxAllowedStep;
-		}
-		// Update prevMaxAllowed even if not advanced
-		else if (stepperState.maxAllowedStep !== prevMaxAllowed) {
-			prevMaxAllowed = stepperState.maxAllowedStep;
-		}
+
 		// Validation: don't allow going further than allowed
-		// Exception: if maxAllowedStep = 0 (terminal status), keep current step for display
-		if (current > stepperState.maxAllowedStep && !allowAllSteps && stepperState.maxAllowedStep > 0) {
-			current = stepperState.maxAllowedStep;
+		if (newCurrent > preferredStepId && !allowAllSteps && preferredStepId > 0) {
+			newCurrent = preferredStepId;
 		}
+
+		// Update state
+		current = newCurrent;
+		lastPreferredStepId = preferredStepId;
+		prevStepsCount = stepsCount;
 	});
 
 	// Get current step state
-	const currentStepState = $derived(OrderStateMachine.getStepperState(order, current));
+	const currentStepState = $derived(OrderStatusMachine.getStepperState(order, current));
 	const currentStepActionId = $derived(currentStepState.currentStepActionId);
 
 	// Get transition for current step action
-	const transitions = $derived(OrderStateMachine.getAvailableTransitions(order));
+	const transitions = $derived(OrderStatusMachine.getAvailableTransitions(order));
 	const currentTransition = $derived(transitions.find((t) => t.id === currentStepActionId));
 
 	// For unavailable steps, get config from static config (not HATEOAS)
 	const fallbackConfig = $derived(configService.getActionConfig(currentStepActionId!));
 
 	const btnMinWidth = 'min-w-35';
+
+	// Кнопка активна если текущий шаг — preferred (основное действие) или navigable (можно действовать)
+	const isActionEnabled = $derived(
+		current === stepperState.preferredStepId || stepperState.navigableStepIds.includes(current)
+	);
 </script>
 
 <!--
@@ -92,10 +96,10 @@
 
   ПРАВИЛА:
   ✅ Композитный компонент - объединяет DetailedStepper + Action компонент
-  ✅ Использует OrderStateMachine для получения stepper state
+  ✅ Использует OrderStatusMachine для получения stepper state
   ✅ Рендерит Action компонент для текущего шага с переданным renderer
   ✅ НЕ ПРОВЕРЯЕТ enabled (transition УЖЕ доступен из domain)
-  ✅ Синхронизирует текущий шаг с maxAllowedStep при обновлении заказа
+  ✅ Синхронизирует текущий шаг с preferredStepId при обновлении заказа
   ❌ НЕ знает о конкретном renderer (передаётся снаружи)
 
   Props:
@@ -119,11 +123,12 @@
 			<div class="flex justify-center gap-2">
 				{#if currentStepActionId === StepActionIdEnum.Calculate}
 					<CalculateAction
+						{order}
 						transition={(currentTransition || fallbackConfig)!}
 						{renderer}
 						{onOpenCalculateModal}
 						class={btnMinWidth}
-						disabled={current > stepperState.maxAllowedStep}
+						disabled={!isActionEnabled}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Payment}
 					<PaymentAction
@@ -132,7 +137,7 @@
 						{renderer}
 						{onOpenPaymentModal}
 						class={btnMinWidth}
-						disabled={current > stepperState.maxAllowedStep}
+						disabled={!isActionEnabled}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Run}
 					<RunAction
@@ -140,7 +145,7 @@
 						transition={(currentTransition || fallbackConfig)!}
 						{renderer}
 						class={btnMinWidth}
-						disabled={current > stepperState.maxAllowedStep}
+						disabled={!isActionEnabled}
 					/>
 				{:else if currentStepActionId === StepActionIdEnum.Download}
 					<DownloadAction
@@ -148,14 +153,20 @@
 						transition={(currentTransition || fallbackConfig)!}
 						{renderer}
 						class={btnMinWidth}
-						disabled={current > stepperState.maxAllowedStep}
+						disabled={!isActionEnabled}
 					/>
 				{/if}
 			</div>
 
 			<div class="h-8">
-				{#if current > stepperState.maxAllowedStep && stepperState.maxAllowedStep > 0}
-					<P align="center" height="8" size="xs" space="normal" italic>Complete previous step first</P>
+				{#if !stepperState.navigableStepIds.includes(current) && stepperState.navigableStepIds.length > 0}
+					{#if current > stepperState.preferredStepId}
+						<P align="center" height="8" size="xs" space="normal" italic>Complete previous step first</P>
+					{:else if current < stepperState.currentStep}
+						<P align="center" height="8" size="xs" space="normal" italic>Cannot return to this step</P>
+					{:else}
+						<P align="center" height="8" size="xs" space="normal" italic>This step is not available</P>
+					{/if}
 				{:else if order.attributes.status === OrderStatus.FAILED}
 					<P align="center" height="8" size="xs" space="normal" italic class="text-red-600 dark:text-red-400">
 						Generation failed. Check errors for details.

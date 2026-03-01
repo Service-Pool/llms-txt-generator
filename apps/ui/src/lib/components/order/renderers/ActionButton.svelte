@@ -10,12 +10,10 @@
 		disabled?: boolean;
 		loading?: boolean;
 		size?: NonNullable<VariantProps<typeof button>['size']>;
+		label: string;
 	}
 
-	let { transition, onclick, class: className = '', disabled = false, loading = false, size = 'md' }: Props = $props();
-
-	// Use labelAlternative if available (e.g., "Update Model" vs "Set Model")
-	const label = $derived(transition.labelAlternative || transition.label);
+	let { transition, onclick, class: className = '', disabled = false, loading = false, size = 'md', label }: Props = $props();
 </script>
 
 <!--

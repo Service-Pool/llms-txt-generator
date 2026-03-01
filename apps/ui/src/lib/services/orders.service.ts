@@ -8,30 +8,8 @@ import {
 	AvailableAiModelDto,
 	DownloadOrderResponseDto,
 	HateoasAction,
-	OrderStatus,
 	type ApiResponse
 } from '@api/shared';
-
-type StatusColor = 'primary' | 'secondary' | 'gray' | 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'fuchsia' | 'purple' | 'pink' | 'rose';
-
-interface StatusConfig {
-	label: string;
-	color: StatusColor;
-}
-
-const STATUS_MAP: Record<OrderStatus, StatusConfig> = {
-	[OrderStatus.CREATED]: { label: 'Draft', color: 'secondary' },
-	[OrderStatus.CALCULATED]: { label: 'Calculated', color: 'indigo' },
-	[OrderStatus.PENDING_PAYMENT]: { label: 'Pending Payment', color: 'yellow' },
-	[OrderStatus.PAID]: { label: 'Paid', color: 'green' },
-	[OrderStatus.QUEUED]: { label: 'Queued', color: 'purple' },
-	[OrderStatus.PROCESSING]: { label: 'Processing', color: 'purple' },
-	[OrderStatus.COMPLETED]: { label: 'Completed', color: 'green' },
-	[OrderStatus.FAILED]: { label: 'Failed', color: 'red' },
-	[OrderStatus.PAYMENT_FAILED]: { label: 'Payment Failed', color: 'red' },
-	[OrderStatus.CANCELLED]: { label: 'Cancelled', color: 'gray' },
-	[OrderStatus.REFUNDED]: { label: 'Refunded', color: 'orange' }
-};
 
 /**
  * Orders API Service
@@ -114,13 +92,6 @@ class OrdersService extends HttpClient {
 	}
 
 	/**
-	 * Get status configuration (color and label)
-	 */
-	getStatusConfig(status: OrderStatus): StatusConfig {
-		return STATUS_MAP[status] || { label: status, color: 'gray' };
-	}
-
-	/**
 	 * Check if specific action is available for order based on HATEOAS _links
 	 */
 	hasAction(order: OrderResponseDto, action: HateoasAction): boolean {
@@ -138,4 +109,4 @@ class OrdersService extends HttpClient {
 
 // Singleton instance
 const ordersService = new OrdersService();
-export { type StatusColor, type StatusConfig, ordersService };
+export { ordersService };

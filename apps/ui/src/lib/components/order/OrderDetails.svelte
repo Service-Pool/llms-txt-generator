@@ -16,7 +16,7 @@
 		StripeElementsModal,
 		CalculateModal
 	} from '$lib/components/order';
-	import { OrderStateMachine, StepActionIdEnum } from '$lib/domain/order';
+	import { OrderStatusMachine, StepActionIdEnum } from '$lib/domain/order';
 	import { configService } from '$lib/services/config.service';
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
 	import { Heading } from 'flowbite-svelte';
@@ -30,7 +30,7 @@
 	let { order }: Props = $props();
 
 	// Get available transitions
-	const transitions = $derived(OrderStateMachine.getAvailableTransitions(order));
+	const transitions = $derived(OrderStatusMachine.getAvailableTransitions(order));
 	const deleteTransition = $derived(transitions.find((t) => t.id === StepActionIdEnum.Delete));
 	const deleteConfig = $derived(configService.getActionConfig(StepActionIdEnum.Delete));
 	const refundTransition = $derived(transitions.find((t) => t.id === StepActionIdEnum.Refund));

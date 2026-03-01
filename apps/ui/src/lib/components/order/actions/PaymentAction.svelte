@@ -99,4 +99,11 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading
 -->
-<Renderer {transition} onclick={handlePay} class={className} disabled={disabled || isLoading} loading={isLoading} />
+<Renderer
+	{transition}
+	label={transition.label}
+	onclick={handlePay}
+	class={className}
+	disabled={disabled || isLoading}
+	loading={isLoading}
+/>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
+	import { OrderStatus } from '@api/shared';
 	import type { TransitionDescriptorInterface, ActionRendererPropsInterface } from '$lib/domain/order';
 	import type { Component } from 'svelte';
 	import { ordersService } from '$lib/services/orders.service';
@@ -19,6 +20,9 @@
 	let isRunning = $state(false);
 	const isLoading = $derived(loading || isRunning);
 	const Renderer = $derived(renderer);
+	const actionLabel = $derived(
+		order.attributes.status === OrderStatus.FAILED ? (transition.labelAlternative || transition.label) : transition.label
+	);
 
 	const handleRun = async () => {
 		if (!order.attributes.currentAiModel) {
@@ -59,4 +63,11 @@
   - disabled: boolean - состояние disabled
   - loading: boolean - состояние loading (external)
 -->
-<Renderer {transition} onclick={handleRun} class={className} disabled={disabled || isLoading} loading={isLoading} />
+<Renderer
+	{transition}
+	label={actionLabel}
+	onclick={handleRun}
+	class={className}
+	disabled={disabled || isLoading}
+	loading={isLoading}
+/>

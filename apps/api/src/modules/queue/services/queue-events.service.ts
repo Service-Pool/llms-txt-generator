@@ -6,6 +6,7 @@ import { AppConfigService } from '@/config/config.service';
 import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 import { WebSocketService } from '@/modules/websocket/services/websocket.service';
 import { OrdersService } from '@/modules/orders/services/orders.service';
+import { QueueManagerService } from './queue-manager.service';
 import { OrderResponseDto } from '@/modules/orders/dto/order-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 
@@ -25,6 +26,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly webSocketService: WebSocketService,
 		private readonly ordersService: OrdersService,
+		private readonly queueManagerService: QueueManagerService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
 	) { }
 
@@ -65,7 +67,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 			connection: {
 				host: this.configService.redis.host,
 				port: this.configService.redis.port,
-				maxRetriesPerRequest: null // Required for BullMQ
+				maxRetriesPerRequest: this.configService.redis.maxRetriesPerRequest.bullmq as number | null
 			}
 		});
 
@@ -108,9 +110,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 	 * Handle progress event from worker
 	 */
 	private async handleProgressEvent(jobId: string, _data: unknown): Promise<void> {
-		this.logger.debug(`Progress event for job ${jobId}`);
-
-		const orderId = this.extractOrderIdFromJobId(jobId);
+		const orderId = this.queueManagerService.extractOrderId(jobId);
 		if (!orderId) {
 			this.logger.warn(`Could not extract orderId from jobId: ${jobId}`);
 			return;
@@ -121,8 +121,6 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 			const order = await this.ordersService.findById(orderId);
 			const orderDto = OrderResponseDto.create(order);
 			this.webSocketService.sendOrderUpdate(orderDto);
-
-			this.logger.debug(`Order update sent for order ${orderId}`);
 		} catch (error) {
 			this.logger.error(`Failed to send order update for ${orderId}:`, error);
 		}
@@ -134,7 +132,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 	private async handleCompletedEvent(jobId: string): Promise<void> {
 		this.logger.log(`Completed event for job ${jobId}`);
 
-		const orderId = this.extractOrderIdFromJobId(jobId);
+		const orderId = this.queueManagerService.extractOrderId(jobId);
 		if (!orderId) {
 			this.logger.warn(`Could not extract orderId from jobId: ${jobId}`);
 			return;
@@ -158,7 +156,7 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 	private async handleFailedEvent(jobId: string, failedReason: string): Promise<void> {
 		this.logger.log(`Failed event for job ${jobId}: ${failedReason}`);
 
-		const orderId = this.extractOrderIdFromJobId(jobId);
+		const orderId = this.queueManagerService.extractOrderId(jobId);
 		if (!orderId) {
 			this.logger.warn(`Could not extract orderId from jobId: ${jobId}`);
 			return;
@@ -174,26 +172,6 @@ class QueueEventsService implements OnModuleInit, OnModuleDestroy {
 		} catch (error) {
 			this.logger.error(`Failed to send order failure notification for ${orderId}:`, error);
 		}
-	}
-
-	/**
-	 * Extract orderId from BullMQ jobId
-	 * Expected format: "order-{orderId}" based on the queue system
-	 */
-	private extractOrderIdFromJobId(jobId: string): number | null {
-		// Handle both "order-{id}" format and plain number string formats
-		const orderMatch = jobId.match(/^order-(\d+)$/);
-		if (orderMatch) {
-			return parseInt(orderMatch[1], 10);
-		}
-
-		// If it's just a number, try parsing it directly
-		const directNumber = parseInt(jobId, 10);
-		if (!isNaN(directNumber)) {
-			return directNumber;
-		}
-
-		return null;
 	}
 }
 

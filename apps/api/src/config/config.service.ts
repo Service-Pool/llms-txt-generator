@@ -3,6 +3,7 @@ import { Currency } from '@/enums/currency.enum';
 import { DataSource } from 'typeorm';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { QueueConfig } from '@/modules/queue/entities/queue-config.entity';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 
@@ -28,6 +29,7 @@ interface ValidatedEnv {
 	STRIPE_CURRENCY: string;
 	ALLOWED_DOMAINS: string;
 	MODELS_CONFIG: string;
+	QUEUES_CONFIG: string;
 	SMTP_HOST: string;
 	SMTP_PORT: number;
 	SMTP_USER: string;
@@ -38,6 +40,14 @@ interface ValidatedEnv {
 	THROTTLE_TTL: number;
 	THROTTLE_LIMIT: number;
 }
+
+const queueConfigSchema = Joi.object({
+	name: Joi.string().required(),
+	type: Joi.string().valid('local', 'cloud').required(),
+	concurrency: Joi.number().positive().required(),
+	lockDuration: Joi.number().positive().required(),
+	stalledInterval: Joi.number().positive().required()
+});
 
 const aiModelConfigSchema = Joi.object({
 	id: Joi.string().required(),
@@ -79,6 +89,7 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	STRIPE_CURRENCY: Joi.string().uppercase().valid(...Object.values(Currency)).required(),
 	ALLOWED_DOMAINS: Joi.string().required(),
 	MODELS_CONFIG: Joi.string().required(),
+	QUEUES_CONFIG: Joi.string().required(),
 	SMTP_HOST: Joi.string().required(),
 	SMTP_PORT: Joi.number().port().required(),
 	SMTP_USER: Joi.string().email().required(),
@@ -136,7 +147,14 @@ class AppConfigService {
 
 	public readonly redis = {
 		host: env.REDIS_HOST,
-		port: env.REDIS_PORT
+		port: env.REDIS_PORT,
+		maxRetriesPerRequest: {
+			bullmq: null, // BullMQ требует бесконечных повторов для надежности
+			cache: 3 // Кэш может использовать ограниченное количество попыток
+		},
+		cacheSummary: {
+			ttlSeconds: 60 * 60 * 24 // 24 часа
+		}
 	};
 
 	public readonly typeorm: TypeOrmModuleOptions = {
@@ -196,7 +214,34 @@ class AppConfigService {
 		}
 	})();
 
-	public readonly queue = {
+	public readonly queueConfig = ((): QueueConfig[] => {
+		try {
+			const interpolated = interpolateEnvVariables(env.QUEUES_CONFIG);
+			const parsed = JSON.parse(interpolated) as unknown[];
+
+			return parsed.map((item: unknown, index: number) => {
+				const validationResult = queueConfigSchema.validate(item, { abortEarly: false });
+
+				if (validationResult.error) {
+					throw new Error(`Queue config [${index}] validation failed: ${validationResult.error.message}`);
+				}
+
+				const json = validationResult.value as QueueConfig;
+				const config: QueueConfig = {
+					name: json.name,
+					type: json.type,
+					concurrency: json.concurrency,
+					lockDuration: json.lockDuration,
+					stalledInterval: json.stalledInterval
+				};
+				return config;
+			});
+		} catch (error) {
+			throw new InternalServerErrorException(`Failed to parse QUEUES_CONFIG: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	})();
+
+	public readonly jobConfig = {
 		attempts: 3,
 		backoff: {
 			type: 'exponential',
@@ -209,6 +254,9 @@ class AppConfigService {
 		removeOnFail: {
 			count: 100,
 			age: 7 * 24 * 3600 // 7 days
+		},
+		streams: {
+			maxLen: 100 // Максимальное количество событий в Redis Streams
 		}
 	};
 

@@ -48,7 +48,7 @@ class SocketStore {
 
 			// Handle standard WebSocket messages
 			if (json.event && json.data) {
-				const message = WebSocketResponse.fromJSON(json, OrderResponseDto);
+				const message = WebSocketResponse.fromJSON<OrderResponseDto>(json, OrderResponseDto);
 				this.handleWebSocketMessage(message);
 			} else if (json.event === 'error') {
 				throw new Error(`[OrderWebSocketStore] WebSocket connection error: ${JSON.stringify(json.data)}`);
@@ -107,7 +107,8 @@ class SocketStore {
 			ordersStore.updateOrder(orderDto);
 
 			// Automatically unsubscribe from completed orders to avoid memory leaks
-			if ([OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED].includes(orderDto.attributes.status)) {
+			const completedStatuses = [OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED] as string[];
+			if (completedStatuses.includes(orderDto.attributes.status as string)) {
 				this.unsubscribeFromOrder(orderDto.attributes.id);
 			}
 		} catch (error) {

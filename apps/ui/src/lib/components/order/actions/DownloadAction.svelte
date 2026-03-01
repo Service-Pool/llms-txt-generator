@@ -71,6 +71,7 @@
 -->
 <Renderer
 	{transition}
+	label={transition.label}
 	onclick={handleDownload}
 	class={className}
 	disabled={disabled || isLoading}

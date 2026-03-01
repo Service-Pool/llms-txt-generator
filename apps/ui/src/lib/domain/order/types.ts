@@ -88,14 +88,20 @@ interface StepperStateInterface {
 	currentStep: number;
 
 	/**
-	 * Максимально допустимый шаг на основе статуса заказа
+	 * Предпочтительный шаг для данного статуса заказа (для синхронизации UI)
+	 * Используется OrderStepper чтобы автоматически переключаться при изменении статуса
 	 */
-	maxAllowedStep: number;
+	preferredStepId: number;
 
 	/**
 	 * ID действия для текущего шага
 	 */
 	currentStepActionId: StepActionIdEnum | undefined;
+
+	/**
+	 * Шаги на которые можно перейти кликом в stepper (навигация)
+	 */
+	navigableStepIds: number[];
 }
 
 /**
@@ -105,9 +111,14 @@ interface StepperStateInterface {
 
 interface ActionRendererPropsInterface {
 	/**
-	 * Transition descriptor from OrderStateMachine
+	 * Transition descriptor from OrderStatusMachine
 	 */
 	transition: TransitionDescriptorInterface;
+
+	/**
+	 * Text on button
+	 */
+	label: string;
 
 	/**
 	 * Click handler (может принимать MouseEvent для совместимости с event handlers)

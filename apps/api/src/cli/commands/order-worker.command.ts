@@ -41,6 +41,7 @@ class OrderWorkerCommand extends CommandRunner {
 		for (const queueName of queueNames) {
 			const worker = this.queueManagerService.createWorker(queueName, this.processJob);
 			this.workers.push(worker);
+
 			this.logger.log(`Worker started for ${queueName} queue`);
 		}
 
