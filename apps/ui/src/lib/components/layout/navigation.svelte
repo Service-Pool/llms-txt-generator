@@ -22,8 +22,7 @@
 		// { href: configService.routes.home, label: 'Home' },
 		{ href: configService.routes.ordersNew, label: 'New LLMs.txt' },
 		{ href: configService.routes.orders, label: 'Your Generations' },
-		{ href: configService.routes.api, label: 'API', target: '_blank' },
-		{ href: configService.routes.about, label: 'About' }
+		{ href: configService.routes.api, label: 'API', target: '_blank' }
 	];
 
 	let currentPath = $derived(page.url.pathname);

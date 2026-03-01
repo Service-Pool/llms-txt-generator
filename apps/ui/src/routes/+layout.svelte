@@ -95,7 +95,62 @@
 			</main>
 		{/if}
 
-		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+		<!-- Bottom Area / Pre-Footer -->
+		<section class="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+			<div class="container mx-auto px-4 py-8">
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+					<div>
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-4">LLM Ready</h4>
+						<p class="text-gray-600 dark:text-gray-400 text-sm">
+							Generate optimized LLMs.txt files for your websites using advanced AI models.
+						</p>
+					</div>
+
+					<div>
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h4>
+						<ul class="space-y-2">
+							<li>
+								<a
+									href="/orders/new"
+									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+									>New Generation</a
+								>
+							</li>
+							<li>
+								<a
+									href="/orders"
+									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+									>Your Generations</a
+								>
+							</li>
+							<li>
+								<a
+									href="/api"
+									target="_blank"
+									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+									>API Documentation</a
+								>
+							</li>
+						</ul>
+					</div>
+
+					<div>
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-4">Legal</h4>
+						<ul class="space-y-2">
+							<li>
+								<a
+									href="/terms"
+									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+									>Terms of Service</a
+								>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-950">
 			<div class="container mx-auto px-4">
 				<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
 			</div>
