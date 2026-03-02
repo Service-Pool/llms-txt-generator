@@ -20,13 +20,13 @@ class StripeService {
 	 * Создаёт Stripe Checkout Session для оплаты
 	 * Используется для редиректа пользователя на страницу оплаты Stripe
 	 */
-	public async createCheckoutSession(orderId: number, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
+	public async createCheckoutSession(orderId: number, customerEmail: string | undefined, amount: number, currency: string, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
 		try {
 			// Валидация redirect URLs
 			this.validateRedirectUrl(successUrl);
 			this.validateRedirectUrl(cancelUrl);
 
-			const session = await this.stripe.checkout.sessions.create({
+			const sessionData: Stripe.Checkout.SessionCreateParams = {
 				payment_method_types: ['card'],
 				line_items: [
 					{
@@ -46,10 +46,13 @@ class StripeService {
 				cancel_url: cancelUrl,
 				metadata: {
 					orderId: orderId.toString()
-				}
-			});
+				},
+				customer_email: customerEmail
+			};
 
-			this.logger.log(`Created Checkout Session ${session.id} for Order ${orderId}`);
+			const session = await this.stripe.checkout.sessions.create(sessionData);
+
+			this.logger.log(`Created Checkout Session ${session.id} for Order ${orderId} (receipt will be sent to ${customerEmail})`);
 
 			return { sessionId: session.id, url: session.url };
 		} catch (error) {
@@ -65,9 +68,9 @@ class StripeService {
 	 * Создаёт Payment Intent для встроенной формы оплаты
 	 * Возвращает client_secret для инициализации Stripe Elements
 	 */
-	public async createPaymentIntent(orderId: number, amount: number, currency: string): Promise<string> {
+	public async createPaymentIntent(orderId: number, customerEmail: string | undefined, amount: number, currency: string): Promise<string> {
 		try {
-			const paymentIntent = await this.stripe.paymentIntents.create({
+			const paymentIntentData: Stripe.PaymentIntentCreateParams = {
 				amount: Math.round(amount * 100), // Stripe expects amount in cents
 				currency: currency.toLowerCase(),
 				metadata: {
@@ -75,10 +78,13 @@ class StripeService {
 				},
 				automatic_payment_methods: {
 					enabled: true
-				}
-			});
+				},
+				receipt_email: customerEmail
+			};
 
-			this.logger.log(`Created Payment Intent ${paymentIntent.id} for Order ${orderId}`);
+			const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentData);
+
+			this.logger.log(`Created Payment Intent ${paymentIntent.id} for Order ${orderId} (receipt will be sent to ${customerEmail}`);
 
 			return paymentIntent.client_secret;
 		} catch (error) {

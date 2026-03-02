@@ -410,6 +410,9 @@ class OrdersService {
 	 */
 	public async getOrCreateCheckoutSession(orderId: number, successUrl: string, cancelUrl: string): Promise<{ sessionId: string; url: string }> {
 		const order = await this.ensureOrderPayable(orderId);
+		const user = await this.usersService.findById(order.userId);
+
+		let userEmail: string = undefined;
 
 		// Check if order already has an active Checkout Session
 		if (order.stripeSessionId) {
@@ -422,9 +425,14 @@ class OrdersService {
 			}
 		}
 
+		if (user) {
+			userEmail = user.email;
+		}
+
 		// Create new Checkout Session
 		const session = await this.stripeService.createCheckoutSession(
 			orderId,
+			userEmail,
 			order.priceTotal,
 			order.priceCurrency,
 			successUrl,
@@ -443,6 +451,9 @@ class OrdersService {
 	 */
 	public async getOrCreatePaymentIntent(orderId: number): Promise<string> {
 		const order = await this.ensureOrderPayable(orderId);
+		const user = await this.usersService.findById(order.userId);
+
+		let userEmail: string = undefined;
 
 		// Check if order already has an active Payment Intent
 		if (order.stripePaymentIntentSecret) {
@@ -454,9 +465,14 @@ class OrdersService {
 			}
 		}
 
+		if (user) {
+			userEmail = user.email;
+		}
+
 		// Create new Payment Intent
 		const clientSecret = await this.stripeService.createPaymentIntent(
 			orderId,
+			userEmail,
 			order.priceTotal,
 			order.priceCurrency
 		);
