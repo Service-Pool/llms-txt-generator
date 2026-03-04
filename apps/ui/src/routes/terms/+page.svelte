@@ -1,3 +1,11 @@
+<svelte:head>
+	<title>Terms of Service - LLMs.txt Generator</title>
+	<meta
+		name="description"
+		content="Terms of Service for LLMs.txt Generator. Rules and conditions for using our AI-powered website content processing service."
+	/>
+</svelte:head>
+
 <div class="max-w-4xl mx-auto p-6">
 	<h1 class="text-4xl font-bold text-center mb-2">Terms of Service</h1>
 	<p class="text-center text-gray-600 mb-12">Last updated: March 1, 2026</p>

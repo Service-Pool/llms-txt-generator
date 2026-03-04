@@ -64,6 +64,10 @@
 
 <svelte:head>
 	<title>Orders - LLMs.txt Generator</title>
+	<meta
+		name="description"
+		content="View and manage your LLMs.txt generation orders. Track progress and download completed AI-processed content files."
+	/>
 </svelte:head>
 
 <Heading tag="h2" class="mb-8">Your Orders</Heading>

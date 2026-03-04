@@ -53,6 +53,14 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Sign In - LLMs.txt Generator</title>
+	<meta
+		name="description"
+		content="Sign in to your LLMs.txt Generator account with your email. Get secure access to manage your AI-powered content generation orders."
+	/>
+</svelte:head>
+
 <div class="max-w-xl mx-auto mt-20">
 	{#if checkingAuth}
 		<Card class="text-center">

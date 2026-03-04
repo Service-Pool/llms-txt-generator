@@ -109,7 +109,7 @@ class SocketStore {
 			// Automatically unsubscribe from completed orders to avoid memory leaks
 			const completedStatuses = [OrderStatus.COMPLETED, OrderStatus.FAILED, OrderStatus.CANCELLED] as string[];
 			if (completedStatuses.includes(orderDto.attributes.status as string)) {
-				this.unsubscribeFromOrder(orderDto.attributes.id);
+				// this.unsubscribeFromOrder(orderDto.attributes.id);
 			}
 		} catch (error) {
 			console.error('[OrderWebSocketStore] Failed to handle order update:', error);

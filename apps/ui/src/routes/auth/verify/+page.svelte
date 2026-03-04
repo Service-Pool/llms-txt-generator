@@ -48,6 +48,14 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Email Verification - LLMs.txt Generator</title>
+	<meta
+		name="description"
+		content="Verify your email address to access your LLMs.txt Generator account and manage your orders."
+	/>
+</svelte:head>
+
 <div class="max-w-xl mx-auto mt-20">
 	<Card size="xl" class="py-10 px-20 text-center">
 		{#if loading}

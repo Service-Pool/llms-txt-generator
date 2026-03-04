@@ -67,7 +67,8 @@
 		window.addEventListener('storage', syncTheme);
 
 		loadClarity();
-		await authStore.refreshAuthStatus(fetch);
+		// Don't await - run in background to avoid blocking UI
+		authStore.refreshAuthStatus(fetch);
 	});
 
 	onDestroy(() => {

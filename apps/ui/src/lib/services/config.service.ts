@@ -33,6 +33,11 @@ export interface ActionButtonConfig {
 }
 
 class ConfigService {
+	// Site config
+	public readonly site: { baseUrl: string } = {
+		baseUrl: env.PUBLIC_SITE_URL!
+	};
+
 	// API config
 	public readonly api: { baseUrl: string } = {
 		baseUrl: env.PUBLIC_API_URL
@@ -85,7 +90,7 @@ class ConfigService {
 		about: '/about',
 		api: '/api',
 		orders: '/orders',
-		ordersNew: '/orders/new',
+		terms: '/terms',
 		orderById: (id: number) => `/orders/${id}`,
 		auth: {
 			request: '/auth/request',

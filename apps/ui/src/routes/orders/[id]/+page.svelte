@@ -54,6 +54,10 @@
 
 <svelte:head>
 	<title>Order #{orderId} - LLMs.txt Generator</title>
+	<meta
+		name="description"
+		content="View detailed information about your LLMs.txt generation order #{orderId}. Monitor processing status and download results."
+	/>
 </svelte:head>
 
 {#if initialLoading}
