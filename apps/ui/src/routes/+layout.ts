@@ -2,10 +2,11 @@
 // import type { LoadEvent } from '@sveltejs/kit';
 
 // Disable SSR for the app
-const ssr = false;
+const ssr = true;
+const prerender = true;
 
 // const load = async ({ fetch }: LoadEvent) => {
 //	await authStore.refreshAuthStatus(fetch);
 // };
 
-export { ssr };
+export { ssr, prerender };

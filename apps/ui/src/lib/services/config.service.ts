@@ -35,7 +35,7 @@ export interface ActionButtonConfig {
 class ConfigService {
 	// Site config
 	public readonly site: { baseUrl: string } = {
-		baseUrl: env.PUBLIC_SITE_URL!
+		baseUrl: env.PUBLIC_SITE_URL
 	};
 
 	// API config

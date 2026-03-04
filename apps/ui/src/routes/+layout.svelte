@@ -4,6 +4,7 @@
 	import { Footer, FooterCopyright, ThemeProvider } from 'flowbite-svelte';
 	import { handleCriticalError } from '$lib/stores/error.store.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import ErrorToast from '$lib/components/ui/error-toast.svelte';
 	import Navigation from '$lib/components/layout/navigation.svelte';
@@ -72,6 +73,7 @@
 	});
 
 	onDestroy(() => {
+		if (!browser) return;
 		window.removeEventListener('unhandledrejection', handleUnhandledRejection);
 		window.removeEventListener('error', handleError);
 		window.removeEventListener('storage', syncTheme);
