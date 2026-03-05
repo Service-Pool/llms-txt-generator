@@ -86,7 +86,7 @@
 	<meta name="description" content={configService.seo.description} />
 
 	<!-- Facebook Meta Tags -->
-	<meta property="og:url" content={page.url.href} />
+	<meta property="og:url" content={configService.site.baseUrl} />
 	<meta property="og:type" content="website" />
 	<meta property="og:title" content={configService.seo.title} />
 	<meta property="og:description" content={configService.seo.description} />
@@ -94,8 +94,8 @@
 
 	<!-- Twitter Meta Tags -->
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta property="twitter:domain" content={page.url.hostname} />
-	<meta property="twitter:url" content={page.url.href} />
+	<meta property="twitter:domain" content={new URL(configService.site.baseUrl).hostname} />
+	<meta property="twitter:url" content={configService.site.baseUrl} />
 	<meta name="twitter:title" content={configService.seo.title} />
 	<meta name="twitter:description" content={configService.seo.description} />
 	<meta name="twitter:image" content={configService.seo.image} />
