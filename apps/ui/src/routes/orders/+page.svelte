@@ -4,6 +4,7 @@
 	import { statsStore } from '$lib/stores/stats.store.svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
+	import { configService } from '$lib/services/config.service';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import { OrdersList } from '$lib/components/order';
@@ -63,7 +64,7 @@
 </script>
 
 <svelte:head>
-	<title>Orders - LLMs.txt Generator</title>
+	<title>{configService.seo.pageTitle('Your Orders')}</title>
 	<meta
 		name="description"
 		content="View and manage your LLMs.txt generation orders. Track progress and download completed AI-processed content files."

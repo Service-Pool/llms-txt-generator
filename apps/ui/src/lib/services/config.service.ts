@@ -58,6 +58,14 @@ class ConfigService {
 		id: env.PUBLIC_CLARITY_ID
 	};
 
+	// SEO config
+	public readonly seo = {
+		title: 'LLMs.txt Generator',
+		description: 'Generate optimized LLMs.txt files for your websites using advanced AI models. Quick, efficient, and LLM-ready content generation.',
+		image: '/og-image.png',
+		pageTitle: (pageTitle: string) => `${pageTitle} - LLMs.txt Generator`
+	};
+
 	// Endpoints config - centralized route definitions
 	public readonly endpoints = {
 		orders: {

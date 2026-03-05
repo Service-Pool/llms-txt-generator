@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { ArrowLeftOutline, HomeOutline } from 'flowbite-svelte-icons';
 	import { Button, Heading } from 'flowbite-svelte';
+	import { configService } from '$lib/services/config.service';
 	import { page } from '$app/state';
 
 	const error = $derived(page.error);
@@ -8,7 +9,11 @@
 </script>
 
 <svelte:head>
-	<title>{status} - {error?.message || 'Error'}</title>
+	<title>{configService.seo.pageTitle(`${status} - ${error?.message || 'Error'}`)}</title>
+	<meta
+		name="description"
+		content="An error occurred while loading the page. Error {status}: {error?.message || 'Something went wrong'}."
+	/>
 </svelte:head>
 
 <div class="absolute inset-0 flex items-center justify-center">

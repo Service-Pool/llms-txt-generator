@@ -82,35 +82,23 @@
 
 <svelte:head>
 	<!-- HTML Meta Tags -->
-	<title>LLMs.txt Generator</title>
-	<meta
-		name="description"
-		content="Generate optimized LLMs.txt files for your websites using advanced AI models. Quick, efficient, and LLM-ready content generation."
-	/>
+	<title>{configService.seo.title}</title>
+	<meta name="description" content={configService.seo.description} />
 
 	<!-- Facebook Meta Tags -->
 	<meta property="og:url" content={page.url.href} />
 	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LLMs.txt Generator" />
-	<meta
-		property="og:description"
-		content="Generate optimized LLMs.txt files for your websites using advanced AI models. Quick, efficient, and LLM-ready content generation."
-	/>
-	<meta property="og:image" content="{page.url.origin}/og-image.png" />
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="630" />
-	<meta property="og:image:type" content="image/png" />
+	<meta property="og:title" content={configService.seo.title} />
+	<meta property="og:description" content={configService.seo.description} />
+	<meta property="og:image" content={configService.seo.image} />
 
 	<!-- Twitter Meta Tags -->
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta property="twitter:domain" content={page.url.hostname} />
 	<meta property="twitter:url" content={page.url.href} />
-	<meta name="twitter:title" content="LLMs.txt Generator" />
-	<meta
-		name="twitter:description"
-		content="Generate optimized LLMs.txt files for your websites using advanced AI models. Quick, efficient, and LLM-ready content generation."
-	/>
-	<meta name="twitter:image" content="{page.url.origin}/og-image.png" />
+	<meta name="twitter:title" content={configService.seo.title} />
+	<meta name="twitter:description" content={configService.seo.description} />
+	<meta name="twitter:image" content={configService.seo.image} />
 </svelte:head>
 
 <ThemeProvider {theme}>

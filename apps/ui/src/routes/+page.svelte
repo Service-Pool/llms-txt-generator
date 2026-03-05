@@ -1,12 +1,13 @@
 <svelte:options runes={true} />
 
 <script lang="ts">
+	import { configService } from '$lib/services/config.service';
 	import Hero from '$lib/components/layout/hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
 </script>
 
 <svelte:head>
-	<title>LLMs.txt Generator - AI-Powered Content Optimization</title>
+	<title>{configService.seo.pageTitle('AI-Powered Content Optimization')}</title>
 	<meta
 		name="description"
 		content="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content with automatic website crawling and AI model processing."

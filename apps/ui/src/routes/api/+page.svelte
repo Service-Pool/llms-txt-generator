@@ -171,7 +171,7 @@
 </script>
 
 <svelte:head>
-	<title>API Documentation - LLMs.txt Generator</title>
+	<title>{configService.seo.pageTitle('API Documentation')}</title>
 	<meta name="description" content="Interactive API documentation for the LLMs.txt Generator API" />
 </svelte:head>
 

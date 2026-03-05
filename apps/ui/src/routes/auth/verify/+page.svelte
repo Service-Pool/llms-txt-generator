@@ -49,7 +49,7 @@
 </script>
 
 <svelte:head>
-	<title>Email Verification - LLMs.txt Generator</title>
+	<title>{configService.seo.pageTitle('Email Verification')}</title>
 	<meta
 		name="description"
 		content="Verify your email address to access your LLMs.txt Generator account and manage your orders."

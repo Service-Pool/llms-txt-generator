@@ -1,5 +1,9 @@
+<script lang="ts">
+	import { configService } from '$lib/services/config.service';
+</script>
+
 <svelte:head>
-	<title>Terms of Service - LLMs.txt Generator</title>
+	<title>{configService.seo.pageTitle('Terms of Service')}</title>
 	<meta
 		name="description"
 		content="Terms of Service for LLMs.txt Generator. Rules and conditions for using our AI-powered website content processing service."
