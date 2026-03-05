@@ -84,6 +84,8 @@
 	<!-- HTML Meta Tags -->
 	<title>{configService.seo.title}</title>
 	<meta name="description" content={configService.seo.description} />
+	<meta name="author" content="David Evdoshchenko" />
+	<meta property="article:author" content="https://www.linkedin.com/in/david-evdoshchenko/" />
 
 	<!-- Facebook Meta Tags -->
 	<meta property="og:url" content={configService.site.baseUrl} />
