@@ -12,22 +12,6 @@
 		content="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content with automatic website crawling and AI model processing."
 	/>
 
-	<!-- Open Graph / Facebook -->
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="LLMs.txt Generator - AI-Powered Content Optimization" />
-	<meta
-		property="og:description"
-		content="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content."
-	/>
-
-	<!-- Twitter -->
-	<meta property="twitter:card" content="summary_large_image" />
-	<meta property="twitter:title" content="LLMs.txt Generator - AI-Powered Content Optimization" />
-	<meta
-		property="twitter:description"
-		content="Generate optimized LLMs.txt files for your website using AI-powered content processing."
-	/>
-
 	<!-- Structured Data -->
 	<script type="application/ld+json">
 		{
