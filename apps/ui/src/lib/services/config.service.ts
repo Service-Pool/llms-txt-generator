@@ -60,8 +60,8 @@ class ConfigService {
 
 	// SEO config
 	public readonly seo = {
-		title: 'LLMs.txt Generator',
-		description: 'Generate optimized LLMs.txt files for your websites using advanced AI models. Quick, efficient, and LLM-ready content generation.',
+		title: 'Generate Optimized LLMs.txt Files with AI - Quick & Efficient',
+		description: 'Create perfect LLMs.txt files for your websites using advanced AI models. Fast, efficient content generation optimized for LLM consumption and SEO.',
 		image: '/og-image.png',
 		pageTitle: (pageTitle: string) => `${pageTitle} - LLMs.txt Generator`
 	};
