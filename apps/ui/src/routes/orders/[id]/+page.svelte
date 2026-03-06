@@ -71,7 +71,7 @@
 		<ErrorList {error} />
 	</Alert>
 {:else if order}
-	<div class="flex justify-between items-center mb-8">
+	<div class="flex justify-between flex-wrap items-center gap-2 mb-8">
 		<Heading tag="h2" class="mb-0 whitespace-nowrap">Order #{order.attributes.id}</Heading>
 		<Button href={configService.routes.orders} color="light" size="sm" class="whitespace-nowrap">
 			<ArrowLeftOutline size="sm" class="me-2" />

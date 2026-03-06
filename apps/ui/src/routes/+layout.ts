@@ -1,9 +1,9 @@
 // import { authStore } from '$lib/stores/auth.store.svelte';
 // import type { LoadEvent } from '@sveltejs/kit';
 
-// Disable SSR for the app
+// Enable SSR for dynamic content, disable prerendering
 const ssr = true;
-const prerender = true;
+const prerender = false;
 
 // const load = async ({ fetch }: LoadEvent) => {
 //	await authStore.refreshAuthStatus(fetch);

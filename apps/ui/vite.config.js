@@ -102,11 +102,28 @@ const stubServerImports = {
 
 export default defineConfig({
 	plugins: [stubServerImports, sveltekit()],
+	cacheDir: 'node_modules/.vite',
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, '../api/src')
 		},
 		extensions: ['.js', '.ts', '.json']
+	},
+	// Оптимизация pre-bundling для ускорения первой загрузки
+	optimizeDeps: {
+		// Явно указываем зависимости для pre-bundling
+		include: [
+			'flowbite-svelte',
+			'flowbite-svelte-icons',
+			'@stripe/stripe-js'
+		],
+		// Настройки esbuild для более быстрой сборки
+		esbuildOptions: {
+			target: 'esnext',
+			// minify: false,
+			// Используем меньше worker'ов для стабильности в Docker
+			logLevel: 'error'
+		}
 	},
 	build: {
 		sourcemap: process.env.NODE_ENV !== 'production'
@@ -119,9 +136,23 @@ export default defineConfig({
 		port: port,
 		strictPort: true,
 		allowedHosts: ['.svcpool.com'],
+		// Прогрев модулей при старте сервера для ускорения первой загрузки
+		warmup: {
+			clientFiles: [
+				'./src/routes/+layout.svelte',
+				'./src/routes/+page.svelte',
+				'./src/lib/**/*.svelte'
+			]
+		},
 		watch: {
 			usePolling: true,
-			interval: 100
+			interval: 1000, // 1 секунда - разумный баланс для Docker
+			ignored: [
+				'**/node_modules/**',
+				'**/.git/**',
+				'**/dist/**',
+				'**/.svelte-kit/**'
+			]
 		},
 		hmr: {
 			// host: 'localhost',

@@ -40,6 +40,7 @@ services:
       - ./cmd-llms-txt-generator-ui.sh:/tmp/app/cmd-llms-txt-generator-ui.sh
       - /var/run/docker.sock:/var/run/docker.sock
       - node_modules:/app/node_modules
+      - vite_cache:/app/node_modules/.vite
       - claude_data:/home/www-data/.claude
       - claude_cache:/home/www-data/.cache/claude
       - vscode_server:/home/www-data/.vscode-server
@@ -57,6 +58,7 @@ services:
 
 volumes:
   node_modules:
+  vite_cache:
   claude_data:
   claude_cache:
   vscode_server:

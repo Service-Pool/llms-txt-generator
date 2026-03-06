@@ -48,9 +48,9 @@
 <!-- OrderDetails Композиция для детальной страницы заказа. -->
 <OrderDetailsLayout>
 	{#snippet header()}
-		<Heading tag="h2" class="text-xl flex flex-wrap items-center gap-2">
+		<Heading tag="h2" class="text-xl wrap-break-word flex flex-wrap items-center gap-2">
 			<OrderBadge {order} class="text-base" />
-			{order.attributes.hostname}
+			<span class="w-full">{order.attributes.hostname}</span>
 			<OrderStatusComponent status={order.attributes.status} queuePosition={order.attributes.queuePosition} />
 		</Heading>
 	{/snippet}

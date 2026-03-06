@@ -13,7 +13,10 @@
 		const items: string[] = [];
 
 		if (order.attributes.totalUrls) {
-			items.push(`${formatNumber(order.attributes.totalUrls)} urls`);
+			items.push(`${formatNumber(order.attributes.totalUrls)} Urls (total)`);
+		}
+		if (order.attributes.processedUrls) {
+			items.push(`${formatNumber(order.attributes.processedUrls)} Urls (processed)`);
 		}
 		if (order.attributes.currentAiModel) {
 			items.push(order.attributes.currentAiModel.displayName);
@@ -32,7 +35,7 @@
   Content component - metadata (urls, model, price).
   НЕ содержит бизнес-логику, только визуализацию.
 -->
-<div class="flex flex-wrap items-center gap-2 whitespace-nowrap capitalize text-xs opacity-75 {className}">
+<div class="flex flex-wrap items-center gap-2 whitespace-nowrap text-xs opacity-75 {className}">
 	{#each metadataItems as item, i}
 		<span>{item}</span>
 		{#if i < metadataItems.length - 1}
