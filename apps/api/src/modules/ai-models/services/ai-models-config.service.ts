@@ -45,10 +45,12 @@ class AiModelsConfigService {
 	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableAiModelDto[] {
 		const models = this.getAllModels();
 
-		return models.map((model) => {
-			const pricing = this.getModelPricing(model.id, totalUrls);
-			return AvailableAiModelDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
-		});
+		return models
+			.filter(model => model.enabled)
+			.map((model) => {
+				const pricing = this.getModelPricing(model.id, totalUrls);
+				return AvailableAiModelDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
+			});
 	}
 
 	/**

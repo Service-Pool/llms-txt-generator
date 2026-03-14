@@ -14,6 +14,7 @@ class AvailableAiModelDto {
 	baseRate: number;
 	pageLimit: number | false;
 	totalPrice: number;
+	enabled: boolean;
 	available: boolean;
 	unavailableReason: string | null;
 
@@ -31,6 +32,7 @@ class AvailableAiModelDto {
 		dto.totalPrice = calculatedTotalPrice;
 		dto.currency = config.currency;
 		dto.currencySymbol = CURRENCY_SYMBOLS[config.currency];
+		dto.enabled = config.enabled;
 		dto.available = config.enabled && (config.pageLimit === false || totalUrls <= config.pageLimit);
 		dto.unavailableReason = !config.enabled
 			? 'Model is disabled'
@@ -54,6 +56,7 @@ class AvailableAiModelDto {
 		dto.description = json.description as string;
 		dto.baseRate = json.baseRate as number;
 		dto.pageLimit = json.pageLimit as number | false;
+		dto.enabled = json.enabled as boolean;
 		dto.totalPrice = json.totalPrice as number;
 		dto.available = json.available as boolean;
 		dto.unavailableReason = json.unavailableReason as string | null;
