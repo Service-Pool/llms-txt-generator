@@ -90,7 +90,7 @@
 	//   2. пользователь находится на preferred-шаге или navigable-шаге
 	const isActionEnabled = $derived(
 		stepperState.isButtonEnabled &&
-		(current === stepperState.preferredStepId || stepperState.navigableStepIds.includes(current))
+			(current === stepperState.preferredStepId || stepperState.navigableStepIds.includes(current))
 	);
 </script>
 
@@ -162,7 +162,7 @@
 			</div>
 
 			<div class="h-8">
-				{#if !stepperState.navigableStepIds.includes(current) && stepperState.navigableStepIds.length > 0}
+				{#if !stepperState.navigableStepIds.includes(current) && stepperState.navigableStepIds.length > 0 && current !== stepperState.preferredStepId}
 					{#if current > stepperState.preferredStepId}
 						<P align="center" height="8" size="xs" space="normal" italic>Complete previous step first</P>
 					{:else if current < stepperState.currentStep}
