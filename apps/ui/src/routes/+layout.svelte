@@ -133,21 +133,21 @@
 						<ul class="space-y-2">
 							<li>
 								<a
-									href="/orders/new"
+									href={configService.routes.home}
 									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
 									>New Generation</a
 								>
 							</li>
 							<li>
 								<a
-									href="/orders"
+									href={configService.routes.orders}
 									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
 									>Your Generations</a
 								>
 							</li>
 							<li>
 								<a
-									href="/api"
+									href={configService.routes.api}
 									target="_blank"
 									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
 									>API Documentation</a
@@ -161,9 +161,15 @@
 						<ul class="space-y-2">
 							<li>
 								<a
-									href="/terms"
+									href={configService.routes.terms}
 									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
 									>Terms of Service</a
+								>
+							</li>
+							<li>
+								<a
+									href={configService.routes.contact}
+									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Contact</a
 								>
 							</li>
 						</ul>
@@ -174,7 +180,7 @@
 
 		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-950">
 			<div class="container mx-auto px-4">
-				<FooterCopyright href="/" by="LLMs.txt Generator" year={2026} />
+				<FooterCopyright href={configService.routes.home} by="LLMs.txt Generator" year={2026} />
 			</div>
 		</Footer>
 	</div>

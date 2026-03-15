@@ -43,6 +43,11 @@ class ConfigService {
 		baseUrl: env.PUBLIC_API_URL
 	};
 
+	// Contact Worker config
+	public readonly contactWorker: { url: string } = {
+		url: env.PUBLIC_CONTACT_WORKER_URL
+	};
+
 	// HTTP client config
 	public readonly http: { timeout: number } = {
 		timeout: Number(env.PUBLIC_HTTP_TIMEOUT)
@@ -102,6 +107,7 @@ class ConfigService {
 		api: '/api',
 		orders: '/orders',
 		terms: '/terms',
+		contact: '/contact',
 		orderById: (id: number) => `/orders/${id}`,
 		auth: {
 			request: '/auth/request',

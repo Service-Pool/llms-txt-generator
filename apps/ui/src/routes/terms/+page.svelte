@@ -71,9 +71,9 @@
 
 	<h2 class="text-2xl font-semibold mb-4">9. Contact Information</h2>
 	<p>
-		If you have any questions about these Terms of Service, please contact us at <a
-			href="mailto:support@llmready.com"
-			class="text-blue-600 hover:underline">support@llmready.com</a
+		If you have any questions about these Terms of Service, please <a
+			href={configService.routes.contact}
+			class="text-blue-600 hover:underline">contact us</a
 		>.
 	</p>
 </div>
