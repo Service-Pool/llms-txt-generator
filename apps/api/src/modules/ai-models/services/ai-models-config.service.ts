@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AiModelConfigRepository } from '@/modules/ai-models/repositories/ai-model-config.repository';
-import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { AppConfigService } from '@/config/config.service';
 import { Currency } from '@/enums/currency.enum';
@@ -24,6 +24,22 @@ class AiModelsConfigService {
 	}
 
 	/**
+	 * Get all enabled models as DTOs (for public API)
+	 * Returns model configurations without order-specific calculations
+	 */
+	public getAllModelsConfig(): AiModelResponseDto[] {
+		const models = this.getAllModels();
+
+		return models
+			.filter(model => model.enabled)
+			.map((model) => {
+				// Use totalUrls = 0 to show base configuration without order context
+				const pricing = this.getModelPricing(model.id, 0);
+				return AiModelResponseDto.fromModelConfig(model, 0, pricing.priceTotal);
+			});
+	}
+
+	/**
 	 * Get model configuration by ID (synchronous for subscribers)
 	 */
 	public getModelByIdSync(id: string): AiModelConfig | null {
@@ -42,14 +58,14 @@ class AiModelsConfigService {
 	 * Get available models for specific order parameters
 	 * Uses getModelPricing to ensure consistent pricing with Stripe minimum applied
 	 */
-	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AvailableAiModelDto[] {
+	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AiModelResponseDto[] {
 		const models = this.getAllModels();
 
 		return models
 			.filter(model => model.enabled)
 			.map((model) => {
 				const pricing = this.getModelPricing(model.id, totalUrls);
-				return AvailableAiModelDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
+				return AiModelResponseDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
 			});
 	}
 

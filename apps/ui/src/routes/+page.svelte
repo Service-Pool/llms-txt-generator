@@ -1,9 +1,32 @@
 <svelte:options runes={true} />
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { configService } from '$lib/services/config.service';
+	import { aiModelsService } from '$lib/services/ai-models.service';
+	import { formatNumber } from '$lib/utils/number-format';
 	import Hero from '$lib/components/layout/hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
+	import { Card, Heading, P, Badge, Spinner } from 'flowbite-svelte';
+	import { CheckCircleSolid, RocketSolid, GlobeSolid, StarSolid, ShieldCheckSolid } from 'flowbite-svelte-icons';
+	import type { AiModelResponseDto } from '@api/shared';
+
+	let models = $state<AiModelResponseDto[]>([]);
+	let isLoadingModels = $state(true);
+
+	onMount(async () => {
+		try {
+			const response = await aiModelsService.getAll();
+			models = response.getData();
+		} catch (exception) {
+			throw exception;
+		} finally {
+			isLoadingModels = false;
+		}
+	});
+
+	const freeModels = $derived(models.filter((m) => m.baseRate === 0));
+	const paidModels = $derived(models.filter((m) => m.baseRate > 0));
 </script>
 
 <svelte:head>
@@ -49,166 +72,348 @@
 	<NewOrderForm />
 
 	<!-- SEO Content Section -->
-	<section class="mt-16 space-y-8 text-gray-700 dark:text-gray-300">
-		<div class="border-t border-gray-200 dark:border-gray-700 pt-8">
-			<h2 class="text-2xl font-semibold mb-8 text-gray-900 dark:text-white">
-				Free LLMs.txt Generator - The Only Truly Unlimited AI Content Optimization Tool
-			</h2>
-
-			<div class="grid md:grid-cols-2 gap-8">
-				<div>
-					<h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">
-						The Only Free LLMs.txt Generator Without Restrictions
-					</h3>
-					<p class="mb-4">
-						Unlike other llms.txt generators that claim to be free but impose hidden page limits, registration
-						requirements, or trial periods, our LLMs.txt generator is the only tool that actually generates AI-optimized
-						content completely free and without any limitations. Generate unlimited llms.txt files for websites of any
-						size - whether you have 10 pages or 10,000 pages, our free llms txt generator processes everything without
-						restrictions.
-					</p>
-					<p>
-						Our AI-powered llms.txt file generator uses advanced Large Language Model technology including OpenAI GPT-4,
-						GPT-3.5, Anthropic Claude 3, Claude 3.5 Sonnet, and Google Gemini models to create perfectly optimized
-						llmstxt files. No credit card required, no signup walls, no hidden costs - just enter your URL and generate
-						llms.txt online instantly. This is the only genuinely free llms txt generator that delivers professional AI
-						content optimization without asking for payment.
-					</p>
-				</div>
-
-				<div>
-					<h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">
-						Generate LLMs.txt Files with Premium AI Technology
-					</h3>
-					<ul class="space-y-2 list-disc list-outside ml-6">
-						<li>
-							<strong>OpenAI GPT Integration:</strong> Generate llms.txt using GPT-4o, GPT-4o-mini, GPT-3.5-turbo for optimal
-							Large Language Model comprehension
-						</li>
-						<li>
-							<strong>Anthropic Claude Support:</strong> Create llmstxt files with Claude 3.5 Sonnet, Claude 3 Opus, Claude
-							3 Haiku AI models
-						</li>
-						<li>
-							<strong>Google Gemini Processing:</strong> LLMs.txt generation powered by Gemini Pro 1.5, Gemini Flash 1.5,
-							Gemini Flash 2.0
-						</li>
-						<li>
-							<strong>Automatic Website Crawler:</strong> Our llms txt generator crawler extracts all website pages automatically
-						</li>
-						<li>
-							<strong>Unlimited Page Processing:</strong> The only free llms.txt generator that processes unlimited pages
-							without restrictions
-						</li>
-						<li>
-							<strong>No Registration Required:</strong> Generate llmstxt online without creating an account or providing
-							email
-						</li>
-						<li><strong>Fast Generation:</strong> Create optimized llms txt files in minutes, not hours</li>
-						<li>
-							<strong>SEO and AI Optimization:</strong> Improve website visibility in ChatGPT, Claude, Gemini, and all LLM-powered
-							search engines
-						</li>
-					</ul>
-				</div>
-			</div>
+	<section class="mt-16 space-y-8">
+		<!-- Hero Section -->
+		<div class="text-center mb-12">
+			<Heading
+				tag="h2"
+				class="text-3xl md:text-4xl font-bold mb-4 bg-linear-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"
+			>
+				Free LLMs.txt Generator with AI
+			</Heading>
+			<P class="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+				Generate optimized LLMs.txt files for your website using advanced AI language models. Fast, efficient, and
+				SEO-friendly content generation.
+			</P>
 		</div>
 
-		<div class="border-t border-gray-200 dark:border-gray-700 pt-8">
-			<h3 class="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-				What is LLMs.txt and Why Generate LLMs.txt Files?
-			</h3>
+		<!-- Available Models Section -->
+		<Card
+			class="max-w-none p-4 bg-linear-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
+		>
+			<div class="flex items-start gap-4">
+				<div class="shrink-0">
+					<RocketSolid class="w-8 h-8 text-purple-600 dark:text-purple-400" />
+				</div>
+			</div>
+			<div>
+				<Heading tag="h3" class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Available AI Models</Heading>
+
+				{#if isLoadingModels}
+					<div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+						<Spinner size="4" />
+						<span>Loading available AI models...</span>
+					</div>
+				{:else if models.length > 0}
+					<div class="space-y-4">
+						{#if freeModels.length > 0}
+							<div class="bg-white/50 dark:bg-gray-800/50 rounded border p-4">
+								<div class="flex items-center gap-2 mb-2">
+									<Badge color="green" class="text-sm">FREE</Badge>
+									<StarSolid class="w-4 h-4 text-green-600 dark:text-green-400" />
+								</div>
+								<P class="text-sm mb-2">
+									<strong>Free Tier Models:</strong>
+									{#each freeModels as model, i}
+										<span class="text-purple-700 dark:text-purple-300">{model.displayName}</span>
+										{#if model.pageLimit}
+											<Badge color="gray">up to {formatNumber(model.pageLimit)} pages</Badge>
+										{/if}
+										{i < freeModels.length - 1 ? ', ' : ''}
+									{/each}
+								</P>
+								<P class="text-xs text-gray-600 dark:text-gray-400">
+									Perfect for blogs, portfolios, and small business websites
+								</P>
+							</div>
+						{/if}
+
+						{#if paidModels.length > 0}
+							<div class="bg-white/50 dark:bg-gray-800/50 rounded border p-4">
+								<div class="flex items-center gap-2 mb-2">
+									<Badge color="purple" class="text-sm">STABLE</Badge>
+									<RocketSolid class="w-4 h-4 text-purple-600 dark:text-purple-400" />
+								</div>
+								<P class="text-sm mb-2">
+									<strong>Stable Models:</strong>
+									{#each paidModels as model, i}
+										<span class="text-purple-700 dark:text-purple-300">{model.displayName}</span>{i <
+										paidModels.length - 1
+											? ', '
+											: ''}
+									{/each}
+								</P>
+								<P class="text-xs text-gray-600 dark:text-gray-400">
+									Unlimited page processing for large websites, documentation, and e-commerce platforms
+								</P>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<P class="text-gray-600 dark:text-gray-400">
+						Choose from free and premium AI models for llms.txt generation - options for every website size and budget
+					</P>
+				{/if}
+			</div>
+		</Card>
+
+		<!-- Key Features Grid -->
+		<div class="grid md:grid-cols-2 gap-6">
+			<Card class="max-w-none select-none p-6 hover:shadow-lg transition-shadow">
+				<div class="flex items-start gap-3">
+					<CheckCircleSolid class="w-6 h-6 text-green-600 dark:text-green-400 shrink-0 mt-1" />
+					<div>
+						<Heading tag="h4" class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+							AI-Powered Generation
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Generate llms.txt files using advanced AI language models. Our free generator creates AI-optimized content
+							summaries without requiring registration or credit card for free tier. Perfect for websites of all sizes
+							with automatic page detection and intelligent content extraction.
+						</P>
+					</div>
+				</div>
+			</Card>
+
+			<Card class="max-w-none select-none p-6 hover:shadow-lg transition-shadow">
+				<div class="flex items-start gap-3">
+					<GlobeSolid class="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0 mt-1" />
+					<div>
+						<Heading tag="h4" class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+							Automatic Website Crawler
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Our intelligent crawler extracts all website pages automatically with smart content detection. No manual
+							work required - just enter your URL and let AI process your entire site structure and content.
+						</P>
+					</div>
+				</div>
+			</Card>
+
+			<Card class="max-w-none select-none p-6 hover:shadow-lg transition-shadow">
+				<div class="flex items-start gap-3">
+					<RocketSolid class="w-6 h-6 text-yellow-600 dark:text-yellow-400 shrink-0 mt-1" />
+					<div>
+						<Heading tag="h4" class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Fast Generation</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Create optimized llms.txt files in minutes with advanced AI processing technology. Transparent pricing,
+							instant generation, and no hidden costs. Choose the model that best fits your needs.
+						</P>
+					</div>
+				</div>
+			</Card>
+
+			<Card class="max-w-none select-none p-6 hover:shadow-lg transition-shadow">
+				<div class="flex items-start gap-3">
+					<CheckCircleSolid class="w-6 h-6 text-purple-600 dark:text-purple-400 shrink-0 mt-1" />
+					<div>
+						<Heading tag="h4" class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+							SEO for AI Search
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Improve website visibility in ChatGPT, Claude, Gemini, Perplexity, and all LLM-powered search engines.
+							Essential for ranking in AI-generated search results and chatbot recommendations.
+						</P>
+					</div>
+				</div>
+			</Card>
+		</div>
+
+		<!-- What is LLMs.txt Section -->
+		<Card
+			class="max-w-none p-6 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800"
+		>
+			<Heading tag="h3" class="text-2xl font-bold mb-8 text-gray-900 dark:text-white text-center">
+				What is LLMs.txt and Why Generate It?
+			</Heading>
+
 			<div class="grid md:grid-cols-3 gap-6">
-				<div>
-					<h4 class="font-medium mb-2">LLMs.txt Standard Format</h4>
-					<p class="text-sm">
+				<div class="bg-white/70 dark:bg-gray-800/70 rounded p-4">
+					<div class="flex items-center gap-2 mb-3">
+						<ShieldCheckSolid class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+						<Heading tag="h4" class="text-base font-semibold text-gray-900 dark:text-white">Standard Format</Heading>
+					</div>
+					<P class="text-sm text-gray-600 dark:text-gray-400">
 						LLMs.txt is a standardized Markdown file format created by AnswerAI that helps Large Language Models like
-						ChatGPT, Claude AI, Google Gemini, Perplexity AI, and other LLM systems better understand website content.
-						Generate llms txt files to optimize how AI chatbots, AI agents, and LLM-powered search engines interpret
-						your site. Our free llms.txt generator creates perfectly formatted llmstxt files that follow official
-						llms-txt specification standards for maximum AI compatibility.
-					</p>
+						ChatGPT, Claude AI, Google Gemini, Perplexity AI better understand website content. Our generator creates
+						perfectly formatted files that follow official llms-txt specification standards.
+					</P>
 				</div>
-				<div>
-					<h4 class="font-medium mb-2">AI Content Optimization Benefits</h4>
-					<p class="text-sm">
-						When you generate llms.txt for your website, you provide essential context that helps OpenAI GPT models,
-						Anthropic Claude, Google Gemini, and other Large Language Models accurately represent your content in
-						AI-generated responses. Our llms txt generator optimizes content structure, metadata, and contextual
-						information to improve AI understanding. Generate llmstxt files to enhance website discoverability in
-						ChatGPT searches, Claude conversations, Gemini queries, and emerging AI-powered search engines.
-					</p>
-				</div>
-				<div>
-					<h4 class="font-medium mb-2">SEO for AI Search Engines</h4>
-					<p class="text-sm">
-						Generate llms.txt files to improve rankings in AI-powered search results including ChatGPT search,
-						Perplexity AI, Google AI Overviews, Bing Copilot, and future LLM search platforms. Our free llmstxt
-						generator creates optimized content summaries that increase website visibility when Large Language Models
-						generate answers. This is essential SEO for AI era - generate llms txt to ensure your site appears in LLM
-						responses and AI chatbot recommendations.
-					</p>
-				</div>
-			</div>
-		</div>
 
-		<div class="border-t border-gray-200 dark:border-gray-700 pt-8">
-			<h3 class="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-				How to Generate LLMs.txt - Free Online Generator
-			</h3>
-			<div class="space-y-4 text-sm">
-				<p>
-					<strong>Step 1:</strong> Enter your website URL into our free llms.txt generator tool. Our AI-powered website crawler
-					will automatically discover and process all pages on your site to generate llmstxt content.
-				</p>
-				<p>
-					<strong>Step 2:</strong> Select AI model for llms txt generation - choose from OpenAI GPT-4o, GPT-3.5-turbo, Anthropic
-					Claude 3.5 Sonnet, Claude 3 Opus, Google Gemini 1.5 Pro, or Gemini 2.0 Flash. Our free llms.txt generator offers
-					premium Large Language Models at no cost.
-				</p>
-				<p>
-					<strong>Step 3:</strong> Click generate and wait while our llms txt generator processes your website content using
-					advanced AI technology. Processing time depends on site size but typically completes in 2-10 minutes.
-				</p>
-				<p>
-					<strong>Step 4:</strong> Download your generated llms.txt file and place it in your website root directory. Your
-					llmstxt file is now ready to help Large Language Models better understand and represent your site content.
-				</p>
-			</div>
-		</div>
+				<div class="bg-white/70 dark:bg-gray-800/70 rounded p-4">
+					<div class="flex items-center gap-2 mb-3">
+						<RocketSolid class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+						<Heading tag="h4" class="text-base font-semibold text-gray-900 dark:text-white">AI Optimization</Heading>
+					</div>
+					<P class="text-sm text-gray-600 dark:text-gray-400">
+						Provide essential context that helps ChatGPT, Claude, Gemini, Perplexity, and other LLMs accurately
+						represent your content in AI-generated responses. Enhance website discoverability in AI searches and chatbot
+						conversations.
+					</P>
+				</div>
 
-		<div class="border-t border-gray-200 dark:border-gray-700 pt-8">
-			<h3 class="text-lg font-medium mb-4 text-gray-900 dark:text-white">Supported AI Models and Website Types</h3>
-			<div class="text-sm space-y-3">
-				<p>
-					<strong>AI Models for LLMs.txt Generation:</strong> OpenAI GPT-4o, GPT-4o-mini, GPT-3.5-turbo, o1-preview, o1-mini
-					| Anthropic Claude 3.5 Sonnet, Claude 3 Opus, Claude 3.7 Sonnet, Claude 3 Haiku | Google Gemini Pro 1.5, Gemini
-					Flash 1.5, Gemini Flash 2.0, Gemini Flash 8B | Compatible with ChatGPT, Claude AI, Google Gemini, Perplexity AI,
-					Microsoft Copilot, and all major Large Language Model platforms.
-				</p>
-				<p>
-					<strong>Website Types:</strong> Generate llms txt for corporate websites, business sites, e-commerce stores, online
-					shops, SaaS platforms, documentation sites, API docs, knowledge bases, blogs, news sites, magazines, portfolio sites,
-					personal websites, educational platforms, universities, research sites, healthcare websites, medical portals, financial
-					sites, banking platforms, real estate websites, property listings, restaurant sites, hospitality websites, nonprofit
-					organizations, government sites, and any web content requiring AI optimization.
-				</p>
-				<p>
-					<strong>Industries Using LLMs.txt:</strong> Technology companies, software development, SaaS, fintech, healthcare,
-					medical, pharmaceuticals, education, e-learning, marketing agencies, consulting firms, law firms, accounting, real
-					estate, hospitality, retail, e-commerce, manufacturing, logistics, media, publishing, entertainment, gaming, sports,
-					fitness, food and beverage, automotive, construction, architecture, design, fashion, beauty, travel, tourism, insurance,
-					banking, finance, telecommunications, energy, utilities, agriculture, and more.
-				</p>
-				<p>
-					<strong>Keywords:</strong> llms.txt generator, llmstxt generator, llms txt generator, generate llms.txt, generate
-					llmstxt, free llms.txt generator, free llms txt generator, online llms.txt tool, create llms.txt file, llms.txt
-					file generator, AI content optimization, Large Language Model optimization, ChatGPT optimization, Claude AI optimization,
-					Gemini optimization, SEO for AI, AI search optimization, website AI optimization, llms-txt standard, llmstxt format,
-					LLM content processing, AI-powered generator, OpenAI generator, Anthropic generator, Google AI generator, free AI
-					tool, unlimited llms.txt, no restrictions generator, best llms.txt generator.
-				</p>
+				<div class="bg-white/70 dark:bg-gray-800/70 rounded p-4">
+					<div class="flex items-center gap-2 mb-3">
+						<CheckCircleSolid class="w-5 h-5 text-green-600 dark:text-green-400" />
+						<Heading tag="h4" class="text-base font-semibold text-gray-900 dark:text-white">SEO for AI Era</Heading>
+					</div>
+					<P class="text-sm text-gray-600 dark:text-gray-400">
+						Improve rankings in AI-powered search results including ChatGPT search, Perplexity AI, Google AI Overviews,
+						Bing Copilot. Essential for ensuring your site appears in LLM responses and AI chatbot recommendations.
+					</P>
+				</div>
 			</div>
-		</div>
+		</Card>
+
+		<!-- How to Generate Section -->
+		<Card class="max-w-none p-8">
+			<Heading tag="h3" class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">How to Generate LLMs.txt</Heading>
+
+			<div class="space-y-6">
+				<div class="flex gap-4">
+					<div class="shrink-0">
+						<div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+							<GlobeSolid class="w-5 h-5 text-purple-600 dark:text-purple-400" />
+						</div>
+					</div>
+					<div class="flex-1 pt-1">
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Enter Your Website URL
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Enter your website URL into our free llms.txt generator tool. Our AI-powered crawler will automatically
+							discover and process all pages on your site using advanced language models.
+						</P>
+					</div>
+				</div>
+
+				<div class="flex gap-4">
+					<div class="shrink-0">
+						<div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+							<StarSolid class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+						</div>
+					</div>
+					<div class="flex-1 pt-1">
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Select AI Model
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Choose AI model based on your website size. Our generator shows available options including free tier
+							models and premium models for unlimited processing. Pick what fits your needs and budget.
+						</P>
+					</div>
+				</div>
+
+				<div class="flex gap-4">
+					<div class="shrink-0">
+						<div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+							<RocketSolid class="w-5 h-5 text-green-600 dark:text-green-400" />
+						</div>
+					</div>
+					<div class="flex-1 pt-1">
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Process & Generate
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Click generate and wait while our AI processes your website content. Processing typically completes in
+							2-10 minutes with intelligent content extraction and optimization.
+						</P>
+					</div>
+				</div>
+
+				<div class="flex gap-4">
+					<div class="shrink-0">
+						<div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+							<CheckCircleSolid class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+						</div>
+					</div>
+					<div class="flex-1 pt-1">
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Download & Deploy
+						</Heading>
+						<P class="text-sm text-gray-600 dark:text-gray-400">
+							Download your generated llms.txt file and place it in your website root directory. Your file is now ready
+							to help LLMs like ChatGPT, Claude, Gemini, and Perplexity better understand your content.
+						</P>
+					</div>
+				</div>
+			</div>
+		</Card>
+
+		<!-- Keywords and Industries (Collapsed by default for SEO) -->
+		<details class="group">
+			<summary class="cursor-pointer list-none">
+				<Card class="max-w-none p-6 hover:shadow-lg transition-shadow">
+					<div class="flex items-center justify-between">
+						<Heading tag="h3" class="text-xl font-bold text-gray-900 dark:text-white">
+							Supported Models, Website Types & Industries
+						</Heading>
+						<svg
+							class="w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform group-open:rotate-180"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+						</svg>
+					</div>
+				</Card>
+			</summary>
+
+			<Card class="max-w-none p-4 mt-4">
+				<div class="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+					<div>
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							AI Models for LLMs.txt Generation
+						</Heading>
+						<P class="text-sm">
+							Multiple advanced Large Language Models available including free tier options and premium unlimited
+							models. Compatible with ChatGPT, Claude AI, Google Gemini, Perplexity AI, Microsoft Copilot, and all major
+							LLM platforms. Generated files work seamlessly with OpenAI GPT models, Anthropic Claude, Google Gemini,
+							and emerging AI search engines.
+						</P>
+					</div>
+
+					<div>
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Supported Website Types
+						</Heading>
+						<P class="text-sm">
+							Corporate websites, business sites, e-commerce stores, online shops, SaaS platforms, documentation sites,
+							API docs, knowledge bases, blogs, news sites, magazines, portfolio sites, personal websites, educational
+							platforms, universities, research sites, healthcare websites, medical portals, financial sites, banking
+							platforms, real estate websites, property listings, restaurant sites, hospitality websites, nonprofit
+							organizations, government sites, and any web content requiring AI optimization.
+						</P>
+					</div>
+
+					<div>
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">
+							Industries Using LLMs.txt
+						</Heading>
+						<P class="text-sm">
+							Technology companies, software development, SaaS, fintech, healthcare, medical, pharmaceuticals,
+							education, e-learning, marketing agencies, consulting firms, law firms, accounting, real estate,
+							hospitality, retail, e-commerce, manufacturing, logistics, media, publishing, entertainment, gaming,
+							sports, fitness, food and beverage, automotive, construction, architecture, design, fashion, beauty,
+							travel, tourism, insurance, banking, finance, telecommunications, energy, utilities, agriculture, and
+							more.
+						</P>
+					</div>
+
+					<div>
+						<Heading tag="h4" class="text-base font-semibold mb-2 text-gray-900 dark:text-white">Keywords</Heading>
+						<P class="text-sm">
+							llms.txt generator, llmstxt generator, llms txt generator, generate llms.txt, generate llmstxt, free
+							llms.txt generator, free llms txt generator, online llms.txt tool, create llms.txt file, llms.txt file
+							generator, AI content optimization, Large Language Model optimization, ChatGPT optimization, Claude AI
+							optimization, Gemini optimization, Perplexity optimization, SEO for AI, AI search optimization, website AI
+							optimization, llms-txt standard, llmstxt format, LLM content processing, AI-powered generator, free AI
+							tool, best llms.txt generator, AI SEO tool.
+						</P>
+					</div>
+				</div>
+			</Card>
+		</details>
 	</section>
 </div>

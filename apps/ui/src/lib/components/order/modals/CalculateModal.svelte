@@ -4,7 +4,7 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
-	import type { OrderResponseDto, CreateOrderResponseDto, AvailableAiModelDto } from '@api/shared';
+	import type { OrderResponseDto, CreateOrderResponseDto, AiModelResponseDto } from '@api/shared';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
@@ -19,7 +19,7 @@
 		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? 'Update Model' : 'Set Model'
 	);
 
-	let availableModels = $state<AvailableAiModelDto[]>([]);
+	let availableModels = $state<AiModelResponseDto[]>([]);
 	let isLoadingModels = $state(false);
 	let selectedModelId = $state<string | null>(null);
 	let isCalculating = $state(false);

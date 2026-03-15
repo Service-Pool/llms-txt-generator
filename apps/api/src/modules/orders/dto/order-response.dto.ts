@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { CURRENCY_SYMBOLS } from '@/enums/currency.enum';
@@ -168,10 +168,10 @@ class CreateOrderAttributes {
 
 	@ApiProperty({
 		description: 'Available AI models for this order',
-		type: [AvailableAiModelDto],
+		type: [AiModelResponseDto],
 		isArray: true
 	})
-	availableAiModels: AvailableAiModelDto[];
+	availableAiModels: AiModelResponseDto[];
 
 	@ApiProperty({ description: 'Website hostname', example: 'example.com' })
 	hostname: string;
@@ -201,7 +201,7 @@ class CreateOrderAttributes {
 	@ApiProperty({ description: 'Order last update date' })
 	updatedAt: Date;
 
-	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderAttributes {
+	public static create(entity: Order, availableAiModels: AiModelResponseDto[]): CreateOrderAttributes {
 		const attrs = new CreateOrderAttributes();
 		attrs.id = entity.id;
 		attrs.availableAiModels = availableAiModels;
@@ -217,7 +217,7 @@ class CreateOrderAttributes {
 	public static fromJSON(json: Record<string, unknown>): CreateOrderAttributes {
 		const attrs = new CreateOrderAttributes();
 		attrs.id = json.id as number;
-		attrs.availableAiModels = AvailableAiModelDto.fromJSON(json.availableAiModels);
+		attrs.availableAiModels = AiModelResponseDto.fromJSON(json.availableAiModels);
 		attrs.hostname = json.hostname as string;
 		attrs.modelId = json.modelId as string | null;
 		attrs.status = json.status as OrderStatus;
@@ -244,7 +244,7 @@ class CreateOrderResponseDto {
 	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
 
-	public static create(entity: Order, availableAiModels: AvailableAiModelDto[]): CreateOrderResponseDto {
+	public static create(entity: Order, availableAiModels: AiModelResponseDto[]): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.attributes = CreateOrderAttributes.create(entity, availableAiModels);
 		dto._links = buildOrderLinks(entity);
@@ -268,9 +268,9 @@ class OrderAttributes {
 
 	@ApiProperty({
 		description: 'Currently selected AI model with pricing details',
-		type: AvailableAiModelDto
+		type: AiModelResponseDto
 	})
-	currentAiModel: AvailableAiModelDto | null;
+	currentAiModel: AiModelResponseDto | null;
 
 	@ApiProperty({ description: 'Currency code', example: 'USD' })
 	currency: string;
@@ -382,7 +382,7 @@ class OrderAttributes {
 
 		// Build currentAiModel from entity data
 		if (entity.modelId && entity.aiModelConfig) {
-			const aiModelDto = new AvailableAiModelDto();
+			const aiModelDto = new AiModelResponseDto();
 			aiModelDto.id = entity.aiModelConfig.id;
 			aiModelDto.available = true;
 			aiModelDto.baseRate = entity.aiModelConfig.baseRate;
@@ -404,7 +404,7 @@ class OrderAttributes {
 		const attrs = new OrderAttributes();
 		attrs.id = json.id as number;
 		attrs.currentAiModel = json.currentAiModel
-			? AvailableAiModelDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
+			? AiModelResponseDto.fromJSONSingle(json.currentAiModel as Record<string, unknown>)
 			: null;
 		attrs.currency = json.currency as string;
 		attrs.currencySymbol = json.currencySymbol as string;

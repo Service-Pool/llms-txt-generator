@@ -5,7 +5,7 @@ import {
 	CreateOrderResponseDto,
 	OrderResponseDto,
 	OrdersListResponseDto,
-	AvailableAiModelDto,
+	AiModelResponseDto,
 	DownloadOrderResponseDto,
 	HateoasAction,
 	type ApiResponse
@@ -36,8 +36,8 @@ class OrdersService extends HttpClient {
 	/**
 	 * Get available AI models for an order
 	 */
-	async getAvailableModels(id: number): Promise<ApiResponse<AvailableAiModelDto[]>> {
-		return this.fetch(configService.endpoints.orders.availableModels(id), AvailableAiModelDto);
+	async getAvailableModels(id: number): Promise<ApiResponse<AiModelResponseDto[]>> {
+		return this.fetch(configService.endpoints.orders.availableModels(id), AiModelResponseDto);
 	}
 
 	/**

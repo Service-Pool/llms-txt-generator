@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Card, Spinner } from 'flowbite-svelte';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
-	import type { AvailableAiModelDto } from '@api/shared';
+	import type { AiModelResponseDto } from '@api/shared';
 	import { formatPrice } from '$lib/utils/number-format';
 
 	interface Props {
-		availableModels: AvailableAiModelDto[];
+		availableModels: AiModelResponseDto[];
 		selectedModelId: string | null;
 		disabled?: boolean;
 		showSpinnerOnSelected?: boolean;
@@ -22,7 +22,7 @@
 		class: className = ''
 	}: Props = $props();
 
-	const handleModelClick = (model: AvailableAiModelDto) => {
+	const handleModelClick = (model: AiModelResponseDto) => {
 		if (model.available && !disabled) {
 			onSelect(model.id);
 		}

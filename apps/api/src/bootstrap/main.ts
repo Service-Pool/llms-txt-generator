@@ -4,7 +4,7 @@ import {
 	OrdersListResponseDto,
 	DownloadOrderResponseDto
 } from '@/modules/orders/dto/order-response.dto';
-import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { StatsResponseDto } from '@/modules/stats/dto/stats-response.dto';
 import {
 	RequestLoginLinkResponseDto,
@@ -160,7 +160,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
 
 	const document = SwaggerModule.createDocument(app, config, {
 		extraModels: [
-			AvailableAiModelDto,
+			AiModelResponseDto,
 			CreateOrderResponseDto,
 			DownloadOrderResponseDto,
 			OrderResponseDto,

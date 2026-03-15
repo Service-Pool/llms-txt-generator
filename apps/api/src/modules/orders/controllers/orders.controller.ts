@@ -3,7 +3,7 @@ import { HttpStatus } from '@/enums/response-code.enum';
 import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
-import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '@/modules/orders/dto/order-response.dto';
 import { OrdersService } from '@/modules/orders/services/orders.service';
 
@@ -119,11 +119,11 @@ class OrdersController {
 	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
 	@SwaggerResponse({
 		status: HttpStatus.OK,
-		schema: ApiResponse.getSuccessSchema(AvailableAiModelDto, true)
+		schema: ApiResponse.getSuccessSchema(AiModelResponseDto, true)
 	})
 	@Get(':id/available-models')
 	@HttpCode(HttpStatus.OK)
-	public async getAvailableAiModels(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<AvailableAiModelDto[]>> {
+	public async getAvailableAiModels(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<AiModelResponseDto[]>> {
 		const order = await this.ordersService.getUserOrder(id);
 		const availableAiModels = this.ordersService.getAvailableAiModels(order);
 		return ApiResponse.success(availableAiModels);

@@ -15,7 +15,7 @@ export * from './modules/auth/dto/auth-request.dto';
 export * from './modules/auth/dto/auth-response.dto';
 
 // AI Models DTOs
-export * from './modules/ai-models/dto/available-ai-model.dto';
+export * from './modules/ai-models/dto/ai-model-response.dto';
 
 // Orders DTOs
 export * from './modules/orders/dto/order-request.dto';

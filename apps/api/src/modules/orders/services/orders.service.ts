@@ -13,7 +13,7 @@ import { UsersService } from '@/modules/users/services/users.service';
 import { StripeService } from '@/modules/payments/services/stripe.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
-import { AvailableAiModelDto } from '@/modules/ai-models/dto/available-ai-model.dto';
+import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
@@ -344,7 +344,7 @@ class OrdersService {
 	 * Get available AI models for an order based on its context
 	 * Models are calculated based on totalUrls and user authentication status
 	 */
-	public getAvailableAiModels(order: Order): AvailableAiModelDto[] {
+	public getAvailableAiModels(order: Order): AiModelResponseDto[] {
 		return this.aiModelsConfigService.getAvailableModels(
 			order.totalUrls,
 			!!order.userId

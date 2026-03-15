@@ -68,6 +68,9 @@ class ConfigService {
 
 	// Endpoints config - centralized route definitions
 	public readonly endpoints = {
+		aiModels: {
+			base: '/api/ai-models'
+		},
 		orders: {
 			base: '/api/orders',
 			byId: (id: number) => `/api/orders/${id}`,

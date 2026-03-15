@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Card, Input, Label, Button, Helper, Alert, Spinner, P } from 'flowbite-svelte';
-	import { ClockSolid, ArrowLeftOutline } from 'flowbite-svelte-icons';
+	import { ExclamationCircleOutline, ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { onMount, untrack } from 'svelte';
 	import { quintOut } from 'svelte/easing';
@@ -8,17 +8,18 @@
 	import { ordersService } from '$lib/services/orders.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { statsStore } from '$lib/stores/stats.store.svelte';
+	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { UIError } from '$lib/errors/ui-error';
 	import CompletedStats from '$lib/components/order/CompletedStats.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
-	import type { OrderResponseDto, AvailableAiModelDto } from '@api/shared';
+	import type { OrderResponseDto, AiModelResponseDto } from '@api/shared';
 
 	// State management
 	let step = $state<'domain-input' | 'model-selection'>('domain-input');
 	let createdOrder = $state<OrderResponseDto | null>(null);
-	let availableModels = $state<AvailableAiModelDto[]>([]);
+	let availableModels = $state<AiModelResponseDto[]>([]);
 	let isCalculating = $state(false);
 	let selectedModelId = $state<string | null>(null);
 	let isLoadingModels = $state(false);
@@ -182,10 +183,14 @@
 							<span class="font-semibold">{createdOrder?.attributes.hostname}</span>
 						</P>
 
-						<P space="tight" size="xs" height="6" class="flex items-center gap-1">
-							<ClockSolid class="w-3 h-3 text-amber-600 dark:text-amber-400" />
-							<span>The order will be deleted in 15 minutes if no model is selected</span>
-						</P>
+						<Alert color="yellow">
+							{#snippet icon()}<ExclamationCircleOutline class="h-5 w-5" />{/snippet}
+							The order will be deleted in 15 minutes if no model is selected.
+							{#if !$authStore.user && !$authStore.isLoading}
+								To permanently store orders in your history, please
+								<a href="/login" class="underline hover:no-underline">log in</a> first.
+							{/if}
+						</Alert>
 					</div>
 				</div>
 
