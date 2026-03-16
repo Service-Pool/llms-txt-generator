@@ -101,18 +101,38 @@ class CrawlersService {
 	 * Проверка доступности ресурса через HEAD запрос.
 	 */
 	private async exists(url: string): Promise<boolean> {
-		try {
-			const controller = new AbortController();
-			const id = setTimeout(() => {
-				controller.abort();
-			}, this.FETCH_TIMEOUT);
+		const requestExists = async (method: 'HEAD' | 'GET'): Promise<Response | null> => {
+			try {
+				const controller = new AbortController();
+				const id = setTimeout(() => {
+					controller.abort();
+				}, this.FETCH_TIMEOUT);
 
-			const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
-			clearTimeout(id);
-			return res.ok;
-		} catch {
-			return false;
+				const response = await fetch(url, {
+					method,
+					headers: { 'User-Agent': 'LLMs.txt Generator Bot/1.0' },
+					signal: controller.signal
+				});
+
+				clearTimeout(id);
+				return response;
+			} catch (error) {
+				this.logger.debug(`Exists check failed for ${url} with ${method}: ${String(error)}`);
+				return null;
+			}
+		};
+
+		const headResponse = await requestExists('HEAD');
+		if (headResponse?.ok) {
+			return true;
 		}
+
+		const getResponse = await requestExists('GET');
+		if (getResponse?.body) {
+			await getResponse.body.cancel().catch(() => undefined);
+		}
+
+		return !!getResponse?.ok;
 	}
 
 	/**
