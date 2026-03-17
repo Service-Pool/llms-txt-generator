@@ -1,27 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RequestUtils } from '@/utils/request/fetch';
 import robotsParser from 'robots-parser';
-import Sitemapper, { SitemapperSiteData } from 'sitemapper';
+import { SitemapParserService } from './sitemap-parser.service';
 
 @Injectable()
 class CrawlersService {
-	private readonly logger = new Logger(CrawlersService.name);
 	private readonly FETCH_TIMEOUT = 2000;
-	private readonly sitemapper: Sitemapper;
 
-	constructor() {
-		this.sitemapper = new Sitemapper({
-			timeout: 15000,
-			requestHeaders: { 'User-Agent': 'LLMs.txt Generator Bot/1.0' }
-		});
-	}
+	private readonly logger = new Logger(CrawlersService.name);
+
+	constructor(private readonly sitemapParser: SitemapParserService) { }
 
 	/**
 	 * Валидатор: существует ли robots.txt и доступен ли он.
 	 */
 	public async checkRobotsTxt(hostname: string): Promise<boolean> {
-		const content = await this.getRobotsTxt(hostname);
-		return content !== null && content.length > 0;
+		const url = this.normalizeUrl(hostname, 'robots.txt');
+		return await RequestUtils.exists(url);
 	}
 
 	/**
@@ -29,10 +24,32 @@ class CrawlersService {
 	 */
 	public async checkSitemapXml(hostname: string): Promise<boolean> {
 		const locations = await this.getSitemapLocations(hostname);
+		const results = await Promise.all(locations.map(url => RequestUtils.exists(url)));
+		return results.some(exists => exists);
+	}
 
-		// Проверяем доступность хотя бы одного указанного файла
-		const checks = await Promise.all(locations.map(url => this.exists(url)));
-		return checks.some(result => result === true);
+	/**
+	 * Получает канонический hostname, следуя редиректам.
+	 * Например, shopify.com → www.shopify.com
+	 */
+	public async getCanonicalHostname(hostname: string): Promise<string> {
+		const url = this.normalizeUrl(hostname, '');
+
+		try {
+			const response = await RequestUtils.trace(url, 5000, { method: 'HEAD' });
+
+			// response.url содержит финальный URL после всех редиректов
+			if (response.url && response.url !== url) {
+				const canonicalUrl = new URL(response.url);
+				const canonical = `${canonicalUrl.protocol}//${canonicalUrl.host}`;
+				this.logger.log(`Canonical hostname resolved: ${hostname} → ${canonical}`);
+				return canonical;
+			}
+		} catch (error) {
+			this.logger.warn(`Failed to resolve canonical hostname for ${hostname}, using original:`, error);
+		}
+
+		return this.normalizeUrl(hostname, '').replace(/\/$/, '');
 	}
 
 	/**
@@ -40,33 +57,25 @@ class CrawlersService {
 	 */
 	public async getAllSitemapUrls(hostname: string): Promise<string[]> {
 		const locations = await this.getSitemapLocations(hostname);
-		const allSites: string[] = [];
-		const parsedSitemaps = new Set<string>();
 
-		const parseSitemap = async (url: string) => {
-			if (parsedSitemaps.has(url)) return;
-			parsedSitemaps.add(url);
-			try {
-				const { sites } = await this.sitemapper.fetch(url);
-				if (Array.isArray(sites) && sites.length > 0) {
-					for (const site of sites) {
-						if (typeof site === 'string') {
-							allSites.push(site);
-						} else {
-							allSites.push((site as SitemapperSiteData).loc);
-						}
-					}
+		try {
+			// Запускаем парсинг всех sitemap параллельно
+			const results = await Promise.all(locations.map(async (url) => {
+				try {
+					this.logger.log(`Parsing sitemap: ${url}`);
+					return await this.sitemapParser.parseUrls(url);
+				} catch (error) {
+					this.logger.warn(`Failed to parse sitemap at ${url}:`, error);
+					return [];
 				}
-			} catch (error) {
-				this.logger.warn(`Failed to parse sitemap at ${url}: ${error}`);
-			}
-		};
+			}));
 
-		for (const url of locations) {
-			await parseSitemap(url);
+			// Собираем все URL в один массив
+			return results.flat();
+		} catch (error) {
+			this.logger.warn(`No accessible sitemap found for ${hostname}`, error);
+			return [];
 		}
-
-		return this.sanitizeUrls(allSites);
 	}
 
 	/**
@@ -93,46 +102,12 @@ class CrawlersService {
 			const sitemaps = robots.getSitemaps();
 			if (sitemaps.length > 0) return sitemaps;
 		}
-		// Fallback к стандартному пути
-		return [this.normalizeUrl(hostname, 'sitemap.xml')];
-	}
 
-	/**
-	 * Проверка доступности ресурса через HEAD запрос.
-	 */
-	private async exists(url: string): Promise<boolean> {
-		const requestExists = async (method: 'HEAD' | 'GET'): Promise<Response | null> => {
-			try {
-				const controller = new AbortController();
-				const id = setTimeout(() => {
-					controller.abort();
-				}, this.FETCH_TIMEOUT);
+		// Fallback к стандартному пути, проверяем доступность
+		const defaultSitemapUrl = this.normalizeUrl(hostname, 'sitemap.xml');
+		const exists = await RequestUtils.exists(defaultSitemapUrl);
 
-				const response = await fetch(url, {
-					method,
-					headers: { 'User-Agent': 'LLMs.txt Generator Bot/1.0' },
-					signal: controller.signal
-				});
-
-				clearTimeout(id);
-				return response;
-			} catch (error) {
-				this.logger.debug(`Exists check failed for ${url} with ${method}: ${String(error)}`);
-				return null;
-			}
-		};
-
-		const headResponse = await requestExists('HEAD');
-		if (headResponse?.ok) {
-			return true;
-		}
-
-		const getResponse = await requestExists('GET');
-		if (getResponse?.body) {
-			await getResponse.body.cancel().catch(() => undefined);
-		}
-
-		return !!getResponse?.ok;
+		return exists ? [defaultSitemapUrl] : [];
 	}
 
 	/**
@@ -146,20 +121,6 @@ class CrawlersService {
 		} catch {
 			return `${baseUrl}${path}`;
 		}
-	}
-
-	/**
-	 * Очистка списка URL.
-	 */
-	private sanitizeUrls(urls: string[]): string[] {
-		return [...new Set(urls)].filter((u) => {
-			try {
-				const url = new URL(u);
-				return ['http:', 'https:'].includes(url.protocol);
-			} catch {
-				return false;
-			}
-		});
 	}
 }
 

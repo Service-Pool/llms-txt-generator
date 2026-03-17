@@ -152,7 +152,9 @@
 				<P size="xs" class="mt-1 text-gray-600 dark:text-gray-400">Message must be at least 10 characters</P>
 			{/if}
 			{#if message.length > MAX_MESSAGE_LENGTH}
-				<P size="xs" class="mt-1 text-red-600 dark:text-red-400">Message is too long (max {MAX_MESSAGE_LENGTH} characters)</P>
+				<P size="xs" class="mt-1 text-red-600 dark:text-red-400"
+					>Message is too long (max {MAX_MESSAGE_LENGTH} characters)</P
+				>
 			{/if}
 		</div>
 

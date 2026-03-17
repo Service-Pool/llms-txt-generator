@@ -7,14 +7,27 @@
 	import { formatNumber } from '$lib/utils/number-format';
 	import Hero from '$lib/components/layout/hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
-	import { Card, Heading, P, Badge, Spinner } from 'flowbite-svelte';
-	import { CheckCircleSolid, RocketSolid, GlobeSolid, StarSolid, ShieldCheckSolid } from 'flowbite-svelte-icons';
+	import { Card, Heading, P, Badge, Spinner, Accordion, AccordionItem } from 'flowbite-svelte';
+	import {
+		CheckCircleSolid,
+		RocketSolid,
+		GlobeSolid,
+		StarSolid,
+		ShieldCheckSolid,
+		FileLinesOutline,
+		LinkOutline
+	} from 'flowbite-svelte-icons';
 	import type { AiModelResponseDto } from '@api/shared';
 
 	let models = $state<AiModelResponseDto[]>([]);
 	let isLoadingModels = $state(true);
+	let gistFiles = $state<Array<{ gistname: string; content: string; urlCount: number; estimatedMinutes: number }>>([]);
+
+	const freeModels = $derived(models.filter((m) => m.baseRate === 0));
+	const paidModels = $derived(models.filter((m) => m.baseRate > 0));
 
 	onMount(async () => {
+		// Load AI models
 		try {
 			const response = await aiModelsService.getAll();
 			models = response.getData();
@@ -23,10 +36,27 @@
 		} finally {
 			isLoadingModels = false;
 		}
+
+		// Load Gist content from metadata
+		const metadata = await fetch('/gists/metadata.json').then((r) => r.json());
+		gistFiles = await Promise.all(
+			metadata.files.map(
+				async (file: { gistname: string; path: string; urlCount: number; estimatedMinutes: number }) => {
+					const content = await fetch(file.path).then((r) => r.text());
+					return {
+						gistname: file.gistname,
+						content,
+						urlCount: file.urlCount,
+						estimatedMinutes: file.estimatedMinutes
+					};
+				}
+			)
+		);
 	});
 
-	const freeModels = $derived(models.filter((m) => m.baseRate === 0));
-	const paidModels = $derived(models.filter((m) => m.baseRate > 0));
+	function handleAnchorClick() {
+		window.location.hash = 'example-output';
+	}
 </script>
 
 <svelte:head>
@@ -92,13 +122,10 @@
 			class="max-w-none p-4 bg-linear-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800"
 		>
 			<div class="flex items-start gap-4">
-				<div class="shrink-0">
-					<RocketSolid class="w-8 h-8 text-purple-600 dark:text-purple-400" />
-				</div>
+				<RocketSolid class="w-8 h-8 text-purple-600 dark:text-purple-400" />
+				<Heading tag="h3" class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Available AI Models</Heading>
 			</div>
 			<div>
-				<Heading tag="h3" class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Available AI Models</Heading>
-
 				{#if isLoadingModels}
 					<div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
 						<Spinner size="4" />
@@ -339,6 +366,50 @@
 				</div>
 			</div>
 		</Card>
+
+		<!-- Example Output Section -->
+		<div id="example-output">
+			<div class="flex items-center gap-2 mb-4">
+				<button onclick={handleAnchorClick}>
+					<LinkOutline class="w-5 h-5 text-green-600 dark:text-green-400" />
+				</button>
+				<Heading tag="h3" class="text-2xl font-bold text-gray-900 dark:text-white">
+					Example Generated LLMs.txt File
+				</Heading>
+			</div>
+
+			<!-- Stats -->
+			{#if gistFiles.length > 0}
+				<Accordion class="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+					{#each gistFiles as file}
+						<AccordionItem classes={{ button: 'relative z-10', content: 'p-0' }} transitionParams={{ duration: 400 }}>
+							{#snippet header()}
+								<div class="flex flex-col gap-2">
+									<div class="flex items-center gap-2">
+										<FileLinesOutline class="w-5 h-5 text-green-600 dark:text-green-400" />
+										<span class="font-semibold text-gray-900 dark:text-white">{file.gistname}</span>
+									</div>
+									<div class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+										<span>{formatNumber(file.urlCount)} URLs</span>
+										<span>•</span>
+										<span>{file.estimatedMinutes} min</span>
+									</div>
+								</div>
+							{/snippet}
+							<pre
+								class="m-0 p-4 bg-white dark:bg-[#161b22] overflow-x-auto font-mono text-sm leading-6 text-gray-900 dark:text-gray-300 max-h-125 overflow-y-auto"><code
+									class="bg-transparent p-0 border-0">{file.content}</code
+								></pre>
+						</AccordionItem>
+					{/each}
+				</Accordion>
+			{:else}
+				<div class="flex items-center justify-center gap-2 py-8 text-gray-600 dark:text-gray-400">
+					<Spinner size="4" />
+					<span>Loading example...</span>
+				</div>
+			{/if}
+		</div>
 
 		<!-- Keywords and Industries (Collapsed by default for SEO) -->
 		<details class="group">

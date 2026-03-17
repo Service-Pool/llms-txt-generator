@@ -12,7 +12,7 @@ class RobotsAccessibleValidator implements ValidatorConstraintInterface {
 	constructor(private readonly crawlersService: CrawlersService) { }
 
 	public async validate(hostname: string): Promise<boolean> {
-		return this.crawlersService.checkRobotsTxt(hostname);
+		return await this.crawlersService.checkRobotsTxt(hostname);
 	}
 
 	public defaultMessage(args: ValidationArguments): string {
@@ -26,7 +26,7 @@ class SitemapAccessibleValidator implements ValidatorConstraintInterface {
 	constructor(private readonly crawlersService: CrawlersService) { }
 
 	public async validate(hostname: string): Promise<boolean> {
-		return this.crawlersService.checkSitemapXml(hostname);
+		return await this.crawlersService.checkSitemapXml(hostname);
 	}
 
 	public defaultMessage(args: ValidationArguments): string {

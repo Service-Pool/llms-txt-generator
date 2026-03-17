@@ -27,9 +27,6 @@ class ContentExtractionService {
 			this.logger.debug(`Fetching HTML from ${url}`);
 			const fetchStart = Date.now();
 			const html = await RequestUtils.text(url, 15000, {
-				headers: {
-					'User-Agent': 'LLMs.txt Generator Bot/1.0'
-				},
 				redirect: 'follow'
 			});
 			const fetchDuration = Date.now() - fetchStart;

@@ -28,6 +28,7 @@ services:
       - vscode_server:/home/www-data/.vscode-server
     ports:
       - ${PORT}:${PORT}
+      - 9229:9229 # Node.js debug port
     # Ports are not exposed externally - Multivisor will connect via Docker network
     # - "9001:9001"  # Supervisor web UI (internal only)
     # - "9002:9002"  # Multivisor RPC (internal only)

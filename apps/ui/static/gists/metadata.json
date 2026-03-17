@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "gistname": "docs.stripe.com",
+      "path": "/gists/llms-https___docs.stripe.com.txt",
+      "urlCount": 3888,
+      "estimatedMinutes": 24
+    },
+    {
+      "gistname": "www.starbucks.com",
+      "path": "/gists/llms-https___www.starbucks.com.txt",
+      "urlCount": 5,
+      "estimatedMinutes": 0.1
+    },
+    {
+      "gistname": "openai.com",
+      "path": "/gists/llms-https___openai.com.txt",
+      "urlCount": 1158,
+      "estimatedMinutes": 10
+    }
+  ]
+}

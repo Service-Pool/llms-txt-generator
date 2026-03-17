@@ -28,6 +28,7 @@
 	let hostname = $state('');
 	let submitting = $state(false);
 	let error = $state<string[] | string | null>(null);
+	let abortController: AbortController | null = null;
 
 	// Element ref
 	let cardEl: HTMLElement | undefined;
@@ -63,7 +64,10 @@
 			error = null;
 			isLoadingModels = true;
 
-			const response = await ordersService.create({ hostname });
+			// Создаём AbortController для возможности отмены
+			abortController = new AbortController();
+
+			const response = await ordersService.create({ hostname }, { signal: abortController.signal });
 			const createOrderDto = response.getData();
 
 			// Load full order data
@@ -88,13 +92,18 @@
 		} catch (exception) {
 			if (exception instanceof UIError) {
 				error = exception.context;
-			} else if (exception instanceof Error) {
-				error = exception.message;
 			}
 			throw exception;
 		} finally {
 			submitting = false;
 			isLoadingModels = false;
+			abortController = null;
+		}
+	};
+
+	const handleCancel = () => {
+		if (abortController) {
+			abortController.abort();
 		}
 	};
 
@@ -142,7 +151,9 @@
 			</div>
 			<form onsubmit={handleSubmit} class="space-y-4">
 				<div>
-					<Label for="hostname" class="mb-2">Website URL</Label>
+					<Label for="hostname" class="mb-2">
+						Website URL <span class="text-red-500">*</span>
+					</Label>
 					<Input
 						id="hostname"
 						type="text"
@@ -151,24 +162,37 @@
 						placeholder="https://example.com"
 						color={!isUrlValid && hostname ? 'red' : undefined}
 					/>
+
 					{#if !isUrlValid && hostname}
 						<Helper color="red">Please enter a valid URL (must start with http:// or https://)</Helper>
 					{/if}
+
+					<Helper class="mt-2">
+						<span class="text-xs text-gray-500 dark:text-gray-400">
+							<span class="text-red-500">*</span> we'll crawl as fast as possible, but please help us by temporarily disabling
+							rate limiting or bot blocking during processing — otherwise the crawler won't find any content. Be aware that
+							crawler WILL follow all redirects.
+						</span>
+					</Helper>
 				</div>
 
 				{#if error}
 					<Alert color="red"><ErrorList {error} /></Alert>
 				{/if}
 
-				<Button
-					type="submit"
-					disabled={!canCreate}
-					class="w-full"
-					spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}
-					loading={submitting}
-					size="lg"
-					>Create Order
-				</Button>
+				<div class="flex justify-center gap-2">
+					{#if submitting}
+						<Button type="button" color="red" size="lg" onclick={handleCancel}>Cancel</Button>
+					{/if}
+					<Button
+						type="submit"
+						disabled={!canCreate}
+						spinnerProps={{ type: 'dots', size: '5', color: 'teal' }}
+						loading={submitting}
+						size="lg"
+						>Create Order
+					</Button>
+				</div>
 			</form>
 		{:else if step === 'model-selection'}
 			<div in:scale={{ duration: 500, start: 0, easing: quintOut }} out:fly={{ y: -50, duration: 200 }}>

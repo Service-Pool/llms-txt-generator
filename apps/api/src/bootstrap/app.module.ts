@@ -32,15 +32,10 @@ import { APP_GUARD } from '@nestjs/core';
 				setup: (cls, context) => {
 					const req = context.switchToHttp().getRequest<FastifyRequest>();
 					const res = context.switchToHttp().getResponse<FastifyReply>();
-
-					// Создаем контроллер отмены
 					const abortController = new AbortController();
 
-					// Fastify: если клиент ушел, отменяем сигнал
-					req.raw.on('close', () => {
-						if (!res.raw.writableEnded) {
-							abortController.abort();
-						}
+					res.raw.on('close', () => {
+						abortController.abort();
 					});
 
 					cls.set('sessionData', req.session);

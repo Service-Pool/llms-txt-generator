@@ -23,7 +23,7 @@ class ApiResponse<T = unknown> {
 		this.message = message;
 	}
 
-	public getСode(): ResponseCode {
+	public getCode(): ResponseCode {
 		return this.code;
 	}
 

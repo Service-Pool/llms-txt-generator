@@ -6,6 +6,7 @@ import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDt
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '@/modules/orders/dto/order-response.dto';
 import { OrdersService } from '@/modules/orders/services/orders.service';
+import { CanonicalizeHostnamePipe } from '@/modules/orders/pipes/canonicalize-hostname.pipe';
 
 @ApiTags('Orders')
 @Controller('api/orders')
@@ -24,7 +25,7 @@ class OrdersController {
 	})
 	@Post()
 	@HttpCode(HttpStatus.CREATED)
-	public async createOrder(@Body() dto: CreateOrderRequestDto): Promise<ApiResponse<CreateOrderResponseDto>> {
+	public async createOrder(@Body(CanonicalizeHostnamePipe) dto: CreateOrderRequestDto): Promise<ApiResponse<CreateOrderResponseDto>> {
 		const order = await this.ordersService.createOrder(dto.hostname);
 		const availableAiModels = this.ordersService.getAvailableAiModels(order);
 		return ApiResponse.success(CreateOrderResponseDto.create(order, availableAiModels));

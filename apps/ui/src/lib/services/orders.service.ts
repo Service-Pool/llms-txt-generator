@@ -19,10 +19,11 @@ class OrdersService extends HttpClient {
 	/**
 	 * Create new order
 	 */
-	async create(dto: CreateOrderRequestDto): Promise<ApiResponse<CreateOrderResponseDto>> {
+	async create(dto: CreateOrderRequestDto, options?: RequestInit): Promise<ApiResponse<CreateOrderResponseDto>> {
 		return this.fetch(configService.endpoints.orders.base, CreateOrderResponseDto, {
 			method: 'POST',
-			body: JSON.stringify(dto)
+			body: JSON.stringify(dto),
+			...options
 		});
 	}
 

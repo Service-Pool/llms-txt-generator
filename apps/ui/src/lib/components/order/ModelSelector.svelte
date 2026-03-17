@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Card, Spinner } from 'flowbite-svelte';
+	import { formatNumber } from '$lib/utils/number-format';
 	import { CheckCircleSolid } from 'flowbite-svelte-icons';
 	import type { AiModelResponseDto } from '@api/shared';
 	import { formatPrice } from '$lib/utils/number-format';
@@ -86,7 +87,7 @@
 						<li class="flex items-start space-x-2">
 							<CheckCircleSolid size="sm" class="text-purple-600 shrink-0 mt-0.5" />
 							<span class="text-sm text-gray-700 dark:text-gray-300">
-								Up to {model.pageLimit} pages
+								Up to {formatNumber(model.pageLimit)} pages
 							</span>
 						</li>
 					{/if}

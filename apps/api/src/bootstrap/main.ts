@@ -96,6 +96,11 @@ export async function createApp(): Promise<NestFastifyApplication> {
 	// Get SessionService from DI container
 	const sessionService = app.get(SessionService);
 
+	// Get ClsService and inject into RequestUtils for request cancellation support
+	const clsService = await import('nestjs-cls').then(m => app.get(m.ClsService));
+	const { RequestUtils } = await import('@/utils/request/fetch');
+	RequestUtils.setClsService(clsService);
+
 	// Register session plugin with TypeORM store
 	await app.register(fastifySession, {
 		secret: configService.session.secret,

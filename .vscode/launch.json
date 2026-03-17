@@ -3,14 +3,30 @@
 	"configurations": [
 		{
 			"type": "node",
+			"request": "attach",
+			"name": "Attach to API (Docker)",
+			"address": "localhost",
+			"port": 9229,
+			"localRoot": "${workspaceFolder}/apps/api",
+			"remoteRoot": "/app",
+			"skipFiles": [
+				"<node_internals>/**",
+				"**/node_modules/**"
+			],
+			"restart": true,
+			"sourceMaps": true,
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/**",
+				"!**/node_modules/**"
+			]
+		},
+		{
+			"type": "chrome",
 			"request": "launch",
-			"name": "Debug APP (devcontainer)",
-			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run", "app:dev"],
-			"cwd": "${workspaceFolder}",
-			"skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-			"console": "integratedTerminal",
-			"internalConsoleOptions": "neverOpen"
+			"name": "Debug UI (Browser)",
+			"url": "http://localhost:${env:PORT_PROXY}",
+			"webRoot": "${workspaceFolder}/apps/ui/src",
+			"sourceMaps": true
 		}
 	]
 }

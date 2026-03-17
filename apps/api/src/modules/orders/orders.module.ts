@@ -13,6 +13,7 @@ import { OrderSubscriber } from '@/modules/orders/subscribers/order.subscriber';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
 import { AiModelValidator } from '@/validators/ai-model.validator';
 import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
+import { CanonicalizeHostnamePipe } from '@/modules/orders/pipes/canonicalize-hostname.pipe';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
@@ -30,6 +31,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 	providers: [
 		OrdersService,
 		OrderSubscriber,
+		CanonicalizeHostnamePipe,
 		RobotsAccessibleValidator,
 		SitemapAccessibleValidator,
 		AiModelValidator,

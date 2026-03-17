@@ -32,10 +32,12 @@ class HttpClient {
 	protected async fetch<T>(endpoint: string, DataClass?: Deserializable<T>, options?: RequestInit, fetchFn?: typeof fetch): Promise<ApiResponse<T>> {
 		const url = `${this.baseUrl}${endpoint}`;
 
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => {
-			controller.abort();
-		}, this.timeout);
+		// Комбинируем внешний signal (если есть) с timeout
+		const signals: AbortSignal[] = [];
+		if (options?.signal) signals.push(options.signal);
+		signals.push(AbortSignal.timeout(this.timeout));
+
+		const combinedSignal = AbortSignal.any(signals);
 
 		try {
 			const headers: HeadersInit = {
@@ -55,58 +57,42 @@ class HttpClient {
 				...options,
 				headers,
 				credentials: 'include',
-				signal: controller.signal
+				signal: combinedSignal
 			});
-
-			clearTimeout(timeoutId);
 
 			const json: unknown = await response.json();
 
-			try {
-				const apiResponse = ApiResponse.fromJSON<T>(
-					json as ApiResponse<unknown>,
-					DataClass
-				);
+			const apiResponse = ApiResponse.fromJSON<T>(
+				json as ApiResponse<unknown>,
+				DataClass
+			);
 
-				switch (apiResponse.getСode()) {
-					case ResponseCode.SUCCESS:
-						return apiResponse;
+			switch (apiResponse.getCode()) {
+				case ResponseCode.SUCCESS:
+					return apiResponse;
 
-					case ResponseCode.INVALID:
-						throw new UIError(
-							apiResponse.getСode(),
-							apiResponse.getMessage(),
-							apiResponse.getViolations()
-						);
+				case ResponseCode.INVALID:
+					throw new UIError(
+						apiResponse.getCode() as ResponseCode,
+						apiResponse.getMessage(),
+						apiResponse.getViolations()
+					);
 
-					case ResponseCode.ERROR:
-						throw new UIError(
-							apiResponse.getСode(),
-							apiResponse.getMessage()
-						);
-
-					default:
-						throw new Error('Unexpected response code');
-				}
-			} catch (exception) {
-				if (exception instanceof UIError) {
-					throw exception;
-				}
-
-				const code = ((json as Record<string, unknown>).code as number) || 0;
-				const message = exception instanceof Error ? exception.message : 'Unknown error';
-				throw new UIError(code, message);
+				default:
+					throw new Error(apiResponse.getMessage());
 			}
 		} catch (exception) {
-			clearTimeout(timeoutId);
-
 			if (exception instanceof UIError) {
 				throw exception;
 			}
 
-			// AbortError
+			// AbortError - может быть как от timeout, так и от внешнего signal
 			if (exception instanceof Error && exception.name === 'AbortError') {
-				throw new UIError(ResponseCode.ERROR, 'Request timeout');
+				// Если внешний signal был отменён - это отмена пользователя
+				if (options?.signal?.aborted) {
+					throw new Error('Request cancelled');
+				}
+				throw new Error('Request timeout');
 			}
 
 			// Network errors, JSON parse errors, etc.
