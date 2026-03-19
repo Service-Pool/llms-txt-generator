@@ -62,7 +62,7 @@
 
 <SEO
 	title={configService.seo.pageTitle('AI-Powered Content Optimization')}
-	description="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content with automatic website crawling and AI model processing."
+	description="Generate optimized LLMs.txt files for your website with AI-powered content processing. Improve how AI models understand and index your content."
 />
 
 <svelte:head>
