@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import { Spinner, Alert, Button } from 'flowbite-svelte';
 	import redocStandaloneUrl from 'redoc/bundles/redoc.standalone.js?url';
 
@@ -170,10 +171,10 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('API Documentation')}</title>
-	<meta name="description" content="Interactive API documentation for the LLMs.txt Generator API" />
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle('API Documentation')}
+	description="Interactive API documentation for the LLMs.txt Generator API"
+/>
 
 <div class="w-full">
 	{#if loading}

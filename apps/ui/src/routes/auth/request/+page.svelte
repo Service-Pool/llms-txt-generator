@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import { EnvelopeSolid, CheckCircleSolid } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -54,13 +55,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('Sign In')}</title>
-	<meta
-		name="description"
-		content="Sign in to your LLMs.txt Generator account with your email. Get secure access to manage your AI-powered content generation orders."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle('Sign In')}
+	description="Sign in to your LLMs.txt Generator account with your email. Get secure access to manage your AI-powered content generation orders."
+	noindex={true}
+/>
 
 <div class="max-w-xl mx-auto mt-20">
 	{#if checkingAuth}

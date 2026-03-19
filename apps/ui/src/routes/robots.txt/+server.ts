@@ -13,7 +13,7 @@ Sitemap: ${baseUrl}/sitemap.xml`;
 	return new Response(robots, {
 		headers: {
 			'Content-Type': 'text/plain',
-			'Cache-Control': 'max-age=86400'
+			'Cache-Control': 'public, max-age=3600, s-maxage=3600'
 		}
 	});
 };

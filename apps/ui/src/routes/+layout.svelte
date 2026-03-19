@@ -81,29 +81,12 @@
 </script>
 
 <svelte:head>
-	<!-- HTML Meta Tags -->
-	<title>{configService.seo.title}</title>
-	<meta name="description" content={configService.seo.description} />
+	<!-- Global Meta Tags (appear on all pages) -->
 	<meta name="author" content="David Evdoshchenko" />
 	<meta property="article:author" content="https://www.linkedin.com/in/david-evdoshchenko/" />
 
-	<!-- Canonical URL -->
+	<!-- Canonical URL (dynamic per page) -->
 	<link rel="canonical" href={`${configService.site.baseUrl}${page.url.pathname}`} />
-
-	<!-- Facebook Meta Tags -->
-	<meta property="og:url" content={`${configService.site.baseUrl}${page.url.pathname}`} />
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content={configService.seo.title} />
-	<meta property="og:description" content={configService.seo.description} />
-	<meta property="og:image" content={configService.seo.image} />
-
-	<!-- Twitter Meta Tags -->
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta property="twitter:domain" content={new URL(configService.site.baseUrl).hostname} />
-	<meta property="twitter:url" content={`${configService.site.baseUrl}${page.url.pathname}`} />
-	<meta name="twitter:title" content={configService.seo.title} />
-	<meta name="twitter:description" content={configService.seo.description} />
-	<meta name="twitter:image" content={configService.seo.image} />
 </svelte:head>
 
 <ThemeProvider {theme}>

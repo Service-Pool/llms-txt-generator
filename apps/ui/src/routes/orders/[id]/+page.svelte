@@ -5,6 +5,7 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import { Alert, Spinner, Heading, Button } from 'flowbite-svelte';
 	import { ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
@@ -52,13 +53,11 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle(`Order #${orderId}`)}</title>
-	<meta
-		name="description"
-		content="View detailed information about your LLMs.txt generation order #{orderId}. Monitor processing status and download results."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle(`Order #${orderId}`)}
+	description="View detailed information about your LLMs.txt generation order. Monitor processing status and download results."
+	noindex={true}
+/>
 
 {#if initialLoading}
 	<div class="flex justify-center items-center py-20">

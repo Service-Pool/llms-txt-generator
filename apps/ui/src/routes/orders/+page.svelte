@@ -5,6 +5,7 @@
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { socketStore } from '$lib/stores/socket.store.svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import { OrdersList } from '$lib/components/order';
@@ -63,13 +64,10 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('Your Orders')}</title>
-	<meta
-		name="description"
-		content="View and manage your LLMs.txt generation orders. Track progress and download completed AI-processed content files."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle('Your Orders')}
+	description="View and manage your LLMs.txt generation orders. Track progress and download completed AI-processed content files."
+/>
 
 <Heading tag="h2" class="mb-8">Your Orders</Heading>
 

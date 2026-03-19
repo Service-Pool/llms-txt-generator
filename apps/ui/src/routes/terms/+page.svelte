@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('Terms of Service')}</title>
-	<meta
-		name="description"
-		content="Terms of Service for LLMs.txt Generator. Rules and conditions for using our AI-powered website content processing service."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle('Terms of Service')}
+	description="Terms of Service for LLMs.txt Generator. Rules and conditions for using our AI-powered website content processing service."
+/>
 
 <div class="max-w-4xl mx-auto p-6">
 	<h1 class="text-4xl font-bold text-center mb-2">Terms of Service</h1>

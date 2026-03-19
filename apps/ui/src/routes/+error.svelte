@@ -2,19 +2,18 @@
 	import { ArrowLeftOutline, HomeOutline } from 'flowbite-svelte-icons';
 	import { Button, Heading } from 'flowbite-svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import { page } from '$app/state';
 
 	const error = $derived(page.error);
 	const status = $derived(page.status);
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle(`${status} - ${error?.message || 'Error'}`)}</title>
-	<meta
-		name="description"
-		content="An error occurred while loading the page. Error {status}: {error?.message || 'Something went wrong'}."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle(`${status} - ${error?.message || 'Error'}`)}
+	description="An error occurred while loading the page."
+	noindex={true}
+/>
 
 <div class="inset-0 flex items-center justify-center">
 	<div class="text-center max-w-md mx-auto px-4">

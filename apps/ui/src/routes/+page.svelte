@@ -7,6 +7,7 @@
 	import { formatNumber } from '$lib/utils/number-format';
 	import Hero from '$lib/components/layout/hero.svelte';
 	import NewOrderForm from '$lib/components/order/NewOrderForm.svelte';
+	import SEO from '$lib/components/SEO.svelte';
 	import { Card, Heading, P, Badge, Spinner, Accordion, AccordionItem } from 'flowbite-svelte';
 	import {
 		CheckCircleSolid,
@@ -59,13 +60,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('AI-Powered Content Optimization')}</title>
-	<meta
-		name="description"
-		content="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content with automatic website crawling and AI model processing."
-	/>
+<SEO
+	title={configService.seo.pageTitle('AI-Powered Content Optimization')}
+	description="Generate optimized LLMs.txt files for your website using AI-powered content processing. Improve how Large Language Models understand your content with automatic website crawling and AI model processing."
+/>
 
+<svelte:head>
 	<!-- Structured Data -->
 	<script type="application/ld+json">
 		{

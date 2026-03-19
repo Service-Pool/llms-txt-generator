@@ -3,6 +3,7 @@
 	import { authStore } from '$lib/stores/auth.store.svelte';
 	import { Card, Heading, P, Button, Spinner } from 'flowbite-svelte';
 	import { configService } from '$lib/services/config.service';
+	import SEO from '$lib/components/SEO.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -48,13 +49,11 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{configService.seo.pageTitle('Email Verification')}</title>
-	<meta
-		name="description"
-		content="Verify your email address to access your LLMs.txt Generator account and manage your orders."
-	/>
-</svelte:head>
+<SEO
+	title={configService.seo.pageTitle('Email Verification')}
+	description="Verify your email address to access your LLMs.txt Generator account and manage your orders."
+	noindex={true}
+/>
 
 <div class="max-w-xl mx-auto mt-20">
 	<Card size="xl" class="py-10 px-20 text-center">
