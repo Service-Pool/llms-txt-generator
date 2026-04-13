@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Currency } from '@/enums/currency.enum';
 import { OrderStatus } from '@/enums/order-status.enum';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 import { User } from '@/modules/users/entities/user.entity';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 
@@ -20,6 +21,9 @@ class Order {
 
 	@Column({ type: 'varchar', nullable: true })
 	modelId: string | null;
+
+	@Column({ type: 'enum', enum: GenerationStrategy })
+	strategy: GenerationStrategy;
 
 	@Column({
 		type: 'decimal', precision: 11, scale: 6, nullable: true, transformer: {

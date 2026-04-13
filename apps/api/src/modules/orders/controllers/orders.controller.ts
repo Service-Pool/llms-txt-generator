@@ -48,7 +48,7 @@ class OrdersController {
 		@Param('id', ParseIntPipe) id: number,
 		@Body() dto: CalculateOrderRequestDto
 	): Promise<ApiResponse<OrderResponseDto>> {
-		const updatedOrder = await this.ordersService.calculateOrder(id, dto.modelId);
+		const updatedOrder = await this.ordersService.calculateOrder(id, dto.modelId, dto.strategy);
 		return ApiResponse.success(OrderResponseDto.create(updatedOrder));
 	}
 

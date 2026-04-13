@@ -1,10 +1,11 @@
-import { IsString, IsNotEmpty, IsUrl, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsInt, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
 import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
 import { AiModelValidator } from '@/validators/ai-model.validator';
 import { Validate } from 'class-validator';
 import { Type } from 'class-transformer';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 
 class CreateOrderRequestDto {
 	@ApiProperty({
@@ -29,6 +30,13 @@ class CalculateOrderRequestDto {
 	@IsNotEmpty()
 	@Validate(AiModelValidator)
 	modelId: string;
+
+	@ApiProperty({
+		description: 'Generation strategy',
+		enum: GenerationStrategy
+	})
+	@IsEnum(GenerationStrategy)
+	strategy: GenerationStrategy;
 }
 
 class DownloadOrderRequestDto {

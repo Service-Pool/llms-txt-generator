@@ -16,6 +16,7 @@ import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.enti
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
 import { StripeSessionStatus } from '@/enums/stripe-session-status.enum';
 import { Repository, DataSource, IsNull } from 'typeorm';
@@ -39,7 +40,7 @@ class OrdersService {
 	 * Calculate order price and save model configuration
 	 * Can be called multiple times while order is in CREATED or CALCULATED status
 	 */
-	public async calculateOrder(orderId: number, modelId: string): Promise<Order> {
+	public async calculateOrder(orderId: number, modelId: string, strategy: GenerationStrategy): Promise<Order> {
 		const order = await this.getUserOrder(orderId);
 
 		// Validate and transition to CALCULATED status
@@ -49,6 +50,7 @@ class OrdersService {
 		const pricing = this.aiModelsConfigService.getModelPricing(modelId, order.totalUrls);
 
 		order.modelId = pricing.modelConfig.id;
+		order.strategy = strategy;
 		order.priceTotal = pricing.priceTotal;
 		order.pricePerUrl = pricing.pricePerUrl;
 		order.priceCurrency = pricing.priceCurrency;

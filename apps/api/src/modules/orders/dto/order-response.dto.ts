@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 import { CURRENCY_SYMBOLS } from '@/enums/currency.enum';
 import { HateoasAction } from '@/enums/hateoas-action.enum';
 import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
@@ -352,6 +353,9 @@ class OrderAttributes {
 	@ApiProperty({ description: 'Order completion date' })
 	completedAt: Date | null;
 
+	@ApiProperty({ description: 'Generation strategy', enum: GenerationStrategy })
+	strategy: GenerationStrategy;
+
 	@ApiProperty({ description: 'Order creation date' })
 	createdAt: Date;
 
@@ -376,6 +380,7 @@ class OrderAttributes {
 		attrs.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
 		attrs.stripeSessionId = entity.stripeSessionId;
 		attrs.totalUrls = entity.totalUrls;
+		attrs.strategy = entity.strategy;
 		attrs.completedAt = entity.completedAt;
 		attrs.createdAt = entity.createdAt;
 		attrs.updatedAt = entity.updatedAt;
@@ -420,6 +425,7 @@ class OrderAttributes {
 		attrs.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
 		attrs.stripeSessionId = json.stripeSessionId as string | null;
 		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.strategy = json.strategy as GenerationStrategy;
 		attrs.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
 		attrs.createdAt = new Date(json.createdAt as string);
 		attrs.updatedAt = new Date(json.updatedAt as string);

@@ -14,7 +14,9 @@
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
+	import StrategySelector from '$lib/components/order/StrategySelector.svelte';
 	import type { OrderResponseDto, AiModelResponseDto } from '@api/shared';
+	import { GenerationStrategy } from '@api/shared';
 
 	// State management
 	let step = $state<'domain-input' | 'model-selection'>('domain-input');
@@ -22,6 +24,7 @@
 	let availableModels = $state<AiModelResponseDto[]>([]);
 	let isCalculating = $state(false);
 	let selectedModelId = $state<string | null>(null);
+	let selectedStrategy = $state<GenerationStrategy | null>(null);
 	let isLoadingModels = $state(false);
 
 	// Form state
@@ -112,12 +115,12 @@
 	};
 
 	const handleSetModel = async () => {
-		if (!createdOrder || !selectedModelId) return;
+		if (!createdOrder || !selectedModelId || !selectedStrategy) return;
 
 		isCalculating = true;
 
 		try {
-			const response = await ordersService.calculate(createdOrder.attributes.id, selectedModelId);
+			const response = await ordersService.calculate(createdOrder.attributes.id, selectedModelId, selectedStrategy);
 			const updatedOrder = response.getData();
 
 			// Update store and broadcast to other tabs
@@ -137,6 +140,7 @@
 		availableModels = [];
 		isCalculating = false;
 		selectedModelId = null;
+		selectedStrategy = null;
 		hostname = '';
 		error = null;
 	};
@@ -196,26 +200,23 @@
 			</form>
 		{:else if step === 'model-selection'}
 			<div in:scale={{ duration: 500, start: 0, easing: quintOut }} out:fly={{ y: -50, duration: 200 }}>
-				<div class="flex justify-between items-start mb-6">
-					<div>
-						<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Select AI Model</h2>
-						<P space="tight" size="xs" height="6" class="text-gray-600 dark:text-gray-400 mb-1">
-							<span>Order <strong>#{createdOrder?.attributes.id}</strong></span>
-							<span>•</span>
-							<span>{createdOrder?.attributes.totalUrls} URLs</span>
-							<span>•</span>
-							<span class="font-semibold">{createdOrder?.attributes.hostname}</span>
-						</P>
+				<div class="flex justify-between items-start flex-col mb-6">
+					<P space="tight" size="xs" height="6" class="text-gray-600 dark:text-gray-400 mb-1">
+						<span>Order <strong>#{createdOrder?.attributes.id}</strong></span>
+						<span>•</span>
+						<span>{createdOrder?.attributes.totalUrls} URLs</span>
+						<span>•</span>
+						<span class="font-semibold">{createdOrder?.attributes.hostname}</span>
+					</P>
 
-						<Alert color="yellow">
-							{#snippet icon()}<ExclamationCircleOutline class="h-5 w-5" />{/snippet}
-							The order will be deleted in 15 minutes if no model is selected.
-							{#if !$authStore.user && !$authStore.isLoading}
-								To permanently store orders in your history, please
-								<a href="/login" class="underline hover:no-underline">log in</a> first.
-							{/if}
-						</Alert>
-					</div>
+					<Alert color="yellow" class="w-full">
+						{#snippet icon()}<ExclamationCircleOutline class="h-5 w-5" />{/snippet}
+						The order will be deleted in 15 minutes if no model is selected.
+						{#if !$authStore.user && !$authStore.isLoading}
+							To permanently store orders in your history, please
+							<a href="/login" class="underline hover:no-underline">log in</a> first.
+						{/if}
+					</Alert>
 				</div>
 
 				{#if isLoadingModels}
@@ -227,6 +228,7 @@
 				{:else if availableModels.length === 0}
 					<p class="text-sm text-gray-500 text-center py-8">No models available</p>
 				{:else}
+					<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Select AI Model</h2>
 					<ModelSelector
 						{availableModels}
 						{selectedModelId}
@@ -236,12 +238,25 @@
 						class="mb-6"
 					/>
 
+					<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Choose strategy</h2>
+					<StrategySelector
+						{selectedStrategy}
+						disabled={isCalculating}
+						onSelect={(strategy) => (selectedStrategy = strategy)}
+						class="mb-6"
+					/>
+
 					<div class="mt-6 flex justify-end gap-2">
 						<Button color="light" size="sm" disabled={isCalculating} onclick={startOver}>
 							<ArrowLeftOutline size="sm" class="me-2" />
 							<span>Start Over</span>
 						</Button>
-						<Button onclick={handleSetModel} disabled={!selectedModelId || isCalculating} color="purple" size="sm">
+						<Button
+							onclick={handleSetModel}
+							disabled={!selectedModelId || !selectedStrategy || isCalculating}
+							color="purple"
+							size="sm"
+						>
 							{#if isCalculating}
 								<Spinner size="5" class="me-2" />
 								Calculating...
