@@ -63,7 +63,7 @@ class MailService {
 
 		try {
 			await this.transporter.sendMail({
-				from: `"LLM Text Generator" <${this.configService.smtp.user}>`,
+				from: `"LLM Text Generator" <${this.configService.smtp.from}>`,
 				to: email,
 				subject: 'Sign in to LLM Text Generator',
 				html

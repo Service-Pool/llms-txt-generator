@@ -33,6 +33,7 @@ interface ValidatedEnv {
 	SMTP_HOST: string;
 	SMTP_PORT: number;
 	SMTP_USER: string;
+	SMTP_FROM: string;
 	SMTP_PASSWORD: string;
 	LOGIN_LINK_EXPIRY_MINUTES: number;
 	AES_KEY: string;
@@ -93,6 +94,7 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	SMTP_HOST: Joi.string().required(),
 	SMTP_PORT: Joi.number().port().required(),
 	SMTP_USER: Joi.string().email().required(),
+	SMTP_FROM: Joi.string().email().required(),
 	SMTP_PASSWORD: Joi.string().required(),
 	LOGIN_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required(),
 	AES_KEY: Joi.string().base64().required(),
@@ -271,6 +273,7 @@ class AppConfigService {
 		host: env.SMTP_HOST,
 		port: env.SMTP_PORT,
 		user: env.SMTP_USER,
+		from: env.SMTP_FROM,
 		password: env.SMTP_PASSWORD
 	};
 
