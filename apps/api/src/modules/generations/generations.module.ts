@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { LLMProviderFactory } from '@/modules/generations/services/llm-provider-factory.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
+import { EmbeddingService } from '@/modules/generations/services/models/embedding.service';
 import { PageProcessorFlat } from '@/modules/generations/services/page-processor-flat.service';
 import { PageProcessorClustered } from '@/modules/generations/services/page-processor-clustered.service';
 import { FlatStrategy } from '@/modules/generations/strategies/flat.strategy';
@@ -28,6 +29,7 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 	providers: [
 		LLMProviderFactory,
 		CacheService,
+		EmbeddingService,
 		PageProcessorFlat,
 		PageProcessorClustered,
 		FlatStrategy,
@@ -37,6 +39,7 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 	exports: [
 		LLMProviderFactory,
 		CacheService,
+		EmbeddingService,
 		PageProcessorFlat,
 		GenerationStrategyFactory
 	]

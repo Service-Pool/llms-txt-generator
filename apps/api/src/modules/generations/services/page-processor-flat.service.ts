@@ -98,7 +98,8 @@ class PageProcessorFlat {
 		const hashKey = this.buildHashKey(modelId, hostname);
 		return this.cacheService.get(hashKey, '__description__', async () => {
 			this.logger.debug(`Generating description for ${hostname} (cache miss)`);
-			return llmProvider.generateDescription(successPages);
+			const summaries = successPages.map(p => p.summary ?? p.title);
+			return llmProvider.generateDescription(summaries);
 		});
 	}
 

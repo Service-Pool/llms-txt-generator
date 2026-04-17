@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
+import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { LlmBaseException } from '@/exceptions/llm-base.exception';
 import { LlmJsonValidationException } from '@/exceptions/llm-json-validation.exception';
 import { LlmResponseCountMismatchException } from '@/exceptions/llm-response-count-mismatch.exception';
@@ -89,9 +90,19 @@ abstract class AbstractLlmService {
 	abstract generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]>;
 
 	/**
-	 * Генерирует общее описание сайта на основе всех саммари страниц
+	 * Генерирует общее описание сайта на основе списка кратких описаний (саммари страниц или описаний кластеров)
 	 */
-	abstract generateDescription(pages: ProcessedPage[]): Promise<string>;
+	abstract generateDescription(summaries: string[]): Promise<string>;
+
+	/**
+	 * Генерирует md-блоки для кластера страниц.
+	 * LLM получает тексты страниц кластера и возвращает произвольное количество блоков.
+	 */
+	abstract generateClusterContent(pages: ClusterPage[]): Promise<{
+		section_name: string;
+		description: string;
+		pages: { filename: string; title: string; summary: string; md_content: string }[];
+	}>;
 
 	/**
 	 * Выполнение LLM операции с retry и timeout

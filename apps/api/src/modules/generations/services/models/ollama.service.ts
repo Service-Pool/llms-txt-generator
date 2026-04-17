@@ -1,6 +1,7 @@
 import { Ollama, GenerateRequest } from 'ollama';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
+import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 
 class OllamaService extends AbstractLlmService {
@@ -99,14 +100,14 @@ Instructions:
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
-	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
-		const summariesText = pages
-			.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
+	public async generateDescription(summaries: string[]): Promise<string> {
+		const summariesText = summaries
+			.map((s, idx) => `${idx + 1}. ${s}`)
 			.join('\n');
 
 		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
-Page summaries:
+Summaries:
 ${summariesText}
 
 Instructions:
@@ -156,9 +157,17 @@ Instructions:
 		);
 
 		const description = result.description.trim();
-		this.logger.log(`Generated website description from ${pages.length} page summaries`);
+		this.logger.log(`Generated website description from ${summaries.length} summaries`);
 
 		return description;
+	}
+
+	public async generateClusterContent(_pages: ClusterPage[]): Promise<{
+		section_name: string;
+		description: string;
+		pages: { filename: string; title: string; summary: string; md_content: string }[];
+	}> {
+		throw new Error('generateClusterContent is not implemented for OllamaService');
 	}
 }
 

@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, GenerateContentParameters } from '@google/genai';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
+import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 
 class GeminiService extends AbstractLlmService {
@@ -88,14 +89,14 @@ Instructions:
 	/**
 	 * Генерирует общее описание сайта на основе всех саммари
 	 */
-	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
-		const summariesText = pages
-			.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
+	public async generateDescription(summaries: string[]): Promise<string> {
+		const summariesText = summaries
+			.map((s, idx) => `${idx + 1}. ${s}`)
 			.join('\n');
 
 		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
-Page summaries:
+Summaries:
 ${summariesText}
 
 Instructions:
@@ -139,9 +140,85 @@ Instructions:
 		);
 
 		const description = result.description.trim();
-		this.logger.log(`Generated website description from ${pages.length} page summaries`);
+		this.logger.log(`Generated website description from ${summaries.length} summaries`);
 
 		return description;
+	}
+
+	/**
+	 * Генерирует md-блоки для кластера страниц.
+	 * LLM получает тексты страниц кластера и возвращает произвольное количество блоков.
+	 */
+	public async generateClusterContent(pages: ClusterPage[]): Promise<{
+		section_name: string;
+		description: string;
+		pages: { filename: string; title: string; summary: string; md_content: string }[];
+	}> {
+		const pagesText = pages
+			.map((p, idx) => `Page ${idx + 1}:\nPath: ${p.path}\nTitle: ${p.title}\nContent:\n${p.text}`)
+			.join('\n\n---\n\n');
+
+		const initialPrompt = `You are analyzing a group of semantically related web pages. Create a documentation section for this group.
+
+Pages:
+${pagesText}
+
+Instructions:
+- Choose a concise section name (lowercase with hyphens, e.g. "payment-methods") — this will be used as a URL namespace
+- Write a 1-2 sentence description of what this section covers
+- For each page, decide on a filename (lowercase with hyphens, no extension, no duplicates within this section), a title, a one-line summary, and full markdown content
+- md_content should be informative markdown, no extra headings needed
+- Return exactly one section object`;
+
+		type ClusterResult = {
+			section_name: string;
+			description: string;
+			pages: { filename: string; title: string; summary: string; md_content: string }[];
+		};
+
+		const result = await this.withResilience<ClusterResult>(
+			async (currentPrompt) => {
+				const response = await this.ai.models.generateContent({
+					model: this.config.modelName,
+					contents: currentPrompt,
+					config: {
+						temperature: this.config.options.temperature,
+						responseMimeType: 'application/json',
+						responseSchema: {
+							type: Type.OBJECT,
+							properties: {
+								section_name: { type: Type.STRING },
+								description: { type: Type.STRING },
+								pages: {
+									type: Type.ARRAY,
+									items: {
+										type: Type.OBJECT,
+										properties: {
+											filename: { type: Type.STRING },
+											title: { type: Type.STRING },
+											summary: { type: Type.STRING },
+											md_content: { type: Type.STRING }
+										},
+										required: ['filename', 'title', 'summary', 'md_content']
+									}
+								}
+							},
+							required: ['section_name', 'description', 'pages']
+						}
+					}
+				});
+
+				return response.text;
+			},
+			{
+				initialPrompt,
+				operationName: 'generateClusterContent',
+				validation: {}
+			}
+		);
+
+		this.logger.log(`Generated section "${result.section_name}" with ${result.pages.length} pages for cluster of ${pages.length} input pages`);
+		return result;
 	}
 }
 
