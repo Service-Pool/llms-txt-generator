@@ -20,11 +20,8 @@ interface HateoasLink {
  * Truncate text to specified number of words
  */
 function truncateToWords(text: string | null, length: number): string | null {
-	if (!text) {
-		return text;
-	}
-
-	return text.length > length ? text.substring(0, length) + '...' : text;
+	if (!text) return text;
+	return text.length > length ? text.substring(0, length) + '\n<!-- truncated -->' : text;
 }
 
 /**

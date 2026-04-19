@@ -6,6 +6,7 @@ import { OrdersService } from '@/modules/orders/services/orders.service';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import type { Order } from '@/modules/orders/entities/order.entity';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter';
 
 type ClusterSection = Awaited<ReturnType<AbstractLlmService['generateClusterContent']>>;
 
@@ -65,39 +66,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 
 		// 5. Сборка llms.txt
 		const host = new URL(order.hostname).hostname;
-		return this.formatOutput(host, siteDescription, allSections);
-	}
-
-	private formatOutput(host: string, description: string, sections: ClusterSection[]): string {
-		const lines: string[] = [];
-
-		lines.push(`# ${host}`);
-		lines.push(description);
-		lines.push('');
-
-		for (const section of sections) {
-			const sectionSlug = section.section_name;
-
-			lines.push(`## ${this.slugToTitle(sectionSlug)}`);
-			lines.push(section.description);
-			lines.push('');
-
-			for (const page of section.pages) {
-				const url = `/${sectionSlug}/${page.filename}.md`;
-				lines.push(`- [${page.title}](${url}): ${page.summary}`);
-				lines.push('<!-- md -->');
-				lines.push(page.md_content);
-				lines.push('<!-- /md -->');
-			}
-
-			lines.push('');
-		}
-
-		return lines.join('\n');
-	}
-
-	private slugToTitle(slug: string): string {
-		return slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+		return LlmsTxtFormatter.formatClustered(host, siteDescription, allSections);
 	}
 }
 

@@ -14,7 +14,7 @@ class FlatStrategy implements IGenerationStrategy {
 	constructor(
 		private readonly pageProcessor: PageProcessorFlat,
 		private readonly ordersService: OrdersService
-	) {}
+	) { }
 
 	public async execute(order: Order, provider: AbstractLlmService, batchSize: number, job: Job): Promise<string> {
 		const allPages = await this.pageProcessor.processPages(
@@ -44,7 +44,7 @@ class FlatStrategy implements IGenerationStrategy {
 			successPages
 		);
 
-		return LlmsTxtFormatter.format(order.hostname, description, successPages);
+		return LlmsTxtFormatter.formatFlat(order.hostname, description, successPages);
 	}
 }
 

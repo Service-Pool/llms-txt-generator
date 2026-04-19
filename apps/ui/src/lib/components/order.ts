@@ -18,7 +18,7 @@ export { default as OrderListItemLayout } from './order/layouts/OrderListItemLay
 export { default as OrderBadge } from './order/content/OrderBadge.svelte';
 export { default as OrderStatus } from './order/content/OrderStatus.svelte';
 export { default as OrderMeta } from './order/content/OrderMeta.svelte';
-export { default as OrderOutput } from './order/content/stats/OrderOutput.svelte';
+export { default as OrderOutput } from './order/content/stats/OrderOutputDetails.svelte';
 export { default as OrderErrors } from './order/content/stats/OrderErrors.svelte';
 export { default as OrderInfo } from './order/content/stats/OrderInfo.svelte';
 
