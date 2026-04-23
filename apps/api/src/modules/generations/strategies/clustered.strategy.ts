@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { IGenerationStrategy } from '@/modules/generations/interfaces/generation-strategy.interface';
 import { PageProcessorClustered } from '@/modules/generations/services/page-processor-clustered.service';
 import { OrdersService } from '@/modules/orders/services/orders.service';
+import { CacheService } from '@/modules/generations/services/cache.service';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import type { Order } from '@/modules/orders/entities/order.entity';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
@@ -16,10 +17,13 @@ class ClusteredStrategy implements IGenerationStrategy {
 
 	constructor(
 		private readonly pageProcessor: PageProcessorClustered,
-		private readonly ordersService: OrdersService
+		private readonly ordersService: OrdersService,
+		private readonly cacheService: CacheService
 	) {}
 
 	public async execute(order: Order, provider: AbstractLlmService, _batchSize: number, job: Job): Promise<string> {
+		const hashKey = this.pageProcessor.buildHashKey(order.modelId, order.hostname);
+
 		// 1. Краулинг + векторизация
 		this.logger.log(`Starting crawl + vectorization for order ${order.id}`);
 		const pageVectors = await this.pageProcessor.processPages(
@@ -44,17 +48,30 @@ class ClusteredStrategy implements IGenerationStrategy {
 		const clusters = this.pageProcessor.clusterPages(pageVectors, clusterCount);
 		this.logger.log(`Clustered into ${clusters.size} clusters for order ${order.id}`);
 
-		// 3. Генерация секций по кластерам
+		// 3. Генерация секций по кластерам (с кешированием для resumability)
 		const allSections: ClusterSection[] = [];
 
 		for (const [clusterId, paths] of clusters) {
-			this.logger.debug(`Processing cluster ${clusterId} with ${paths.length} pages`);
+			const cacheField = `clusters:${clusterId}`;
+			const cached = await this.cacheService.get(hashKey, cacheField);
+			if (cached) {
+				this.logger.debug(`Cluster ${clusterId} loaded from cache`);
+				allSections.push(JSON.parse(cached) as ClusterSection);
+				continue;
+			}
 
+			this.logger.debug(`Processing cluster ${clusterId} with ${paths.length} pages`);
 			const rawPages = await this.pageProcessor.getClusterTexts(order.hostname, order.modelId, paths);
 			if (rawPages.length === 0) continue;
 
 			const clusterPages = rawPages.map(p => ClusterPage.success(p.path, p.title, p.text));
 			const section = await provider.generateClusterContent(clusterPages);
+
+			for (const filename of section.truncatedPages) {
+				await this.ordersService.addError(order.id, `AI truncated md_content for page /${section.section_name}/${filename}.md (MAX_TOKENS)`);
+			}
+
+			await this.cacheService.set(hashKey, cacheField, JSON.stringify(section));
 			allSections.push(section);
 
 			await job.updateProgress({});

@@ -6,6 +6,7 @@ import { EmbeddingService } from '@/modules/generations/services/models/embeddin
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
+import { parallelMap } from '@/utils/parallel-map';
 
 interface PageVector {
 	path: string;
@@ -48,44 +49,39 @@ class PageProcessorClustered {
 		const limitedUrls = limit ? urls.slice(0, limit) : urls;
 		const total = limitedUrls.length;
 
-		// Разделяем на кэшированные и некэшированные
+		// Один hmget для всех URL сразу вместо N последовательных hget
+		const allPaths = limitedUrls.map(url => this.parseUrl(url).path);
+		const allCached = allPaths.length > 0
+			? await this.cacheService.hmget(hashKey, allPaths.map(p => `vectors:${p}`))
+			: [];
+
 		const cachedVectors: PageVector[] = [];
 		const urlsToFetch: string[] = [];
 
-		for (const url of limitedUrls) {
-			const { path } = this.parseUrl(url);
-			const cached = await this.cacheService.get(hashKey, path);
-			if (cached) {
+		for (let i = 0; i < limitedUrls.length; i++) {
+			const raw = allCached[i];
+			if (raw) {
 				try {
-					const entry = JSON.parse(cached) as CacheEntry;
+					const entry = JSON.parse(raw) as CacheEntry;
 					if (entry.vector) {
-						cachedVectors.push({ path, vector: entry.vector });
-					} else {
-						urlsToFetch.push(url);
+						cachedVectors.push({ path: allPaths[i], vector: entry.vector });
+						continue;
 					}
-				} catch {
-					urlsToFetch.push(url);
-				}
-			} else {
-				urlsToFetch.push(url);
+				} catch { /* fall through */ }
 			}
+			urlsToFetch.push(limitedUrls[i]);
 		}
 
 		this.logger.log(`Cache hits: ${cachedVectors.length}, URLs to fetch: ${urlsToFetch.length}`);
 
-		// Краулим некэшированные параллельно
-		const fetchedContents = await this.parallelMap(
-			urlsToFetch,
-			url => this.fetchContent(url),
-			concurrency
-		);
-
-		// Векторизуем батчами и сохраняем в кэш
+		// Батч-центричный pipeline: fetch batch → embed batch → cache batch
 		const newVectors: PageVector[] = [];
 		let processed = cachedVectors.length;
 
-		for (let i = 0; i < fetchedContents.length; i += batchSize) {
-			const batchAll = fetchedContents.slice(i, i + batchSize);
+		for (let i = 0; i < urlsToFetch.length; i += batchSize) {
+			const batchUrls = urlsToFetch.slice(i, i + batchSize);
+
+			const batchAll = await parallelMap(batchUrls, url => this.fetchContent(url), concurrency);
 			const batchSuccess = batchAll.filter(p => p.isSuccess());
 
 			if (batchSuccess.length > 0) {
@@ -104,7 +100,7 @@ class PageProcessorClustered {
 						embeddingModel: this.configService.embedding.model
 					};
 
-					await this.cacheService.set(hashKey, path, JSON.stringify(entry));
+					await this.cacheService.set(hashKey, `vectors:${path}`, JSON.stringify(entry));
 					newVectors.push({ path, vector });
 				}
 			}
@@ -125,17 +121,14 @@ class PageProcessorClustered {
 	public clusterPages(
 		pageVectors: PageVector[],
 		clusterCount: number
-	): Map<number, string[]> {
-		// K-means кластеризация
+	): Map<string, string[]> {
 		const vectors = pageVectors.map(p => p.vector);
 		const assignments = this.kMeans(vectors, clusterCount);
 
-		const clusters = new Map<number, string[]>();
+		const clusters = new Map<string, string[]>();
 		for (let i = 0; i < pageVectors.length; i++) {
-			const clusterId = assignments[i];
-			if (!clusters.has(clusterId)) {
-				clusters.set(clusterId, []);
-			}
+			const clusterId = `${assignments[i]}`;
+			if (!clusters.has(clusterId)) clusters.set(clusterId, []);
 			clusters.get(clusterId).push(pageVectors[i].path);
 		}
 
@@ -152,7 +145,7 @@ class PageProcessorClustered {
 		paths: string[]
 	): Promise<ClusterPage[]> {
 		const hashKey = this.buildHashKey(modelId, hostname);
-		const values = await this.cacheService.hmget(hashKey, paths);
+		const values = await this.cacheService.hmget(hashKey, paths.map(p => `vectors:${p}`));
 
 		const results: ClusterPage[] = [];
 		for (let i = 0; i < paths.length; i++) {
@@ -236,28 +229,7 @@ class PageProcessorClustered {
 		return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 	}
 
-	private async parallelMap<T, R>(items: T[], fn: (item: T) => Promise<R>, concurrency: number): Promise<R[]> {
-		const results = Array<R>(items.length);
-		const executing: Promise<void>[] = [];
-
-		for (let i = 0; i < items.length; i++) {
-			const index = i;
-			const promise = fn(items[i])
-				.then((result) => { results[index] = result; })
-				.catch((error) => { this.logger.error(`parallelMap error at index ${index}:`, error); })
-				.finally(() => { void executing.splice(executing.indexOf(promise), 1); });
-
-			executing.push(promise);
-			if (executing.length >= concurrency) {
-				await Promise.race(executing);
-			}
-		}
-
-		await Promise.all(executing);
-		return results;
-	}
-
-	private buildHashKey(modelId: string, hostnameOrUrl: string): string {
+	public buildHashKey(modelId: string, hostnameOrUrl: string): string {
 		const { hostname } = this.parseUrl(hostnameOrUrl);
 		return `summary:${modelId}:${hostname}`;
 	}

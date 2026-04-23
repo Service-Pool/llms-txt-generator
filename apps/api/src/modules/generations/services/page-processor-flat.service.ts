@@ -5,6 +5,7 @@ import { ContentExtractionService } from '@/modules/content/services/content-ext
 import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
+import { parallelMap } from '@/utils/parallel-map';
 
 /**
  * Сервис потоковой обработки страниц для Flat стратегии.
@@ -67,7 +68,7 @@ class PageProcessorFlat {
 			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
 
 			const fetchedPages = urlsToFetch.length > 0
-				? await this.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
+				? await parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
 				: [];
 
 			const allBatchPages = [...cachedPages, ...fetchedPages];
@@ -166,28 +167,6 @@ class PageProcessorFlat {
 		if (batch.length > 0) {
 			yield batch;
 		}
-	}
-
-	private async parallelMap<T, R>(items: T[], fn: (item: T) => Promise<R>, concurrency: number): Promise<R[]> {
-		const results = Array<R>(items.length);
-		const executing: Promise<void>[] = [];
-
-		for (let i = 0; i < items.length; i++) {
-			const index = i;
-			const promise = fn(items[i])
-				.then((result) => { results[index] = result; })
-				.catch((error) => { console.error(`Unexpected error in parallelMap at index ${index}:`, error); })
-				.finally(() => { void executing.splice(executing.indexOf(promise), 1); });
-
-			executing.push(promise);
-
-			if (executing.length >= concurrency) {
-				await Promise.race(executing);
-			}
-		}
-
-		await Promise.all(executing);
-		return results;
 	}
 
 	private buildHashKey(modelId: string, hostnameOrUrl: string): string {

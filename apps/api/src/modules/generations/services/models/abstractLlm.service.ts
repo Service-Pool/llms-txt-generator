@@ -64,7 +64,7 @@ abstract class AbstractLlmService {
 			backoffMultiplier: 2
 		},
 		timeout: {
-			durationMs: 60000
+			durationMs: 300000
 		}
 	};
 
@@ -102,6 +102,7 @@ abstract class AbstractLlmService {
 		section_name: string;
 		description: string;
 		pages: { filename: string; title: string; summary: string; md_content: string }[];
+		truncatedPages: string[];
 	}>;
 
 	/**
@@ -344,7 +345,7 @@ ${originalPrompt}`;
 				// Парсинг не удался - бросаем LlmJsonValidationException для retry
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				throw new LlmJsonValidationException(
-					`Failed to parse LLM response as JSON: ${errorMessage}. Response: ${response.substring(0, 200)}...`,
+					`Failed to parse LLM response as JSON: ${errorMessage}. Response: ${response.slice(0, 200)}`,
 					response,
 					attemptNumber
 				);
