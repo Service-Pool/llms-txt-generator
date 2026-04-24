@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
@@ -309,10 +310,10 @@ class OrderAttributes {
 	priceTotal: number | null;
 
 	@ApiProperty({
-		description: 'Number of URLs processed',
-		example: 125
+		description: 'Processing progress',
+		example: null
 	})
-	processedUrls: number;
+	progress: OrderProgress | null;
 
 	@ApiProperty({
 		description: 'Position in queue (1-indexed). Null if not queued or already processing',
@@ -370,7 +371,7 @@ class OrderAttributes {
 		attrs.output = truncateToWords(entity.output, 3000);
 		attrs.pricePerUrl = entity.pricePerUrl;
 		attrs.priceTotal = entity.priceTotal;
-		attrs.processedUrls = entity.processedUrls;
+		attrs.progress = entity.progress;
 		attrs.queuePosition = entity.queuePosition ?? null;
 		attrs.startedAt = entity.startedAt;
 		attrs.status = entity.status;
@@ -415,7 +416,7 @@ class OrderAttributes {
 		attrs.output = json.output as string | null;
 		attrs.pricePerUrl = json.pricePerUrl as number | null;
 		attrs.priceTotal = json.priceTotal as number | null;
-		attrs.processedUrls = json.processedUrls as number;
+		attrs.progress = (json.progress as OrderProgress) ?? null;
 		attrs.queuePosition = json.queuePosition as number | null | undefined;
 		attrs.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
 		attrs.status = json.status as OrderStatus;

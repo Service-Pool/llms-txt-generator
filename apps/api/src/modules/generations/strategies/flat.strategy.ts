@@ -28,7 +28,14 @@ class FlatStrategy implements IGenerationStrategy {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.url}: ${page.error}`);
 				}
-				await this.ordersService.updateProgress(order.id, processed);
+				await this.ordersService.updateProgress(order.id, {
+					step: 'Crawling',
+					processedUrls: processed,
+					clusterCurrent: null,
+					clusterTotal: null,
+					pageCurrent: null,
+					pageTotal: null
+				});
 				await job.updateProgress({});
 				this.logger.debug(`Progress: ${processed}/${total} URLs processed`);
 			}

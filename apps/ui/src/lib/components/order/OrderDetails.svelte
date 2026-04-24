@@ -18,7 +18,7 @@
 	} from '$lib/components/order';
 	import { OrderStatusMachine, StepActionIdEnum } from '$lib/domain/order';
 	import { configService } from '$lib/services/config.service';
-	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
+	import OrderProgress from '$lib/components/order/content/OrderProgress.svelte';
 	import { Heading } from 'flowbite-svelte';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import { slide } from 'svelte/transition';
@@ -77,15 +77,9 @@
 	{/snippet}
 
 	{#snippet progress()}
-		{#if order.attributes.status === OrderStatus.PROCESSING}
+		{#if order.attributes.status === OrderStatus.PROCESSING && order.attributes.progress}
 			<div transition:slide={{ duration: 200 }}>
-				<ProgressBar
-					label="URLs"
-					current={order.attributes.processedUrls}
-					total={order.attributes.totalUrls!}
-					size="h-1.5"
-					showNumbers={true}
-				/>
+				<OrderProgress progress={order.attributes.progress} totalUrls={order.attributes.totalUrls} />
 			</div>
 		{/if}
 	{/snippet}

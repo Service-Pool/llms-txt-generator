@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { Currency } from '@/enums/currency.enum';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { GenerationStrategy } from '@/enums/generation-strategy.enum';
@@ -59,8 +60,8 @@ class Order {
 	@Column({ type: 'int', nullable: true })
 	totalUrls: number | null;
 
-	@Column({ default: 0 })
-	processedUrls: number;
+	@Column({ type: 'json', nullable: true })
+	progress: OrderProgress | null;
 
 	@Column({ type: 'datetime', nullable: true, utc: true })
 	startedAt: Date | null;

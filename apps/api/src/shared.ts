@@ -21,6 +21,7 @@ export * from './modules/ai-models/dto/ai-model-response.dto';
 // Orders DTOs
 export * from './modules/orders/dto/order-request.dto';
 export * from './modules/orders/dto/order-response.dto';
+export * from './modules/orders/models/order-progress.model';
 
 // Payments DTOs
 export * from './modules/payments/dto/payment-request.dto';

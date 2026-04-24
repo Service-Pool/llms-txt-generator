@@ -133,7 +133,7 @@ class OrdersService {
 				await this.queueManagerService.removeJob(modelConfig.queueName, order.jobId, ['completed', 'failed']);
 			}
 			order.errors = null;
-			order.processedUrls = 0;
+			order.progress = null;
 			order.output = null;
 			order.startedAt = null;
 			order.completedAt = null;
@@ -488,10 +488,10 @@ class OrdersService {
 	/**
 	 * Update processing progress
 	 */
-	public async updateProgress(orderId: number, processedUrls: number): Promise<void> {
+	public async updateProgress(orderId: number, progress: Order['progress']): Promise<void> {
 		await this.orderRepository.update(
 			{ id: orderId },
-			{ processedUrls }
+			{ progress }
 		);
 	}
 

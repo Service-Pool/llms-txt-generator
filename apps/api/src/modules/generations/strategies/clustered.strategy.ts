@@ -35,7 +35,14 @@ class ClusteredStrategy implements IGenerationStrategy {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.path}: ${page.error}`);
 				}
-				await this.ordersService.updateProgress(order.id, processed);
+				await this.ordersService.updateProgress(order.id, {
+					step: 'Crawling',
+					processedUrls: processed,
+					clusterCurrent: null,
+					clusterTotal: null,
+					pageCurrent: null,
+					pageTotal: null
+				});
 				await job.updateProgress({});
 				this.logger.debug(`Crawl progress: ${processed}/${total}`);
 			}
@@ -44,12 +51,34 @@ class ClusteredStrategy implements IGenerationStrategy {
 		this.logger.log(`Vectorized ${pageVectors.length} pages for order ${order.id}`);
 
 		// 2. Кластеризация
+		await this.ordersService.updateProgress(order.id, {
+			step: 'Vectorizing',
+			processedUrls: pageVectors.length,
+			clusterCurrent: null,
+			clusterTotal: null,
+			pageCurrent: null,
+			pageTotal: null
+		});
+		await job.updateProgress({});
+
 		const clusterCount = Math.max(1, Math.round(Math.sqrt(pageVectors.length / 2)));
 		const clusters = this.pageProcessor.clusterPages(pageVectors, clusterCount);
 		this.logger.log(`Clustered into ${clusters.size} clusters for order ${order.id}`);
 
+		await this.ordersService.updateProgress(order.id, {
+			step: 'Clustering',
+			processedUrls: pageVectors.length,
+			clusterCurrent: null,
+			clusterTotal: null,
+			pageCurrent: null,
+			pageTotal: null
+		});
+		await job.updateProgress({});
+
 		// 3. Генерация секций по кластерам (с кешированием для resumability)
 		const allSections: ClusterSection[] = [];
+		const clusterTotal = clusters.size;
+		let clusterCurrent = 0;
 
 		for (const [clusterId, paths] of clusters) {
 			const cacheField = `clusters:${clusterId}`;
@@ -57,6 +86,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 			if (cached) {
 				this.logger.debug(`Cluster ${clusterId} loaded from cache`);
 				allSections.push(JSON.parse(cached) as ClusterSection);
+				clusterCurrent++;
 				continue;
 			}
 
@@ -64,8 +94,28 @@ class ClusteredStrategy implements IGenerationStrategy {
 			const rawPages = await this.pageProcessor.getClusterTexts(order.hostname, order.modelId, paths);
 			if (rawPages.length === 0) continue;
 
+			await this.ordersService.updateProgress(order.id, {
+				step: 'Generating',
+				processedUrls: pageVectors.length,
+				clusterCurrent,
+				clusterTotal,
+				pageCurrent: 0,
+				pageTotal: null
+			});
+			await job.updateProgress({});
+
 			const clusterPages = rawPages.map(p => ClusterPage.success(p.path, p.title, p.text));
-			const section = await provider.generateClusterContent(clusterPages);
+			const section = await provider.generateClusterContent(clusterPages, async (pageCurrent, pageTotal) => {
+				await this.ordersService.updateProgress(order.id, {
+					step: 'Generating',
+					processedUrls: pageVectors.length,
+					clusterCurrent,
+					clusterTotal,
+					pageCurrent,
+					pageTotal
+				});
+				await job.updateProgress({});
+			});
 
 			for (const filename of section.truncatedPages) {
 				await this.ordersService.addError(order.id, `AI truncated md_content for page /${section.section_name}/${filename}.md (MAX_TOKENS)`);
@@ -73,11 +123,22 @@ class ClusteredStrategy implements IGenerationStrategy {
 
 			await this.cacheService.set(hashKey, cacheField, JSON.stringify(section));
 			allSections.push(section);
+			clusterCurrent++;
 
 			await job.updateProgress({});
 		}
 
 		// 4. Описание сайта на основе описаний кластеров
+		await this.ordersService.updateProgress(order.id, {
+			step: 'Assembling',
+			processedUrls: pageVectors.length,
+			clusterCurrent: clusterTotal,
+			clusterTotal,
+			pageCurrent: null,
+			pageTotal: null
+		});
+		await job.updateProgress({});
+
 		const sectionSummaries = allSections.map(s => s.description);
 		const siteDescription = await provider.generateDescription(sectionSummaries);
 

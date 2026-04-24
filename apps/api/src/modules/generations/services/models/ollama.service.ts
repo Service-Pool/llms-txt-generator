@@ -162,10 +162,11 @@ Instructions:
 		return description;
 	}
 
-	public async generateClusterContent(_pages: ClusterPage[]): Promise<{
+	public async generateClusterContent(_pages: ClusterPage[], _onPageProgress?: (pageCurrent: number, pageTotal: number) => Promise<void>): Promise<{
 		section_name: string;
 		description: string;
 		pages: { filename: string; title: string; summary: string; md_content: string }[];
+		truncatedPages: string[];
 	}> {
 		throw new Error('generateClusterContent is not implemented for OllamaService');
 	}

@@ -228,7 +228,7 @@ Instructions:
 	 * Шаг 2: для каждой страницы 2 запроса последовательно (meta JSON + md_content plain text),
 	 *         страницы параллелятся с concurrency=5 и стартовой задержкой 1с между слотами.
 	 */
-	public async generateClusterContent(pages: ClusterPage[]): Promise<{
+	public async generateClusterContent(pages: ClusterPage[], onPageProgress?: (pageCurrent: number, pageTotal: number) => Promise<void>): Promise<{
 		section_name: string;
 		description: string;
 		pages: ClusterPageOutput[];
@@ -306,7 +306,9 @@ Instructions:
 				const rawContent = (contentResponse.text ?? '').trim();
 				const truncated = String(contentFinishReason) === 'MAX_TOKENS';
 				const md_content = truncated ? `${rawContent}\n\n<!-- truncated by AI -->` : rawContent;
-				return { ...meta, md_content, truncated };
+				const result = { ...meta, md_content, truncated };
+				if (onPageProgress) await onPageProgress(pageNum, total_pages);
+				return result;
 			}, 10);
 
 			const truncatedPages = allPages

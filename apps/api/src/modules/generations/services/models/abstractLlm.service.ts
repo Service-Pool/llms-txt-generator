@@ -98,7 +98,10 @@ abstract class AbstractLlmService {
 	 * Генерирует md-блоки для кластера страниц.
 	 * LLM получает тексты страниц кластера и возвращает произвольное количество блоков.
 	 */
-	abstract generateClusterContent(pages: ClusterPage[]): Promise<{
+	abstract generateClusterContent(
+		pages: ClusterPage[],
+		onPageProgress?: (pageCurrent: number, pageTotal: number) => Promise<void>
+	): Promise<{
 		section_name: string;
 		description: string;
 		pages: { filename: string; title: string; summary: string; md_content: string }[];
