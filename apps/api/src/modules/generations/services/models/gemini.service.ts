@@ -278,6 +278,7 @@ Instructions:
 
 			const SLOT_DELAY_MS = 1000;
 			const pageNums = Array.from({ length: total_pages }, (_, i) => i + 1);
+			let pagesCompleted = 0;
 
 			const allPages = await parallelMap(pageNums, async (pageNum: number, slotIndex: number) => {
 				await new Promise(resolve => setTimeout(resolve, slotIndex * SLOT_DELAY_MS));
@@ -307,7 +308,7 @@ Instructions:
 				const truncated = String(contentFinishReason) === 'MAX_TOKENS';
 				const md_content = truncated ? `${rawContent}\n\n<!-- truncated by AI -->` : rawContent;
 				const result = { ...meta, md_content, truncated };
-				if (onPageProgress) await onPageProgress(pageNum, total_pages);
+				if (onPageProgress) await onPageProgress(++pagesCompleted, total_pages);
 				return result;
 			}, 10);
 

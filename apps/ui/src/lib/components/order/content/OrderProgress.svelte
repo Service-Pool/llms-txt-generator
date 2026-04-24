@@ -10,6 +10,10 @@
 	let { progress, totalUrls }: Props = $props();
 </script>
 
+{#if progress.attempt > 1}
+	<div class="text-xs opacity-60 mb-1">Attempt {progress.attempt}</div>
+{/if}
+
 {#if progress.step === 'Crawling'}
 	<ProgressBar
 		label="Crawling URLs"

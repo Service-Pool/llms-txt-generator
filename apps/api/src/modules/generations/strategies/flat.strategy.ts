@@ -16,7 +16,18 @@ class FlatStrategy implements IGenerationStrategy {
 		private readonly ordersService: OrdersService
 	) { }
 
-	public async execute(order: Order, provider: AbstractLlmService, batchSize: number, job: Job): Promise<string> {
+	public async execute(order: Order, provider: AbstractLlmService, batchSize: number, job: Job, attempt: number): Promise<string> {
+		await this.ordersService.updateProgress(order.id, {
+			step: 'Crawling',
+			attempt,
+			processedUrls: 0,
+			clusterCurrent: null,
+			clusterTotal: null,
+			pageCurrent: null,
+			pageTotal: null
+		});
+		await job.updateProgress({});
+
 		const allPages = await this.pageProcessor.processPages(
 			order.hostname,
 			order.modelId,
@@ -30,6 +41,7 @@ class FlatStrategy implements IGenerationStrategy {
 				}
 				await this.ordersService.updateProgress(order.id, {
 					step: 'Crawling',
+					attempt,
 					processedUrls: processed,
 					clusterCurrent: null,
 					clusterTotal: null,
