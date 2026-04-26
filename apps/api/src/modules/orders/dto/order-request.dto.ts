@@ -39,9 +39,9 @@ class CalculateOrderRequestDto {
 	strategy: GenerationStrategy;
 }
 
-class DownloadOrderRequestDto {
+class LoadOrderRequestDto {
 	@ApiProperty({
-		description: 'Order ID for download',
+		description: 'Order ID for load',
 		example: 123
 	})
 	@Type(() => Number)
@@ -61,4 +61,15 @@ class DeleteOrderRequestDto {
 	id: number;
 }
 
-export { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto };
+class DownloadOrderRequestDto {
+	@ApiProperty({
+		description: 'Order ID to download',
+		example: 123
+	})
+	@Type(() => Number)
+	@IsInt()
+	@Validate(OrderHasOutputValidator)
+	id: number;
+}
+
+export { CreateOrderRequestDto, CalculateOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto };

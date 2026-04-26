@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse, ApiError } from '@google/genai';
 import { parallelMap } from '@/utils/parallel-map';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
@@ -62,38 +62,6 @@ class GeminiService extends AbstractLlmService {
 		}
 
 		this.ai = new GoogleGenAI({ apiKey: config.options.apiKey });
-	}
-
-	/**
-	 * Обёртка над generateContent с автоматическим retry при 429.
-	 * Читает retryDelay из ответа Google и ждёт точно столько сколько сказано.
-	 */
-	private async generateContent(params: Parameters<typeof this.ai.models.generateContent>[0]): Promise<ReturnType<typeof this.ai.models.generateContent>> {
-		const MAX_RETRIES = 3;
-		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-			try {
-				return await this.ai.models.generateContent(params);
-			} catch (err) {
-				const status = (err as Record<string, unknown>)?.status as number | undefined
-					?? ((err as Record<string, unknown>)?.error as Record<string, unknown>)?.code as number | undefined;
-
-				if (status !== 429) throw err;
-
-				const errObj = err as Record<string, unknown>;
-				const details = (errObj?.error as Record<string, unknown>)?.details as Record<string, unknown>[] | undefined;
-				const retryInfo = details?.find(d => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo');
-				const retryDelayStr = retryInfo?.['retryDelay'] as string | undefined;
-				const retryDelayMs = retryDelayStr ? parseFloat(retryDelayStr) * 1000 : 10000;
-
-				if (attempt === MAX_RETRIES) {
-					throw new Error(`AI rate limit exceeded, please try again in ${Math.ceil(retryDelayMs / 1000)} seconds`);
-				}
-
-				this.logger.warn(`generateContent: 429 rate limit, waiting ${retryDelayMs}ms before retry ${attempt}/${MAX_RETRIES}`);
-				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-			}
-		}
-		throw new Error('generateContent: unreachable');
 	}
 
 	/**
@@ -223,6 +191,45 @@ Instructions:
 	}
 
 	/**
+	 * Builds a cache strategy for a cluster.
+	 * If the content is large enough, creates a Gemini context cache and returns a strategy
+	 * that injects cachedContent into every request config and prepends nothing to prompts.
+	 * If the content is too small (min_total_token_count not met), falls back to a strategy
+	 * that injects systemInstruction and prepends pagesText to every prompt.
+	 */
+	private async createCacheStrategy(model: string, systemInstruction: string, pagesText: string, baseConfig: Record<string, unknown>): Promise<{
+		config: Record<string, unknown>;
+		getContents: (prompt: string) => string;
+		dispose: () => Promise<void>;
+		refreshIfNeeded: () => void;
+	}> {
+		try {
+			const cached = await this.ai.caches.create({
+				model,
+				config: { ttl: GeminiService.CACHE_TTL, systemInstruction, contents: `Pages:\n${pagesText}` }
+			});
+			this.logger.debug(`createCacheStrategy: created cache "${cached.name}"`);
+			return {
+				config: { ...baseConfig, cachedContent: cached.name },
+				getContents: (prompt: string) => prompt,
+				dispose: async () => { await this.ai.caches.delete({ name: cached.name }).catch(() => { }); },
+				refreshIfNeeded: () => { void this.ai.caches.update({ name: cached.name, config: { ttl: GeminiService.CACHE_TTL } }).catch(() => { }); }
+			};
+		} catch (err) {
+			if (err instanceof ApiError && err.status === 400 && err.message.includes('min_total_token_count')) {
+				this.logger.debug(`createCacheStrategy: content too small, falling back to inline context`);
+				return {
+					config: { ...baseConfig, systemInstruction },
+					getContents: prompt => `Pages:\n${pagesText}\n\n${prompt}`,
+					dispose: () => Promise.resolve(),
+					refreshIfNeeded: () => { }
+				};
+			}
+			throw err;
+		}
+	}
+
+	/**
 	 * Генерирует md-блоки для кластера страниц.
 	 * Шаг 1: кэшируем весь контент кластера в Google, узнаём section_name/description/total_pages.
 	 * Шаг 2: для каждой страницы 2 запроса последовательно (meta JSON + md_content plain text),
@@ -245,28 +252,15 @@ Instructions:
 			thinkingConfig: { thinkingBudget: 0 }
 		};
 
-		const cachedContent = await this.ai.caches.create({
-			model: this.config.modelName,
-			config: {
-				ttl: GeminiService.CACHE_TTL,
-				systemInstruction: 'You are analyzing a group of semantically related web pages. Create a documentation section for this group.',
-				contents: `Pages:\n${pagesText}`
-			}
-		});
-
-		this.logger.debug(`generateClusterContent: created cache "${cachedContent.name}" for ${pages.length} pages`);
-
-		const cachedConfig = { ...baseConfig, cachedContent: cachedContent.name };
+		const systemInstruction = 'You are analyzing a group of semantically related web pages. Create a documentation section for this group.';
+		const strategy = await this.createCacheStrategy(this.config.modelName, systemInstruction, pagesText, baseConfig);
 
 		try {
 			// Шаг 1: узнаём section_name, description и total_pages
 			const initResponse = await this.generateContent({
 				model: this.config.modelName,
-				contents: INIT_PROMPT,
-				config: {
-					...cachedConfig,
-					responseSchema: INIT_RESPONSE_SCHEMA
-				}
+				contents: strategy.getContents(INIT_PROMPT),
+				config: { ...strategy.config, responseSchema: INIT_RESPONSE_SCHEMA }
 			});
 
 			this.logger.debug(formatUsage('generateClusterContent init', initResponse));
@@ -283,13 +277,13 @@ Instructions:
 			const allPages = await parallelMap(pageNums, async (pageNum: number, slotIndex: number) => {
 				await new Promise(resolve => setTimeout(resolve, slotIndex * SLOT_DELAY_MS));
 
-				void this.ai.caches.update({ name: cachedContent.name, config: { ttl: GeminiService.CACHE_TTL } }).catch(() => { });
+				strategy.refreshIfNeeded();
 
 				// Запрос 1: filename, title, summary
 				const metaResponse = await this.generateContent({
 					model: this.config.modelName,
-					contents: `Generate page ${pageNum} of your documentation plan for this section. Return only filename (lowercase with hyphens, no extension, unique within section), title, and one-line summary.`,
-					config: { ...cachedConfig, responseSchema: PAGE_META_RESPONSE_SCHEMA }
+					contents: strategy.getContents(`Generate page ${pageNum} of your documentation plan for this section. Return only filename (lowercase with hyphens, no extension, unique within section), title, and one-line summary.`),
+					config: { ...strategy.config, responseSchema: PAGE_META_RESPONSE_SCHEMA }
 				});
 				this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} meta`, metaResponse));
 
@@ -298,8 +292,8 @@ Instructions:
 				// Запрос 2: md_content как plain text
 				const contentResponse = await this.generateContent({
 					model: this.config.modelName,
-					contents: `Generate the md_content for page ${pageNum} ("${meta.filename}") of your documentation plan. Return only the raw markdown text — no JSON, no code blocks, no explanation.`,
-					config: { ...cachedConfig, responseMimeType: 'text/plain' }
+					contents: strategy.getContents(`Generate the md_content for page ${pageNum} ("${meta.filename}") of your documentation plan. Return only the raw markdown text — no JSON, no code blocks, no explanation.`),
+					config: { ...strategy.config, responseMimeType: 'text/plain' }
 				});
 				this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} content`, contentResponse));
 
@@ -310,7 +304,7 @@ Instructions:
 				const result = { ...meta, md_content, truncated };
 				if (onPageProgress) await onPageProgress(++pagesCompleted, total_pages);
 				return result;
-			}, 10);
+			}, this.config.options.llmConcurrency);
 
 			const truncatedPages = allPages
 				.filter((p): p is ClusterPageOutput & { truncated: true } => (p as { truncated: boolean }).truncated)
@@ -323,8 +317,46 @@ Instructions:
 			const outputPages: ClusterPageOutput[] = allPages.map(({ truncated: _t, ...p }) => p);
 			return { section_name, description, pages: outputPages, truncatedPages };
 		} finally {
-			await this.ai.caches.delete({ name: cachedContent.name }).catch(() => { });
+			await strategy.dispose();
 		}
+	}
+
+	/**
+	 * Обёртка над generateContent с автоматическим retry при 429.
+	 * Читает retryDelay из ответа Google и ждёт точно столько сколько сказано.
+	 */
+	private async generateContent(params: Parameters<typeof this.ai.models.generateContent>[0]): Promise<ReturnType<typeof this.ai.models.generateContent>> {
+		const MAX_RETRIES = 3;
+		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+			try {
+				return await this.ai.models.generateContent(params);
+			} catch (err) {
+				const status = (err as Record<string, unknown>)?.status as number | undefined
+					?? ((err as Record<string, unknown>)?.error as Record<string, unknown>)?.code as number | undefined;
+
+				if (status !== 429 && status !== 503) throw err;
+
+				let retryDelayMs: number;
+				if (status === 429) {
+					const errObj = err as Record<string, unknown>;
+					const details = (errObj?.error as Record<string, unknown>)?.details as Record<string, unknown>[] | undefined;
+					const retryInfo = details?.find(d => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo');
+					const retryDelayStr = retryInfo?.['retryDelay'] as string | undefined;
+					retryDelayMs = retryDelayStr ? parseFloat(retryDelayStr) * 1000 : 10000;
+				} else {
+					retryDelayMs = 5000 * attempt;
+				}
+				retryDelayMs += Math.random() * 3000;
+
+				if (attempt === MAX_RETRIES) {
+					throw new Error(`AI service unavailable (${status}), please try again in ${Math.ceil(retryDelayMs / 1000)} seconds`);
+				}
+
+				this.logger.warn(`generateContent: ${status} error, waiting ${retryDelayMs}ms before retry ${attempt}/${MAX_RETRIES}`);
+				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+			}
+		}
+		throw new Error('generateContent: unreachable');
 	}
 }
 

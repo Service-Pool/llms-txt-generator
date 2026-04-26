@@ -6,6 +6,7 @@ import {
 	UnauthorizedException,
 	Logger
 } from '@nestjs/common';
+import { strToU8, zipSync } from 'fflate';
 import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { QueueManagerService } from '@/modules/queue/services/queue-manager.service';
 import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
@@ -615,6 +616,49 @@ class OrdersService {
 			// Log error for monitoring
 			this.logger.error(`Failed to sync payment status for order ${order.id}:`, error);
 		}
+	}
+
+	/**
+	 * Build download archive for a completed order.
+	 * For clustered strategy: ZIP with llms.txt + section md files, pathPrefix applied to links.
+	 * For flat strategy: plain llms.txt buffer.
+	 */
+	public async buildDownload(orderId: number, pathPrefix: string): Promise<{ filename: string; contentType: string; buffer: Buffer }> {
+		const order = await this.getUserOrder(orderId);
+		const raw = order.output ?? '';
+		const prefix = pathPrefix ? pathPrefix.replace(/\/+$/, '') : '';
+
+		if (order.strategy !== GenerationStrategy.CLUSTERED) {
+			return {
+				filename: `llms-${order.hostname}.txt`,
+				contentType: 'text/plain; charset=utf-8',
+				buffer: Buffer.from(raw, 'utf-8')
+			};
+		}
+
+		const files: Record<string, Uint8Array> = {};
+
+		// Extract md blocks and store as individual files
+		const mdBlockRegex = /^- \[[^\]]*\]\(([^)]+)\)[^\n]*\n<!-- md -->\n([\s\S]*?)\n<!-- \/md -->/gm;
+		let match: RegExpExecArray | null;
+		while ((match = mdBlockRegex.exec(raw)) !== null) {
+			const zipKey = match[1].replace(/^\//, ''); // strip leading slash
+			files[zipKey] = strToU8(match[2]);
+		}
+
+		// Build llms.txt: strip md blocks, optionally apply pathPrefix to md links
+		let llmsTxt = raw.replace(/\n<!-- md -->\n[\s\S]*?\n<!-- \/md -->/g, '');
+		if (prefix) {
+			// (/section/file.md) → (prefix/section/file.md)
+			llmsTxt = llmsTxt.replace(/\(\/([\w-]+\/[\w.-]+\.md)\)/g, `(${prefix}/$1)`);
+		}
+		files['llms.txt'] = strToU8(llmsTxt);
+
+		return {
+			filename: `llms-${order.hostname}.zip`,
+			contentType: 'application/zip',
+			buffer: Buffer.from(zipSync(files))
+		};
 	}
 
 	/**

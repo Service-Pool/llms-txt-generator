@@ -1,10 +1,11 @@
 import { ApiResponse } from '@/utils/response/api-response';
 import { HttpStatus } from '@/enums/response-code.enum';
-import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete, Res } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
+import { CreateOrderRequestDto, CalculateOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
-import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto } from '@/modules/orders/dto/order-response.dto';
+import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto } from '@/modules/orders/dto/order-response.dto';
 import { OrdersService } from '@/modules/orders/services/orders.service';
 import { CanonicalizeHostnamePipe } from '@/modules/orders/pipes/canonicalize-hostname.pipe';
 
@@ -131,20 +132,50 @@ class OrdersController {
 	}
 
 	/**
-	 * Download llms.txt file for completed order
-	 * GET /api/orders/:id/download
+	 * Load full output content for completed order
+	 * GET /api/orders/:id/load
 	 */
-	@ApiOperation({ summary: 'Download llms.txt file', description: 'Downloads the generated llms.txt file for a completed order' })
+	@ApiOperation({ summary: 'Load order output', description: 'Loads the full generated output content for a completed order' })
 	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
 	@SwaggerResponse({
 		status: HttpStatus.OK,
-		schema: ApiResponse.getSuccessSchema(DownloadOrderResponseDto)
+		schema: ApiResponse.getSuccessSchema(LoadOrderOutputDto)
+	})
+	@Get(':id/load')
+	@HttpCode(HttpStatus.OK)
+	public async loadOutput(@Param() dto: LoadOrderRequestDto): Promise<ApiResponse<LoadOrderOutputDto>> {
+		const order = await this.ordersService.getUserOrder(dto.id);
+		return ApiResponse.success(LoadOrderOutputDto.create(order.output ?? ''));
+	}
+
+	/**
+	 * Download order output as archive
+	 * GET /api/orders/:id/download?pathPrefix=...
+	 */
+	@ApiOperation({ summary: 'Download order output', description: 'Downloads generated output as ZIP archive (clustered) or plain txt (flat). pathPrefix is prepended to .md file links in llms.txt.' })
+	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
+	@ApiQuery({ name: 'pathPrefix', required: false, description: 'URL prefix prepended to .md links, e.g. /docs' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		description: 'ZIP archive (clustered strategy) or plain text file (flat strategy)',
+		content: {
+			'application/zip': { schema: { type: 'string', format: 'binary' } },
+			'text/plain': { schema: { type: 'string' } }
+		}
 	})
 	@Get(':id/download')
 	@HttpCode(HttpStatus.OK)
-	public async downloadLlmsTxt(@Param() dto: DownloadOrderRequestDto): Promise<ApiResponse<DownloadOrderResponseDto>> {
-		const order = await this.ordersService.getUserOrder(dto.id);
-		return ApiResponse.success(DownloadOrderResponseDto.create(`llms-${order.hostname}.txt`, order.output));
+	public async downloadOutput(
+		@Param() dto: DownloadOrderRequestDto,
+		@Query('pathPrefix') pathPrefix: string = '',
+		@Res() reply: FastifyReply
+	): Promise<void> {
+		const { filename, contentType, buffer } = await this.ordersService.buildDownload(dto.id, pathPrefix);
+		reply
+			.header('Content-Type', contentType)
+			.header('Content-Disposition', `attachment; filename="${filename}"`)
+			.header('Content-Length', buffer.length)
+			.send(buffer);
 	}
 
 	/**

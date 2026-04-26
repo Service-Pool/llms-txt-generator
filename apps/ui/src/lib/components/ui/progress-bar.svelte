@@ -14,6 +14,17 @@
 	let { current = 0, total = 100, showNumbers = true, showPercentage = true, size = 'h-2.5', label }: Props = $props();
 
 	const percentage = $derived(total > 0 ? Math.round((current / total) * 100) : 0);
+
+	let prevPercentage = $state(0);
+	let animate = $state(true);
+
+	$effect(() => {
+		if (percentage < prevPercentage) {
+			animate = false;
+			requestAnimationFrame(() => { animate = true; });
+		}
+		prevPercentage = percentage;
+	});
 </script>
 
 <div class="w-full">
@@ -23,7 +34,7 @@
 				<span>
 					{#if label}{label}{/if}
 					{#if showNumbers}
-						{#if label}{/if}{current}/{total}
+						{#if label}{/if}{current} of {total}
 					{/if}
 				</span>
 			{:else}
@@ -37,7 +48,7 @@
 
 	<Progressbar
 		tweenDuration={400}
-		animate={true}
+		{animate}
 		labelInside={false}
 		progress={percentage.toString()}
 		{size}

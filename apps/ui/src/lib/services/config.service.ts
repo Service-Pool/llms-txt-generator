@@ -82,7 +82,8 @@ class ConfigService {
 			availableModels: (id: number) => `/api/orders/${id}/available-models`,
 			calculate: (id: number) => `/api/orders/${id}/calculate`,
 			run: (id: number) => `/api/orders/${id}/run`,
-			download: (id: number) => `/api/orders/${id}/download`
+			load: (id: number) => `/api/orders/${id}/load`,
+			download: (id: number, pathPrefix: string | null) => `/api/orders/${id}/download?pathPrefix=${encodeURIComponent(pathPrefix ?? '')}`
 		},
 		payments: {
 			checkout: (orderId: number) => `/api/orders/${orderId}/payment/checkout`,
@@ -162,11 +163,20 @@ class ConfigService {
 			enabled: true
 		},
 		{
-			id: StepActionIdEnum.Download,
+			id: StepActionIdEnum.Load,
 			icon: DownloadSolid,
 			label: 'Download',
 			description: 'Download generated content',
 			color: 'indigo',
+			hateoasActions: [HateoasAction.LOAD],
+			enabled: true
+		},
+		{
+			id: StepActionIdEnum.Download,
+			icon: DownloadSolid,
+			label: 'Download',
+			description: 'Download generated content as archive',
+			color: 'green',
 			hateoasActions: [HateoasAction.DOWNLOAD],
 			enabled: true
 		},

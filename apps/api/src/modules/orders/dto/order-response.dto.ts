@@ -108,10 +108,15 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 
 		case OrderStatus.COMPLETED:
 			if (entity.output) {
-				links[HateoasAction.DOWNLOAD] = {
-					href: `/api/orders/${entity.id}/output`,
+				links[HateoasAction.LOAD] = {
+					href: `/api/orders/${entity.id}/load`,
 					method: 'GET',
-					description: 'Download generated llms.txt'
+					description: 'Load full generated output content'
+				};
+				links[HateoasAction.DOWNLOAD] = {
+					href: `/api/orders/${entity.id}/download`,
+					method: 'GET',
+					description: 'Download generated output as ZIP archive'
 				};
 			}
 			break;
@@ -253,7 +258,7 @@ class CreateOrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.attributes = CreateOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
-		dto._links = json._links as Record<string, HateoasLink>;
+		dto._links = json._links;
 		return dto;
 	}
 }
@@ -442,7 +447,7 @@ class OrderResponseDto {
 		description: 'HATEOAS navigation links based on order status',
 		example: {
 			self: { href: '/api/orders/123', method: 'GET' },
-			download: { href: '/api/orders/123/output', method: 'GET' }
+			load: { href: '/api/orders/123/output', method: 'GET' }
 		}
 	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
@@ -457,58 +462,50 @@ class OrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.attributes = OrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
-		dto._links = json._links as Record<string, HateoasLink>;
+		dto._links = json._links;
 		return dto;
 	}
 }
 
 /**
- * Attributes for DownloadOrderResponseDto
+ * Attributes for LoadOrderOutputDto
  */
-class DownloadOrderAttributes {
-	@ApiProperty({
-		description: 'Downloaded file name',
-		example: 'llms-example.com.txt'
-	})
-	filename: string;
-
+class LoadOrderOutputAttributes {
 	@ApiProperty({
 		description: 'File content',
 		example: 'Generated llms.txt content...'
 	})
 	content: string;
 
-	public static create(filename: string, content: string): DownloadOrderAttributes {
-		const attrs = new DownloadOrderAttributes();
-		attrs.filename = filename;
+	public static create(content: string): LoadOrderOutputAttributes {
+		const attrs = new LoadOrderOutputAttributes();
 		attrs.content = content;
 		return attrs;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): DownloadOrderAttributes {
-		const attrs = new DownloadOrderAttributes();
-		attrs.filename = json.filename as string;
+	public static fromJSON(json: Record<string, unknown>): LoadOrderOutputAttributes {
+		const attrs = new LoadOrderOutputAttributes();
 		attrs.content = json.content as string;
 		return attrs;
 	}
 }
 
-class DownloadOrderResponseDto {
+class LoadOrderOutputDto {
 	@ApiProperty({
-		description: 'Download attributes',
-		type: DownloadOrderAttributes
+		description: 'Load attributes',
+		type: LoadOrderOutputAttributes
 	})
-	attributes: DownloadOrderAttributes;
+	attributes: LoadOrderOutputAttributes;
 
-	public static create(filename: string, content: string): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.attributes = DownloadOrderAttributes.create(filename, content);
+	public static create(content: string): LoadOrderOutputDto {
+		const dto = new LoadOrderOutputDto();
+		dto.attributes = LoadOrderOutputAttributes.create(content);
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.attributes = DownloadOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
+	public static fromJSON(json: Record<string, unknown>): LoadOrderOutputDto {
+		const dto = new LoadOrderOutputDto();
+		dto.attributes = LoadOrderOutputAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		return dto;
 	}
 }
@@ -582,4 +579,4 @@ class OrdersListResponseDto {
 	}
 }
 
-export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto };
+export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto };

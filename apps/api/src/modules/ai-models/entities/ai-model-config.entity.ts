@@ -5,6 +5,7 @@ interface AiModelOptions {
 	baseUrl?: string;
 	temperature: number;
 	maxTokens: number;
+	llmConcurrency: number;
 }
 
 /**

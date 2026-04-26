@@ -3,7 +3,7 @@
 	import type { Component } from 'svelte';
 	import type { ActionRendererPropsInterface } from '$lib/domain/order';
 	import { OrderStatusMachine, StepActionIdEnum } from '$lib/domain/order';
-	import { CalculateAction, PaymentAction, RunAction, DownloadAction, DeleteAction } from '$lib/components/order';
+	import { CalculateAction, PaymentAction, RunAction, LoadAction, DownloadAction, DeleteAction } from '$lib/components/order';
 
 	interface Props {
 		order: OrderResponseDto;
@@ -42,6 +42,8 @@
 		<PaymentAction {order} {transition} {renderer} class={className} {onOpenPaymentModal} />
 	{:else if transition.id === StepActionIdEnum.Run}
 		<RunAction {order} {transition} {renderer} class={className} />
+	{:else if transition.id === StepActionIdEnum.Load}
+		<LoadAction {order} {transition} {renderer} class={className} />
 	{:else if transition.id === StepActionIdEnum.Download}
 		<DownloadAction {order} {transition} {renderer} class={className} />
 	{:else if transition.id === StepActionIdEnum.Delete}

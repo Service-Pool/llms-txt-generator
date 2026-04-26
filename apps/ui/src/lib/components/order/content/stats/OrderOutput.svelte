@@ -17,14 +17,20 @@
 
 	let { order, class: className = '' }: Props = $props();
 
-	let downloadData = $state<{ content: string; filename: string } | null>(null);
+	let downloadData = $state<{ content: string } | null>(null);
 	let isLoadingOutput = $state(false);
 	let isCopying = $state(false);
-	let isDownloading = $state(false);
 	let copySuccess = $state(false);
 	let wrapText = $state(false);
+	let openBlocks = $state(new Set<string>());
 
-	const hasDownloadAction = $derived(ordersService.hasAction(order, HateoasAction.DOWNLOAD));
+	const toggleBlock = (key: string) => {
+		const next = new Set(openBlocks);
+		next.has(key) ? next.delete(key) : next.add(key);
+		openBlocks = next;
+	};
+
+	const hasDownloadAction = $derived(ordersService.hasAction(order, HateoasAction.LOAD));
 
 	interface Block {
 		title: string;
@@ -134,7 +140,7 @@
 		if (downloadData !== null || isLoadingOutput) return;
 		isLoadingOutput = true;
 		try {
-			const response = await ordersService.download(order.attributes.id);
+			const response = await ordersService.load(order.attributes.id);
 			downloadData = response.getData().attributes;
 		} finally {
 			isLoadingOutput = false;
@@ -155,27 +161,7 @@
 		}
 	};
 
-	const handleDownloadClick = async () => {
-		if (!order.attributes.output) return;
-		isDownloading = true;
-		try {
-			await loadFullOutput();
-			const content = downloadData?.content;
-			if (content && downloadData?.filename) {
-				const blob = new Blob([content], { type: 'text/plain' });
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				a.href = url;
-				a.download = downloadData.filename;
-				document.body.appendChild(a);
-				a.click();
-				window.URL.revokeObjectURL(url);
-				document.body.removeChild(a);
-			}
-		} finally {
-			isDownloading = false;
-		}
-	};
+	const handleDownloadClick = () => ordersService.downloadArchive(order.attributes.id);
 </script>
 
 {#if hasDownloadAction}
@@ -205,7 +191,6 @@
 					color="light"
 					class="p-5 w-8 h-8 rounded-full border-none bg-inherit"
 					onclick={handleDownloadClick}
-					disabled={isDownloading}
 				>
 					<DownloadOutline size="md" class="text-gray-800 dark:text-white" />
 				</Button>
@@ -241,7 +226,7 @@
 					</div>
 				{/each}
 
-				{#each parsed.sections as section}
+				{#each parsed.sections as section, si}
 					<div class="line">
 						<span class="ln"></span>
 						<span></span>
@@ -256,22 +241,32 @@
 							<span class="muted">{ln}</span>
 						</div>
 					{/each}
-					{#each section.blocks as block}
+					{#each section.blocks as block, bi}
 						{#if block.content}
-							<details class="block md-block">
-								<summary class="line cursor-pointer list-none">
-									<span class="ln fold-ln"></span>
+							{@const key = `${si}-${bi}`}
+							{@const isOpen = openBlocks.has(key)}
+							<div class="block md-block" class:open={isOpen}>
+								<div class="line">
+									<span
+										class="ln fold-ln cursor-pointer"
+										role="button"
+										tabindex="0"
+										onclick={() => toggleBlock(key)}
+										onkeydown={(e) => e.key === 'Enter' && toggleBlock(key)}
+									></span>
 									<span class="text">{block.title}</span>
-								</summary>
-								<div class="md-content">
-									{#each block.content.split('\n') as ln}
-										<div class="line">
-											<span class="ln"></span>
-											<span class="content muted">{ln}</span>
-										</div>
-									{/each}
 								</div>
-							</details>
+								{#if isOpen}
+									<div class="md-content">
+										{#each block.content.split('\n') as ln}
+											<div class="line">
+												<span class="ln"></span>
+												<span class="content muted">{ln}</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						{:else}
 							<div class="line">
 								<span class="ln"></span>
@@ -366,7 +361,7 @@
 		background: var(--c-chevron) no-repeat center / contain;
 		vertical-align: middle;
 	}
-	details[open] summary .fold-ln::after {
+	.open .fold-ln::after {
 		background-image: var(--c-chevron-open);
 	}
 
@@ -375,11 +370,11 @@
 		padding-left: 1rem;
 	}
 
-	details[open].md-block > summary {
+	.open.md-block > .line {
 		border-top: 1px solid var(--c-block-br);
 		background: var(--c-block-bg);
 	}
-	details[open].md-block + details[open].md-block > summary {
+	.open.md-block + .open.md-block > .line {
 		border-top: none;
 	}
 	.md-content {

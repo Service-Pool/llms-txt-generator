@@ -2,7 +2,7 @@ import {
 	CreateOrderResponseDto,
 	OrderResponseDto,
 	OrdersListResponseDto,
-	DownloadOrderResponseDto
+	LoadOrderOutputDto
 } from '@/modules/orders/dto/order-response.dto';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { StatsResponseDto } from '@/modules/stats/dto/stats-response.dto';
@@ -167,7 +167,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
 		extraModels: [
 			AiModelResponseDto,
 			CreateOrderResponseDto,
-			DownloadOrderResponseDto,
+			LoadOrderOutputDto,
 			OrderResponseDto,
 			OrdersListResponseDto,
 			StatsResponseDto,

@@ -70,7 +70,8 @@ const aiModelConfigSchema = Joi.object({
 		apiKey: Joi.string().optional(),
 		baseUrl: Joi.string().optional(),
 		temperature: Joi.number().min(0).max(2).required(),
-		maxTokens: Joi.number().positive().required()
+		maxTokens: Joi.number().positive().required(),
+		llmConcurrency: Joi.number().positive().required()
 	}).required()
 });
 
