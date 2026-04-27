@@ -48,11 +48,11 @@ services:
     # - "9001:9001"  # Supervisor web UI (internal only)
     # - "9002:9002"  # Multivisor RPC (internal only)
     healthcheck:
-      test: ["CMD", "test", "-S", "/var/run/supervisor/supervisor.sock"]
+      test: [ "CMD", "test", "-S", "/var/run/supervisor/supervisor.sock" ]
       interval: 2s
-      timeout: 3s
+      timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 10s
     networks:
       npm-network:
 

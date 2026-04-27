@@ -43,6 +43,7 @@ interface ValidatedEnv {
 	STRIPE_WEBHOOK_SECRET: string;
 	THROTTLE_LIMIT: number;
 	THROTTLE_TTL: number;
+	CRAWL_CONCURRENCY: number;
 }
 
 const queueConfigSchema = Joi.object({
@@ -106,8 +107,9 @@ const validationSchema = Joi.object<ValidatedEnv>({
 	STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
 	STRIPE_SECRET_KEY: Joi.string().required(),
 	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
-	THROTTLE_LIMIT: Joi.number().integer().min(1).default(10),
-	THROTTLE_TTL: Joi.number().integer().min(1).default(60)
+	THROTTLE_LIMIT: Joi.number().integer().min(1),
+	THROTTLE_TTL: Joi.number().integer().min(1),
+	CRAWL_CONCURRENCY: Joi.number().integer().positive()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -305,6 +307,8 @@ class AppConfigService {
 		model: env.GEMINI_EMBEDDING_MODEL,
 		batchSize: env.GEMINI_EMBEDDING_BATCH_SIZE
 	};
+
+	public readonly crawlConcurrency: number = env.CRAWL_CONCURRENCY;
 }
 
 // DataSource for TypeORM CLI (migrations)

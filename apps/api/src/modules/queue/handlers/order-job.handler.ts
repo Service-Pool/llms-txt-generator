@@ -54,7 +54,7 @@ class OrderJobHandler {
 		try {
 			this.logger.log(`Processing order ${orderId} with strategy "${order.strategy}"`);
 
-			const output = await strategy.execute(order, provider, modelConfig.batchSize, job, job.attemptsMade + 1);
+			const output = await strategy.execute(order, provider, modelConfig, job, job.attemptsMade + 1);
 
 			await this.orderRepository.update(orderId, {
 				output,

@@ -6,6 +6,8 @@ import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter
 import { OrdersService } from '@/modules/orders/services/orders.service';
 import type { Order } from '@/modules/orders/entities/order.entity';
 import type { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { AppConfigService } from '@/config/config.service';
 
 @Injectable()
 class FlatStrategy implements IGenerationStrategy {
@@ -13,10 +15,13 @@ class FlatStrategy implements IGenerationStrategy {
 
 	constructor(
 		private readonly pageProcessor: PageProcessorFlat,
-		private readonly ordersService: OrdersService
+		private readonly ordersService: OrdersService,
+		private readonly configService: AppConfigService
 	) { }
 
-	public async execute(order: Order, provider: AbstractLlmService, batchSize: number, job: Job, attempt: number): Promise<string> {
+	public async execute(order: Order, provider: AbstractLlmService, modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
+		const { batchSize } = modelConfig;
+		const crawlConcurrency = this.configService.crawlConcurrency;
 		await this.ordersService.updateProgress(order.id, {
 			step: 'Crawling',
 			attempt,
@@ -34,7 +39,7 @@ class FlatStrategy implements IGenerationStrategy {
 			provider,
 			batchSize,
 			order.totalUrls,
-			10,
+			crawlConcurrency,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.url}: ${page.error}`);

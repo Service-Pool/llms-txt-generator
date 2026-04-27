@@ -8,6 +8,8 @@ import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import type { Order } from '@/modules/orders/entities/order.entity';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter';
+import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
+import { AppConfigService } from '@/config/config.service';
 
 type ClusterSection = Awaited<ReturnType<AbstractLlmService['generateClusterContent']>>;
 
@@ -18,10 +20,12 @@ class ClusteredStrategy implements IGenerationStrategy {
 	constructor(
 		private readonly pageProcessor: PageProcessorClustered,
 		private readonly ordersService: OrdersService,
-		private readonly cacheService: CacheService
+		private readonly cacheService: CacheService,
+		private readonly configService: AppConfigService
 	) {}
 
-	public async execute(order: Order, provider: AbstractLlmService, _batchSize: number, job: Job, attempt: number): Promise<string> {
+	public async execute(order: Order, provider: AbstractLlmService, _modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
+		const crawlConcurrency = this.configService.crawlConcurrency;
 		const hashKey = this.pageProcessor.buildHashKey(order.modelId, order.hostname);
 		const setProgress = (fields: Omit<Parameters<typeof this.ordersService.updateProgress>[1], 'attempt'>) =>
 			this.ordersService.updateProgress(order.id, { ...fields, attempt });
@@ -34,7 +38,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 			order.hostname,
 			order.modelId,
 			order.totalUrls,
-			10,
+			crawlConcurrency,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.path}: ${page.error}`);
