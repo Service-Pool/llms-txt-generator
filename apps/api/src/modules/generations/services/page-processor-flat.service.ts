@@ -5,7 +5,7 @@ import { ContentExtractionService } from '@/modules/content/services/content-ext
 import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
-import { parallelMap } from '@/utils/parallel-map';
+import { Utils } from '@/utils/utils';
 
 /**
  * Сервис потоковой обработки страниц для Flat стратегии.
@@ -68,7 +68,7 @@ class PageProcessorFlat {
 			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
 
 			const fetchedPages = urlsToFetch.length > 0
-				? await parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
+				? await Utils.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
 				: [];
 
 			const allBatchPages = [...cachedPages, ...fetchedPages];

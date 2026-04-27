@@ -6,7 +6,7 @@ import { EmbeddingService } from '@/modules/generations/services/models/embeddin
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
-import { parallelMap } from '@/utils/parallel-map';
+import { Utils } from '@/utils/utils';
 
 interface PageVector {
 	path: string;
@@ -81,7 +81,7 @@ class PageProcessorClustered {
 		for (let i = 0; i < urlsToFetch.length; i += batchSize) {
 			const batchUrls = urlsToFetch.slice(i, i + batchSize);
 
-			const batchAll = await parallelMap(batchUrls, url => this.fetchContent(url), concurrency);
+			const batchAll = await Utils.parallelMap(batchUrls, url => this.fetchContent(url), concurrency);
 			const batchSuccess = batchAll.filter(p => p.isSuccess());
 
 			if (batchSuccess.length > 0) {

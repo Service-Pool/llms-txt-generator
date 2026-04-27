@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse, ApiError } from '@google/genai';
-import { parallelMap } from '@/utils/parallel-map';
+import { Utils } from '@/utils/utils';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
@@ -265,8 +265,9 @@ Instructions:
 
 			this.logger.debug(formatUsage('generateClusterContent init', initResponse));
 
-			const { section_name, description, total_pages }
+			const { section_name: raw_section_name, description, total_pages }
 				= this.parseJsonResponse<{ section_name: string; description: string; total_pages: number }>(initResponse.text, 1);
+			const section_name = Utils.slugify(raw_section_name);
 
 			this.logger.log(`generateClusterContent: section="${section_name}" total_pages=${total_pages} input_pages=${pages.length}`);
 
@@ -274,7 +275,7 @@ Instructions:
 			const pageNums = Array.from({ length: total_pages }, (_, i) => i + 1);
 			let pagesCompleted = 0;
 
-			const allPages = await parallelMap(pageNums, async (pageNum: number, slotIndex: number) => {
+			const allPages = await Utils.parallelMap(pageNums, async (pageNum: number, slotIndex: number) => {
 				await new Promise(resolve => setTimeout(resolve, slotIndex * SLOT_DELAY_MS));
 
 				strategy.refreshIfNeeded();
@@ -287,7 +288,8 @@ Instructions:
 				});
 				this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} meta`, metaResponse));
 
-				const meta = this.parseJsonResponse<{ filename: string; title: string; summary: string }>(metaResponse.text, 1);
+				const rawMeta = this.parseJsonResponse<{ filename: string; title: string; summary: string }>(metaResponse.text, 1);
+				const meta = { ...rawMeta, filename: Utils.slugify(rawMeta.filename) };
 
 				// Запрос 2: md_content как plain text
 				const contentResponse = await this.generateContent({

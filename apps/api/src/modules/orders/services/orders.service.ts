@@ -642,15 +642,16 @@ class OrdersService {
 		const mdBlockRegex = /^- \[[^\]]*\]\(([^)]+)\)[^\n]*\n<!-- md -->\n([\s\S]*?)\n<!-- \/md -->/gm;
 		let match: RegExpExecArray | null;
 		while ((match = mdBlockRegex.exec(raw)) !== null) {
-			const zipKey = match[1].replace(/^\//, ''); // strip leading slash
+			const relativePath = match[1].replace(/^\//, '');
+			const zipKey = prefix ? `${prefix}/${relativePath}` : relativePath;
 			files[zipKey] = strToU8(match[2]);
 		}
 
 		// Build llms.txt: strip md blocks, optionally apply pathPrefix to md links
 		let llmsTxt = raw.replace(/\n<!-- md -->\n[\s\S]*?\n<!-- \/md -->/g, '');
 		if (prefix) {
-			// (/section/file.md) → (prefix/section/file.md)
-			llmsTxt = llmsTxt.replace(/\(\/([\w-]+\/[\w.-]+\.md)\)/g, `(${prefix}/$1)`);
+			// (/section/file.md) → (/prefix/section/file.md)
+			llmsTxt = llmsTxt.replace(/\(\/([\w-]+\/[\w.-]+\.md)\)/g, `(/${prefix}/$1)`);
 		}
 		files['llms.txt'] = strToU8(llmsTxt);
 
