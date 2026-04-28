@@ -10,6 +10,7 @@ import { AbstractLlmService } from '@/modules/generations/services/models/abstra
 import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter';
 import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { AppConfigService } from '@/config/config.service';
+import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 type ClusterSection = Awaited<ReturnType<AbstractLlmService['generateClusterContent']>>;
 
@@ -26,6 +27,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 
 	public async execute(order: Order, provider: AbstractLlmService, _modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
 		const crawlConcurrency = this.configService.crawlConcurrency;
+		const crawlLimit = new AdaptiveLimit(crawlConcurrency);
 		const hashKey = this.pageProcessor.buildHashKey(order.modelId, order.hostname);
 		const setProgress = (fields: Omit<Parameters<typeof this.ordersService.updateProgress>[1], 'attempt'>) =>
 			this.ordersService.updateProgress(order.id, { ...fields, attempt });
@@ -37,8 +39,8 @@ class ClusteredStrategy implements IGenerationStrategy {
 		const pageVectors = await this.pageProcessor.processPages(
 			order.hostname,
 			order.modelId,
+			crawlLimit,
 			order.totalUrls,
-			crawlConcurrency,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.path}: ${page.error}`);

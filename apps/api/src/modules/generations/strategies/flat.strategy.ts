@@ -8,6 +8,7 @@ import type { Order } from '@/modules/orders/entities/order.entity';
 import type { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { AppConfigService } from '@/config/config.service';
+import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 @Injectable()
 class FlatStrategy implements IGenerationStrategy {
@@ -21,7 +22,7 @@ class FlatStrategy implements IGenerationStrategy {
 
 	public async execute(order: Order, provider: AbstractLlmService, modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
 		const { batchSize } = modelConfig;
-		const crawlConcurrency = this.configService.crawlConcurrency;
+		const crawlLimit = new AdaptiveLimit(this.configService.crawlConcurrency);
 		await this.ordersService.updateProgress(order.id, {
 			step: 'Crawling',
 			attempt,
@@ -38,8 +39,8 @@ class FlatStrategy implements IGenerationStrategy {
 			order.modelId,
 			provider,
 			batchSize,
+			crawlLimit,
 			order.totalUrls,
-			crawlConcurrency,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.url}: ${page.error}`);

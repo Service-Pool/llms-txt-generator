@@ -7,6 +7,7 @@ import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interfa
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
 import { Utils } from '@/utils/utils';
+import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 interface PageVector {
 	path: string;
@@ -38,8 +39,8 @@ class PageProcessorClustered {
 	public async processPages(
 		hostname: string,
 		modelId: string,
+		crawlLimit: AdaptiveLimit,
 		limit?: number,
-		concurrency: number = 10,
 		onProgress?: (processed: number, total: number, batchPages: ClusterPage[]) => Promise<void>
 	): Promise<PageVector[]> {
 		const hashKey = this.buildHashKey(modelId, hostname);
@@ -81,7 +82,15 @@ class PageProcessorClustered {
 		for (let i = 0; i < urlsToFetch.length; i += batchSize) {
 			const batchUrls = urlsToFetch.slice(i, i + batchSize);
 
-			const batchAll = await Utils.parallelMap(batchUrls, url => this.fetchContent(url), concurrency);
+			const batchAll = await Utils.parallelMap(batchUrls, async (url) => {
+				const page = await this.fetchContent(url);
+				if (page.isSuccess()) {
+					crawlLimit.onSuccess();
+				} else {
+					crawlLimit.onError();
+				}
+				return page;
+			}, crawlLimit.value);
 			const batchSuccess = batchAll.filter(p => p.isSuccess());
 
 			if (batchSuccess.length > 0) {

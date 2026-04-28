@@ -6,6 +6,7 @@ import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
 import { Utils } from '@/utils/utils';
+import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 /**
  * Сервис потоковой обработки страниц для Flat стратегии.
@@ -26,8 +27,8 @@ class PageProcessorFlat {
 		modelId: string,
 		llmProvider: AbstractLlmService,
 		batchSize: number,
+		crawlLimit: AdaptiveLimit,
 		limit?: number,
-		concurrency: number = 10,
 		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
 		const allPages: ProcessedPage[] = [];
@@ -67,9 +68,19 @@ class PageProcessorFlat {
 
 			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
 
-			const fetchedPages = urlsToFetch.length > 0
-				? await Utils.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency)
-				: [];
+			let fetchedPages: ProcessedPage[] = [];
+
+			if (urlsToFetch.length > 0) {
+				fetchedPages = await Utils.parallelMap(urlsToFetch, async (url) => {
+					const page = await this.fetchContent(url);
+					if (page.isSuccess()) {
+						crawlLimit.onSuccess();
+					} else {
+						crawlLimit.onError();
+					}
+					return page;
+				}, crawlLimit.value);
+			}
 
 			const allBatchPages = [...cachedPages, ...fetchedPages];
 
