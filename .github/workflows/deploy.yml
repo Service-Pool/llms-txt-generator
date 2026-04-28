@@ -33,7 +33,10 @@ jobs:
       #     docker image prune -af
       #     docker builder prune -af
       - name: Build .env
-        run: printf '%s' ${{ toJSON(vars.UI_ENV_FILE) }} | python3 -c "import sys,json; sys.stdout.write(json.load(sys.stdin))" > apps/ui/.devcontainer/mapped/.env
+        run: |
+          cat >> apps/ui/.devcontainer/mapped/.env << 'ENDOFENV'
+          ${{ vars.UI_ENV_FILE }}
+          ENDOFENV
       # - name: Deploy UI
       #   run: |
       #     set -euo pipefail
@@ -56,7 +59,10 @@ jobs:
       #     docker image prune -af
       #     docker builder prune -af
       - name: Build .env
-        run: printf '%s' ${{ toJSON(vars.API_ENV_FILE) }} | python3 -c "import sys,json; sys.stdout.write(json.load(sys.stdin))" > apps/api/.devcontainer/mapped/.env
+        run: |
+          cat >> apps/api/.devcontainer/mapped/.env << 'ENDOFENV'
+          ${{ vars.API_ENV_FILE }}
+          ENDOFENV
       # - name: Deploy API
       #   run: |
       #     set -euo pipefail
