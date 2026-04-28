@@ -6,7 +6,6 @@ on:
       branch:
         description: "Branch to deploy"
         required: true
-        default: "main"
       app:
         description: "Application to deploy"
         required: true
@@ -34,9 +33,7 @@ jobs:
       #     docker image prune -af
       #     docker builder prune -af
       - name: Build .env
-        env:
-          ENV_FILE: ${{ vars.UI_ENV_FILE }}
-        run: printf '%s' "$ENV_FILE" > apps/ui/.devcontainer/mapped/.env
+        run: printf '%s' ${{ toJSON(vars.UI_ENV_FILE) }} | python3 -c "import sys,json; sys.stdout.write(json.load(sys.stdin))" > apps/ui/.devcontainer/mapped/.env
       # - name: Deploy UI
       #   run: |
       #     set -euo pipefail
@@ -59,9 +56,7 @@ jobs:
       #     docker image prune -af
       #     docker builder prune -af
       - name: Build .env
-        env:
-          ENV_FILE: ${{ vars.API_ENV_FILE }}
-        run: printf '%s' "$ENV_FILE" > apps/api/.devcontainer/mapped/.env
+        run: printf '%s' ${{ toJSON(vars.API_ENV_FILE) }} | python3 -c "import sys,json; sys.stdout.write(json.load(sys.stdin))" > apps/api/.devcontainer/mapped/.env
       # - name: Deploy API
       #   run: |
       #     set -euo pipefail
