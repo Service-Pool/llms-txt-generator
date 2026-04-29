@@ -19,25 +19,45 @@ on:
   #   branches: [main]
 
 jobs:
-  deploy-ui:
-    if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
+  deploy:
     runs-on: [ self-hosted, ubuntu-4gb-hel1-1 ]
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
           ref: ${{ github.event.inputs.branch }}
       # - name: Cleanup Docker
       #   run: |
       #     docker image prune -af
       #     docker builder prune -af
-      - name: Build .env
+
+      - name: Build UI .env
+        if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
         run: |
           cat >> apps/ui/.devcontainer/mapped/.env << 'ENDOFENV'
           ${{ vars.UI_ENV_FILE }}
           ENDOFENV
+
+      - name: Build API .env
+        if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
+        env:
+          ENV_FILE: ${{ vars.API_ENV_FILE }}
+        run: |
+          echo "$ENV_FILE" \
+            | sed 's|__GEMINI_API_KEY__|${{ secrets.API_GEMINI_API_KEY }}|g' \
+            | sed 's|__STRIPE_SECRET_KEY__|${{ secrets.API_STRIPE_SECRET_KEY }}|g' \
+            | sed 's|__STRIPE_WEBHOOK_SECRET__|${{ secrets.API_STRIPE_WEBHOOK_SECRET }}|g' \
+            | sed 's|__DB_ROOT_PASSWORD__|${{ secrets.API_DB_ROOT_PASSWORD }}|g' \
+            | sed 's|__DB_PASSWORD__|${{ secrets.API_DB_PASSWORD }}|g' \
+            | sed 's|__SMTP_PASSWORD__|${{ secrets.API_SMTP_PASSWORD }}|g' \
+            | sed 's|__SESSION_SECRET__|${{ secrets.API_SESSION_SECRET }}|g' \
+            | sed 's|__AES_KEY__|${{ secrets.API_AES_KEY }}|g' \
+            | sed 's|__AES_IV__|${{ secrets.API_AES_IV }}|g' \
+            > apps/api/.devcontainer/mapped/.env
+
       # - name: Deploy UI
+      #   if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
       #   run: |
       #     set -euo pipefail
       #     cd apps/ui/.devcontainer/mapped
@@ -45,35 +65,8 @@ jobs:
       #     docker compose up --build -d --wait
       #     bash cmd-run.sh
 
-  deploy-api:
-    if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
-    runs-on: [ self-hosted, ubuntu-4gb-hel1-1 ]
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
-      # - name: Cleanup Docker
-      #   run: |
-      #     docker image prune -af
-      #     docker builder prune -af
-      - name: Build .env
-        env:
-          ENV_FILE: ${{ vars.API_ENV_FILE }}
-        run: |
-          echo "$ENV_FILE" \
-            | sed 's/__GEMINI_API_KEY__/${{ secrets.API_GEMINI_API_KEY }}/g' \
-            | sed 's/__STRIPE_SECRET_KEY__/${{ secrets.API_STRIPE_SECRET_KEY }}/g' \
-            | sed 's/__STRIPE_WEBHOOK_SECRET__/${{ secrets.API_STRIPE_WEBHOOK_SECRET }}/g' \
-            | sed 's/__DB_ROOT_PASSWORD__/${{ secrets.API_DB_ROOT_PASSWORD }}/g' \
-            | sed 's/__DB_PASSWORD__/${{ secrets.API_DB_PASSWORD }}/g' \
-            | sed 's/__SMTP_PASSWORD__/${{ secrets.API_SMTP_PASSWORD }}/g' \
-            | sed 's/__SESSION_SECRET__/${{ secrets.API_SESSION_SECRET }}/g' \
-            | sed 's/__AES_KEY__/${{ secrets.API_AES_KEY }}/g' \
-            | sed 's/__AES_IV__/${{ secrets.API_AES_IV }}/g' \
-            > apps/api/.devcontainer/mapped/.env
       # - name: Deploy API
+      #   if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
       #   run: |
       #     set -euo pipefail
       #     cd apps/api/.devcontainer/mapped
