@@ -4,7 +4,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends bash git openssh-client docker.io supervisor python3 python3-pip \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --break-system-packages multivisor[rpc] \
-    && mkdir -p /var/log/supervisor /var/run/supervisor /run
+    && mkdir -p /var/log/supervisor /var/run/supervisor /run \
+    && chmod -R 777 /var/log/supervisor /var/run/supervisor /run
 
 COPY _configs/supervisord-app.conf /etc/supervisord.conf
 
