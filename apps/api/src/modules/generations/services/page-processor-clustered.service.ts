@@ -47,6 +47,7 @@ class PageProcessorClustered extends PageProcessorBase {
 		onProgress?: (processed: number, total: number, batchPages: ClusterPage[]) => Promise<void>
 	): Promise<PageVector[]> {
 		const hashKey = this.buildHashKey(modelId, hostname);
+		const embeddingBatchSize = this.configService.embedding.batchSize;
 
 		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
 		const limitedUrls = limit ? urls.slice(0, limit) : urls;
@@ -115,7 +116,9 @@ class PageProcessorClustered extends PageProcessorBase {
 			}, crawlBatchSize);
 
 			pendingPages.push(...batchAll.filter(p => p.isSuccess()));
-			await flushEmbeddings();
+			if (pendingPages.length >= embeddingBatchSize) {
+				await flushEmbeddings();
+			}
 
 			processed += batchAll.length;
 			if (onProgress) {
