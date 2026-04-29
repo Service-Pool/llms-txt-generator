@@ -31,7 +31,6 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
       - name: Cleanup Docker
         run: |
-          docker image prune -af
           docker builder prune -af
 
       - name: Build UI .env
