@@ -36,10 +36,10 @@ jobs:
 
       - name: Build UI .env
         if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
+        env:
+          ENV_FILE: ${{ vars.UI_ENV_FILE }}
         run: |
-          cat >> apps/ui/.devcontainer/mapped/.env << 'ENDOFENV'
-          ${{ vars.UI_ENV_FILE }}
-          ENDOFENV
+          echo "$ENV_FILE" | sed 's/\r//' > apps/ui/.devcontainer/mapped/.env
 
       - name: Build API .env
         if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
@@ -47,6 +47,7 @@ jobs:
           ENV_FILE: ${{ vars.API_ENV_FILE }}
         run: |
           echo "$ENV_FILE" \
+            | sed 's/\r//' \
             | sed 's|__GEMINI_API_KEY__|${{ secrets.API_GEMINI_API_KEY }}|g' \
             | sed 's|__STRIPE_SECRET_KEY__|${{ secrets.API_STRIPE_SECRET_KEY }}|g' \
             | sed 's|__STRIPE_WEBHOOK_SECRET__|${{ secrets.API_STRIPE_WEBHOOK_SECRET }}|g' \
