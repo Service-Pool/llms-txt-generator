@@ -8,7 +8,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile.app
-    user: "${DOCKER_UID:-0}:${DOCKER_GID:-0}"
+    security_opt:
+      - apparmor=unconfined
     working_dir: /app
     restart: unless-stopped
     logging:
@@ -19,6 +20,9 @@ services:
         compress: "true"
     env_file:
       - .env
+    environment:
+      - DOCKER_UID=${DOCKER_UID:-0}
+      - DOCKER_GID=${DOCKER_GID:-0}
     volumes:
       - ../../:/app
       - ./entrypoint.sh:/entrypoint.sh
