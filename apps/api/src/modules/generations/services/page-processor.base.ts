@@ -35,7 +35,7 @@ abstract class PageProcessorBase {
 		}
 	}
 
-	protected buildHashKey(modelId: string, hostnameOrUrl: string): string {
+	public buildHashKey(modelId: string, hostnameOrUrl: string): string {
 		const { hostname } = this.parseUrl(hostnameOrUrl);
 		return `summary:${modelId}:${hostname}`;
 	}
