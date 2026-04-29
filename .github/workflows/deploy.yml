@@ -29,10 +29,10 @@ jobs:
         uses: actions/checkout@v4.2.2
         with:
           ref: ${{ github.event.inputs.branch }}
-      # - name: Cleanup Docker
-      #   run: |
-      #     docker image prune -af
-      #     docker builder prune -af
+      - name: Cleanup Docker
+        run: |
+          docker image prune -af
+          docker builder prune -af
 
       - name: Build UI .env
         if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
@@ -58,20 +58,20 @@ jobs:
             | sed 's|__AES_IV__|${{ secrets.API_AES_IV }}|g' \
             > apps/api/.devcontainer/mapped/.env
 
-      # - name: Deploy UI
-      #   if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
-      #   run: |
-      #     set -euo pipefail
-      #     cd apps/ui/.devcontainer/mapped
-      #     docker compose down
-      #     docker compose up --build -d --wait
-      #     bash cmd-run.sh
+      - name: Deploy UI
+        if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
+        run: |
+          set -euo pipefail
+          cd apps/ui/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh
 
-      # - name: Deploy API
-      #   if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
-      #   run: |
-      #     set -euo pipefail
-      #     cd apps/api/.devcontainer/mapped
-      #     docker compose down
-      #     docker compose up --build -d --wait
-      #     bash cmd-run.sh
+      - name: Deploy API
+        if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
+        run: |
+          set -euo pipefail
+          cd apps/api/.devcontainer/mapped
+          docker compose down
+          docker compose up --build -d --wait
+          bash cmd-run.sh

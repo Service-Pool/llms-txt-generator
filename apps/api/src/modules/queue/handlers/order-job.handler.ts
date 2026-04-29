@@ -2,11 +2,14 @@ import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-co
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bullmq';
-import { LLMProviderFactory } from '@/modules/generations/services/llm-provider-factory.service';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrdersService } from '@/modules/orders/services/orders.service';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { GenerationStrategyFactory } from '@/modules/generations/strategies/generation-strategy.factory';
+import { GeminiService } from '@/modules/generations/services/models/gemini.service';
+import { OllamaService } from '@/modules/generations/services/models/ollama.service';
+import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -15,11 +18,16 @@ class OrderJobHandler {
 
 	constructor(
 		private readonly aiModelsConfigService: AiModelsConfigService,
-		private readonly llmProviderFactory: LLMProviderFactory,
 		private readonly generationStrategyFactory: GenerationStrategyFactory,
 		private readonly ordersService: OrdersService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
 	) {}
+
+	private createLlmProvider(modelConfig: AiModelConfig): AbstractLlmService {
+		if (modelConfig.serviceClass.includes('gemini')) return new GeminiService(modelConfig);
+		if (modelConfig.serviceClass.includes('ollama')) return new OllamaService(modelConfig);
+		throw new Error(`Unknown serviceClass: ${modelConfig.serviceClass}`);
+	}
 
 	public async handle(job: Job<{ orderId: number }>): Promise<void> {
 		this.logger.log(`Handling job ${job.id}, data: ${JSON.stringify(job.data)}`);
@@ -45,7 +53,7 @@ class OrderJobHandler {
 		}
 
 		const modelConfig = this.aiModelsConfigService.getModelById(order.modelId);
-		const provider = await this.llmProviderFactory.getProvider(order.modelId);
+		const provider = this.createLlmProvider(modelConfig);
 		const strategy = this.generationStrategyFactory.create(order.strategy);
 
 		await this.ordersService.updateOrderStatus(orderId, OrderStatus.PROCESSING);

@@ -8,6 +8,7 @@ import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
 import { Utils } from '@/utils/utils';
 import { AdaptiveLimit } from '@/utils/adaptive-limit';
+import { PageProcessorBase } from '@/modules/generations/services/page-processor.base';
 
 interface PageVector {
 	path: string;
@@ -20,16 +21,18 @@ interface PageVector {
  * Суммаризация НЕ выполняется — LLM получает тексты целых кластеров.
  */
 @Injectable()
-class PageProcessorClustered {
-	private readonly logger = new Logger(PageProcessorClustered.name);
+class PageProcessorClustered extends PageProcessorBase {
+	protected readonly logger = new Logger(PageProcessorClustered.name);
 
 	constructor(
-		private readonly contentExtractionService: ContentExtractionService,
+		contentExtractionService: ContentExtractionService,
 		private readonly crawlersService: CrawlersService,
 		private readonly cacheService: CacheService,
 		private readonly embeddingService: EmbeddingService,
 		private readonly configService: AppConfigService
-	) { }
+	) {
+		super(contentExtractionService);
+	}
 
 	/**
 	 * Краулит все страницы, векторизует батчами и сохраняет в кэш.
@@ -44,7 +47,6 @@ class PageProcessorClustered {
 		onProgress?: (processed: number, total: number, batchPages: ClusterPage[]) => Promise<void>
 	): Promise<PageVector[]> {
 		const hashKey = this.buildHashKey(modelId, hostname);
-		const { batchSize } = this.configService.embedding;
 
 		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
 		const limitedUrls = limit ? urls.slice(0, limit) : urls;
@@ -75,50 +77,53 @@ class PageProcessorClustered {
 
 		this.logger.log(`Cache hits: ${cachedVectors.length}, URLs to fetch: ${urlsToFetch.length}`);
 
-		// Батч-центричный pipeline: fetch batch → embed batch → cache batch
+		// Краулинг чанками по crawlLimit.value — после каждого чанка лимит пересчитывается.
+		// Успешные страницы накапливаются и флашатся эмбеддингами по embeddingBatchSize.
 		const newVectors: PageVector[] = [];
 		let processed = cachedVectors.length;
+		let pendingPages: ClusterPage[] = [];
 
-		for (let i = 0; i < urlsToFetch.length; i += batchSize) {
-			const batchUrls = urlsToFetch.slice(i, i + batchSize);
+		const flushEmbeddings = async () => {
+			if (pendingPages.length === 0) return;
+			const texts = pendingPages.map(p => p.text);
+			const embeddings = await this.embeddingService.embedTexts(texts);
+			for (let j = 0; j < pendingPages.length; j++) {
+				const { path, text, title } = pendingPages[j];
+				const vector = embeddings[j];
+				const entry: CacheEntry = {
+					title,
+					summary: null,
+					text,
+					vector,
+					embeddingModel: this.configService.embedding.model
+				};
+				await this.cacheService.set(hashKey, `vectors:${path}`, JSON.stringify(entry));
+				newVectors.push({ path, vector });
+			}
+			pendingPages = [];
+		};
+
+		for (let i = 0; i < urlsToFetch.length;) {
+			const crawlBatchSize = crawlLimit.value;
+			const batchUrls = urlsToFetch.slice(i, i + crawlBatchSize);
+			i += batchUrls.length;
 
 			const batchAll = await Utils.parallelMap(batchUrls, async (url) => {
-				const page = await this.fetchContent(url);
-				if (page.isSuccess()) {
-					crawlLimit.onSuccess();
-				} else {
-					crawlLimit.onError();
-				}
+				const page = await this.fetchClusterPage(url, crawlLimit);
+				if (page.isSuccess()) crawlLimit.onSuccess();
 				return page;
-			}, crawlLimit.value);
-			const batchSuccess = batchAll.filter(p => p.isSuccess());
+			}, crawlBatchSize);
 
-			if (batchSuccess.length > 0) {
-				const texts = batchSuccess.map(p => p.text);
-				const embeddings = await this.embeddingService.embedTexts(texts);
-
-				for (let j = 0; j < batchSuccess.length; j++) {
-					const { path, text, title } = batchSuccess[j];
-					const vector = embeddings[j];
-
-					const entry: CacheEntry = {
-						title,
-						summary: null,
-						text,
-						vector,
-						embeddingModel: this.configService.embedding.model
-					};
-
-					await this.cacheService.set(hashKey, `vectors:${path}`, JSON.stringify(entry));
-					newVectors.push({ path, vector });
-				}
-			}
+			pendingPages.push(...batchAll.filter(p => p.isSuccess()));
+			await flushEmbeddings();
 
 			processed += batchAll.length;
 			if (onProgress) {
 				await onProgress(processed, total, batchAll);
 			}
 		}
+
+		await flushEmbeddings();
 
 		return [...cachedVectors, ...newVectors];
 	}
@@ -170,14 +175,13 @@ class PageProcessorClustered {
 		return results;
 	}
 
-	private async fetchContent(url: string): Promise<ClusterPage> {
+	private async fetchClusterPage(url: string, crawlLimit: AdaptiveLimit): Promise<ClusterPage> {
+		const { path } = this.parseUrl(url);
 		try {
-			const { path } = this.parseUrl(url);
-			const { title, content } = await this.contentExtractionService.extractContent(url);
+			const { title, content } = await this.fetchContent(url, crawlLimit);
 			return ClusterPage.success(path, title, content);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			this.logger.warn(`Failed to fetch ${url}: ${message}`);
 			return ClusterPage.failure(url, message);
 		}
 	}
@@ -236,16 +240,6 @@ class PageProcessorClustered {
 			normB += b[i] * b[i];
 		}
 		return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-	}
-
-	public buildHashKey(modelId: string, hostnameOrUrl: string): string {
-		const { hostname } = this.parseUrl(hostnameOrUrl);
-		return `summary:${modelId}:${hostname}`;
-	}
-
-	private parseUrl(url: string): { hostname: string; path: string } {
-		const urlObj = new URL(url);
-		return { hostname: urlObj.hostname, path: urlObj.pathname };
 	}
 }
 

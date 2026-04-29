@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { LLMProviderFactory } from '@/modules/generations/services/llm-provider-factory.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { EmbeddingService } from '@/modules/generations/services/models/embedding.service';
 import { PageProcessorFlat } from '@/modules/generations/services/page-processor-flat.service';
@@ -12,13 +11,7 @@ import { ContentModule } from '@/modules/content/content.module';
 import { CrawlersModule } from '@/modules/crawlers/crawlers.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 
-/**
- * Generations Module
- * Provides LLM services for content generation
- *
- * Note: GeminiService and OllamaService are NOT providers here.
- * They are instantiated dynamically by LLMProviderFactory based on model config.
- */
+
 @Module({
 	imports: [
 		AiModelsModule,
@@ -27,7 +20,6 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 		forwardRef(() => OrdersModule)
 	],
 	providers: [
-		LLMProviderFactory,
 		CacheService,
 		EmbeddingService,
 		PageProcessorFlat,
@@ -37,7 +29,6 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 		GenerationStrategyFactory
 	],
 	exports: [
-		LLMProviderFactory,
 		CacheService,
 		EmbeddingService,
 		PageProcessorFlat,

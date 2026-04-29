@@ -15,6 +15,7 @@ import { AdaptiveLimit } from '@/utils/adaptive-limit';
 @Injectable()
 class PageProcessorFlat {
 	private readonly logger = new Logger(PageProcessorFlat.name);
+	private static readonly FETCH_MAX_ATTEMPTS = 5;
 
 	constructor(
 		private readonly contentExtractionService: ContentExtractionService,
@@ -34,13 +35,35 @@ class PageProcessorFlat {
 		const allPages: ProcessedPage[] = [];
 		let processedCount = 0;
 
-		const urlStream = this.urlProvider(hostname, limit);
+		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
+		const allUrls = limit ? urls.slice(0, limit) : urls;
+		const hashKey = this.buildHashKey(modelId, hostname);
 
-		for await (const batchUrls of this.batcher(urlStream, batchSize)) {
-			this.logger.debug(`Processing batch of ${batchUrls.length} URLs`);
+		// Краулинг чанками по crawlLimit.value — адаптируется после каждого чанка.
+		// LLM суммаризация — по batchSize страниц за раз.
+		let pendingPages: ProcessedPage[] = [];
 
-			const hashKey = this.buildHashKey(modelId, hostname);
-			const cacheChecks = await Promise.all(batchUrls.map(async (url) => {
+		const flushSummaries = async () => {
+			if (pendingPages.length === 0) return;
+			await this.generateBatchSummary(pendingPages, llmProvider);
+			await Promise.all(pendingPages.map(page => this.saveCache(page, modelId, hostname)));
+			allPages.push(...pendingPages);
+			processedCount += pendingPages.length;
+			if (onProgress) {
+				await onProgress(processedCount, allUrls.length, pendingPages);
+			}
+			this.logger.debug(`Processed ${processedCount} pages so far`);
+			pendingPages = [];
+		};
+
+		for (let i = 0; i < allUrls.length;) {
+			const crawlChunkSize = crawlLimit.value;
+			const chunkUrls = allUrls.slice(i, i + crawlChunkSize);
+			i += chunkUrls.length;
+
+			this.logger.debug(`Processing chunk of ${chunkUrls.length} URLs`);
+
+			const cacheChecks = await Promise.all(chunkUrls.map(async (url) => {
 				const { path: pathname } = this.parseUrl(url);
 				const cached = await this.cacheService.get(hashKey, pathname);
 				return { url, cached };
@@ -69,34 +92,21 @@ class PageProcessorFlat {
 			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
 
 			let fetchedPages: ProcessedPage[] = [];
-
 			if (urlsToFetch.length > 0) {
 				fetchedPages = await Utils.parallelMap(urlsToFetch, async (url) => {
-					const page = await this.fetchContent(url);
-					if (page.isSuccess()) {
-						crawlLimit.onSuccess();
-					} else {
-						crawlLimit.onError();
-					}
+					const page = await this.fetchContent(url, crawlLimit);
+					if (page.isSuccess()) crawlLimit.onSuccess();
 					return page;
-				}, crawlLimit.value);
+				}, crawlChunkSize);
 			}
 
-			const allBatchPages = [...cachedPages, ...fetchedPages];
-
-			await this.generateBatchSummary(allBatchPages, llmProvider);
-			await Promise.all(allBatchPages.map(page => this.saveCache(page, modelId, hostname)));
-
-			const batchPages = allBatchPages.filter((p): p is ProcessedPage => p !== undefined && p !== null);
-			allPages.push(...batchPages);
-			processedCount += batchPages.length;
-
-			if (onProgress) {
-				await onProgress(processedCount, limit || processedCount, batchPages);
+			pendingPages.push(...cachedPages, ...fetchedPages);
+			if (pendingPages.length >= batchSize) {
+				await flushSummaries();
 			}
-
-			this.logger.debug(`Processed ${processedCount} pages so far`);
 		}
+
+		await flushSummaries();
 
 		return allPages;
 	}
@@ -115,20 +125,24 @@ class PageProcessorFlat {
 		});
 	}
 
-	private async* urlProvider(hostname: string, limit?: number): AsyncGenerator<string> {
-		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
-		const limitedUrls = limit ? urls.slice(0, limit) : urls;
-		for (const url of limitedUrls) {
-			yield url;
-		}
-	}
-
-	private async fetchContent(url: string): Promise<ProcessedPage> {
+	private async fetchContent(url: string, crawlLimit: AdaptiveLimit, attempt = 1): Promise<ProcessedPage> {
+		const maxAttempts = PageProcessorFlat.FETCH_MAX_ATTEMPTS;
 		try {
 			const { title, content } = await this.contentExtractionService.extractContent(url);
 			return ProcessedPage.success(url, title, content);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
+			const isRetryable = message.includes('HTTP 429') || message.includes('HTTP 503') || message.includes('timeout');
+
+			if (isRetryable && attempt < maxAttempts) {
+				crawlLimit.onError();
+				const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30000);
+				this.logger.warn(`Retry ${attempt}/${maxAttempts - 1} for ${url} in ${delayMs}ms: ${message}`);
+				await new Promise(resolve => setTimeout(resolve, delayMs));
+				return this.fetchContent(url, crawlLimit, attempt + 1);
+			}
+
+			this.logger.warn(`Failed to fetch ${url} after ${attempt} attempt(s): ${message}`);
 			return ProcessedPage.failure(url, message);
 		}
 	}
@@ -161,22 +175,6 @@ class PageProcessorFlat {
 
 		for (let i = 0; i < validPages.length; i++) {
 			validPages[i].summary = summaries[i];
-		}
-	}
-
-	private async* batcher<T>(iterable: AsyncIterable<T>, batchSize: number): AsyncGenerator<T[]> {
-		let batch: T[] = [];
-
-		for await (const item of iterable) {
-			batch.push(item);
-			if (batch.length >= batchSize) {
-				yield batch;
-				batch = [];
-			}
-		}
-
-		if (batch.length > 0) {
-			yield batch;
 		}
 	}
 
