@@ -18,11 +18,11 @@ CONTAINER_APP="${COMPOSE_PROJECT_NAME}-App"
 
 # Install dependencies and build
 echo "Install dependencies..."
-docker exec $CONTAINER_APP sh -c "npm install"
+docker exec -u "${DOCKER_UID:-0}:${DOCKER_GID:-0}" $CONTAINER_APP sh -c "npm install"
 echo "✅ Dependencies installed"
 
 echo "Building application..."
-docker exec $CONTAINER_APP sh -c "npm run build"
+docker exec -u "${DOCKER_UID:-0}:${DOCKER_GID:-0}" $CONTAINER_APP sh -c "npm run build"
 echo "✅ Application built"
 
 # Start services via supervisorctl

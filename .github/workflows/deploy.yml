@@ -31,7 +31,6 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
       - name: Cleanup Docker
         run: |
-          docker image prune -af
           docker builder prune -af
 
       - name: Build UI .env
@@ -64,6 +63,8 @@ jobs:
         run: |
           set -euo pipefail
           cd apps/ui/.devcontainer/mapped
+          echo "DOCKER_UID=$(id -u)" >> .env
+          echo "DOCKER_GID=$(id -g)" >> .env
           docker compose down
           docker compose up --build -d --wait
           bash cmd-run.sh
@@ -73,6 +74,8 @@ jobs:
         run: |
           set -euo pipefail
           cd apps/api/.devcontainer/mapped
+          echo "DOCKER_UID=$(id -u)" >> .env
+          echo "DOCKER_GID=$(id -g)" >> .env
           docker compose down
           docker compose up --build -d --wait
           bash cmd-run.sh
