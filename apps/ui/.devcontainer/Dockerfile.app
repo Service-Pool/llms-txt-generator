@@ -11,5 +11,5 @@ COPY _configs/supervisord-app.conf /etc/supervisord.conf
 
 EXPOSE 3301
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["bash", "/entrypoint.sh"]
 CMD ["bash", "/tmp/app/cmd-llms-txt-generator-ui.sh"]
