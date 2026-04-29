@@ -30,6 +30,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile.app
+    user: "${UID:-0}:${GID:-0}"
     working_dir: /app
     restart: unless-stopped
     env_file:
