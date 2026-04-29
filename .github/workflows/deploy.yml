@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
       - name: Cleanup Docker
         run: |
-          docker builder prune -af
+          docker builder prune -f
 
       - name: Build UI .env
         if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
