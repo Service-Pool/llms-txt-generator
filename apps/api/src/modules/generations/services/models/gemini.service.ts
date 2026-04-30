@@ -276,19 +276,30 @@ Instructions:
 			let pagesCompleted = 0;
 
 			const allPages = await Utils.parallelMap(pageNums, async (pageNum: number, slotIndex: number) => {
-				await new Promise(resolve => setTimeout(resolve, slotIndex * SLOT_DELAY_MS));
+				await new Promise(resolve => setTimeout(resolve, (slotIndex % this.config.options.llmConcurrency) * SLOT_DELAY_MS));
 
 				strategy.refreshIfNeeded();
 
-				// Запрос 1: filename, title, summary
-				const metaResponse = await this.generateContent({
-					model: this.config.modelName,
-					contents: strategy.getContents(`Generate page ${pageNum} of your documentation plan for this section. Return only filename (lowercase with hyphens, no extension, unique within section), title, and one-line summary.`),
-					config: { ...strategy.config, responseSchema: PAGE_META_RESPONSE_SCHEMA }
-				});
-				this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} meta`, metaResponse));
-
-				const rawMeta = this.parseJsonResponse<{ filename: string; title: string; summary: string }>(metaResponse.text, 1);
+				// Запрос 1: filename, title, summary (retry до 3 раз если ответ невалидный)
+				let rawMeta: { filename: string; title: string; summary: string } | undefined;
+				for (let metaAttempt = 1; metaAttempt <= 3; metaAttempt++) {
+					const metaResponse = await this.generateContent({
+						model: this.config.modelName,
+						contents: strategy.getContents(`Generate page ${pageNum} of your documentation plan for this section. Return only filename (lowercase with hyphens, no extension, unique within section), title, and one-line summary.`),
+						config: { ...strategy.config, responseSchema: PAGE_META_RESPONSE_SCHEMA }
+					});
+					this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} meta attempt ${metaAttempt}`, metaResponse));
+					const parsed = this.parseJsonResponse<{ filename: string; title: string; summary: string }>(metaResponse.text, 1);
+					if (parsed.filename && parsed.title) {
+						rawMeta = parsed;
+						break;
+					}
+					this.logger.warn(`generateClusterContent page ${pageNum} meta attempt ${metaAttempt}: invalid response (filename=${parsed.filename}), retrying`);
+				}
+				if (!rawMeta) {
+					this.logger.warn(`generateClusterContent page ${pageNum}: failed to get valid meta after 3 attempts, using fallback`);
+					rawMeta = { filename: `page-${pageNum}`, title: `Page ${pageNum}`, summary: '' };
+				}
 				const meta = { ...rawMeta, filename: Utils.slugify(rawMeta.filename) };
 
 				// Запрос 2: md_content как plain text
@@ -328,7 +339,7 @@ Instructions:
 	 * Читает retryDelay из ответа Google и ждёт точно столько сколько сказано.
 	 */
 	private async generateContent(params: Parameters<typeof this.ai.models.generateContent>[0]): Promise<ReturnType<typeof this.ai.models.generateContent>> {
-		const MAX_RETRIES = 3;
+		const MAX_RETRIES = 5;
 		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 			try {
 				return await this.ai.models.generateContent(params);
@@ -350,12 +361,12 @@ Instructions:
 				}
 				retryDelayMs += Math.random() * 3000;
 
+				this.logger.warn(`generateContent: ${status} error, waiting ${retryDelayMs}ms before retry ${attempt}/${MAX_RETRIES}`);
+				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+
 				if (attempt === MAX_RETRIES) {
 					throw new Error(`AI service unavailable (${status}), please try again in ${Math.ceil(retryDelayMs / 1000)} seconds`);
 				}
-
-				this.logger.warn(`generateContent: ${status} error, waiting ${retryDelayMs}ms before retry ${attempt}/${MAX_RETRIES}`);
-				await new Promise(resolve => setTimeout(resolve, retryDelayMs));
 			}
 		}
 		throw new Error('generateContent: unreachable');
