@@ -82,26 +82,27 @@ class PageProcessorClustered extends PageProcessorBase {
 		// Успешные страницы накапливаются и флашатся эмбеддингами по embeddingBatchSize.
 		const newVectors: PageVector[] = [];
 		let processed = cachedVectors.length;
-		let pendingPages: ClusterPage[] = [];
+		const pendingPages: ClusterPage[] = [];
 
 		const flushEmbeddings = async () => {
 			if (pendingPages.length === 0) return;
-			const texts = pendingPages.map(p => p.text);
-			const embeddings = await this.embeddingService.embedTexts(texts);
-			for (let j = 0; j < pendingPages.length; j++) {
-				const { path, text, title } = pendingPages[j];
-				const vector = embeddings[j];
-				const entry: CacheEntry = {
-					title,
-					summary: null,
-					text,
-					vector,
-					embeddingModel: this.configService.embedding.model
-				};
-				await this.cacheService.set(hashKey, `vectors:${path}`, JSON.stringify(entry));
-				newVectors.push({ path, vector });
+			const pages = pendingPages.splice(0);
+			for (let offset = 0; offset < pages.length; offset += embeddingBatchSize) {
+				const chunk = pages.slice(offset, offset + embeddingBatchSize);
+				const embeddings = await this.embeddingService.embedTexts(chunk.map(p => p.text));
+				for (let j = 0; j < chunk.length; j++) {
+					const { path, text, title } = chunk[j];
+					const entry: CacheEntry = {
+						title,
+						summary: null,
+						text,
+						vector: embeddings[j],
+						embeddingModel: this.configService.embedding.model
+					};
+					await this.cacheService.set(hashKey, `vectors:${path}`, JSON.stringify(entry));
+					newVectors.push({ path, vector: embeddings[j] });
+				}
 			}
-			pendingPages = [];
 		};
 
 		for (let i = 0; i < urlsToFetch.length;) {
