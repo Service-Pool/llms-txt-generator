@@ -24,11 +24,11 @@
 {/if}
 
 {#if progress.step === 'Crawling'}
-	<div class="text-xs opacity-75 mb-1">Crawling URLs {BRAILLE_FRAMES[frame]}</div>
+	<div class="text-xs opacity-75 mb-1">Crawling URLs <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
 	<ProgressBar current={progress.processedUrls ?? 0} total={totalUrls ?? 0} size="h-1.5" showNumbers={true} />
 {:else if progress.step === 'Generating'}
 	<div class="text-xs opacity-75 mb-1">
-		Cluster {progress.clusterCurrent ?? 0}/{progress.clusterTotal ?? 0}, processing pages {BRAILLE_FRAMES[frame]}
+		Cluster {progress.clusterCurrent ?? 0}/{progress.clusterTotal ?? 0}, processing pages <span class="text-purple-500">{BRAILLE_FRAMES[frame]}</span>
 	</div>
 	<ProgressBar
 		current={progress.pageCurrent ?? 0}
@@ -38,5 +38,5 @@
 		showPercentage={false}
 	/>
 {:else}
-	<div class="text-xs opacity-75">{progress.step} {BRAILLE_FRAMES[frame]}</div>
+	<div class="text-xs opacity-75">{progress.step} <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
 {/if}
