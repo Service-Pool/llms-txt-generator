@@ -6,7 +6,6 @@ import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
 import { Utils } from '@/utils/utils';
-import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 /**
  * Сервис потоковой обработки страниц для Flat стратегии.
@@ -28,7 +27,7 @@ class PageProcessorFlat {
 		modelId: string,
 		llmProvider: AbstractLlmService,
 		batchSize: number,
-		crawlLimit: AdaptiveLimit,
+		concurrency: number,
 		limit?: number,
 		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
@@ -39,7 +38,7 @@ class PageProcessorFlat {
 		const allUrls = limit ? urls.slice(0, limit) : urls;
 		const hashKey = this.buildHashKey(modelId, hostname);
 
-		// Краулинг чанками по crawlLimit.value — адаптируется после каждого чанка.
+		// Краулинг чанками по concurrency — фиксированный параллелизм из конфига.
 		// LLM суммаризация — по batchSize страниц за раз.
 		let pendingPages: ProcessedPage[] = [];
 
@@ -56,10 +55,8 @@ class PageProcessorFlat {
 			pendingPages = [];
 		};
 
-		for (let i = 0; i < allUrls.length;) {
-			const crawlChunkSize = crawlLimit.value;
-			const chunkUrls = allUrls.slice(i, i + crawlChunkSize);
-			i += chunkUrls.length;
+		for (let i = 0; i < allUrls.length; i += concurrency) {
+			const chunkUrls = allUrls.slice(i, i + concurrency);
 
 			this.logger.debug(`Processing chunk of ${chunkUrls.length} URLs`);
 
@@ -93,11 +90,7 @@ class PageProcessorFlat {
 
 			let fetchedPages: ProcessedPage[] = [];
 			if (urlsToFetch.length > 0) {
-				fetchedPages = await Utils.parallelMap(urlsToFetch, async (url) => {
-					const page = await this.fetchContent(url, crawlLimit);
-					if (page.isSuccess()) crawlLimit.onSuccess();
-					return page;
-				}, crawlChunkSize);
+				fetchedPages = await Utils.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency);
 			}
 
 			pendingPages.push(...cachedPages, ...fetchedPages);
@@ -125,7 +118,7 @@ class PageProcessorFlat {
 		});
 	}
 
-	private async fetchContent(url: string, crawlLimit: AdaptiveLimit, attempt = 1): Promise<ProcessedPage> {
+	private async fetchContent(url: string, attempt = 1): Promise<ProcessedPage> {
 		const maxAttempts = PageProcessorFlat.FETCH_MAX_ATTEMPTS;
 		try {
 			const { title, content } = await this.contentExtractionService.extractContent(url);
@@ -135,11 +128,10 @@ class PageProcessorFlat {
 			const isRetryable = message.includes('HTTP 429') || message.includes('HTTP 503') || message.includes('timeout');
 
 			if (isRetryable && attempt < maxAttempts) {
-				crawlLimit.onError();
 				const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30000);
 				this.logger.warn(`Retry ${attempt}/${maxAttempts - 1} for ${url} in ${delayMs}ms: ${message}`);
 				await new Promise(resolve => setTimeout(resolve, delayMs));
-				return this.fetchContent(url, crawlLimit, attempt + 1);
+				return this.fetchContent(url, attempt + 1);
 			}
 
 			this.logger.warn(`Failed to fetch ${url} after ${attempt} attempt(s): ${message}`);

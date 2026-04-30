@@ -1,6 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse, ApiError } from '@google/genai';
 import { Utils } from '@/utils/utils';
-import { AdaptiveLimit } from '@/utils/adaptive-limit';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
@@ -53,7 +52,6 @@ class GeminiService extends AbstractLlmService {
 
 	private readonly ai: GoogleGenAI;
 	private readonly config: AiModelConfig;
-	private readonly llmConcurrency: AdaptiveLimit;
 
 	constructor(config: AiModelConfig) {
 		super();
@@ -64,7 +62,6 @@ class GeminiService extends AbstractLlmService {
 		}
 
 		this.ai = new GoogleGenAI({ apiKey: config.options.apiKey });
-		this.llmConcurrency = new AdaptiveLimit(config.options.llmConcurrency);
 	}
 
 	/**
@@ -309,7 +306,7 @@ Instructions:
 				const result = { ...meta, md_content, truncated };
 				if (onPageProgress) await onPageProgress(++pagesCompleted, total_pages);
 				return result;
-			}, this.llmConcurrency.value);
+			}, this.config.options.llmConcurrency);
 
 			const truncatedPages = allPages
 				.filter((p): p is ClusterPageOutput & { truncated: true } => (p as { truncated: boolean }).truncated)
@@ -334,15 +331,12 @@ Instructions:
 		const MAX_RETRIES = 3;
 		for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 			try {
-				const result = await this.ai.models.generateContent(params);
-				this.llmConcurrency.onSuccess();
-				return result;
+				return await this.ai.models.generateContent(params);
 			} catch (err) {
 				const status = (err as Record<string, unknown>)?.status as number | undefined
 					?? ((err as Record<string, unknown>)?.error as Record<string, unknown>)?.code as number | undefined;
 
 				if (status !== 429 && status !== 503) throw err;
-				this.llmConcurrency.onError();
 
 				let retryDelayMs: number;
 				if (status === 429) {

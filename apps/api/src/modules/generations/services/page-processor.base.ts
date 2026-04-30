@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
-import { AdaptiveLimit } from '@/utils/adaptive-limit';
 
 interface FetchedPage {
 	title: string;
@@ -13,7 +12,7 @@ abstract class PageProcessorBase {
 
 	constructor(protected readonly contentExtractionService: ContentExtractionService) { }
 
-	protected async fetchContent(url: string, crawlLimit: AdaptiveLimit, attempt = 1): Promise<FetchedPage> {
+	protected async fetchContent(url: string, attempt = 1): Promise<FetchedPage> {
 		const maxAttempts = PageProcessorBase.FETCH_MAX_ATTEMPTS;
 		try {
 			const { title, content } = await this.contentExtractionService.extractContent(url);
@@ -23,11 +22,10 @@ abstract class PageProcessorBase {
 			const isRetryable = message.includes('HTTP 429') || message.includes('HTTP 503') || message.includes('timeout');
 
 			if (isRetryable && attempt < maxAttempts) {
-				crawlLimit.onError();
 				const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30000);
 				this.logger.warn(`Retry ${attempt}/${maxAttempts - 1} for ${url} in ${delayMs}ms: ${message}`);
 				await new Promise(resolve => setTimeout(resolve, delayMs));
-				return this.fetchContent(url, crawlLimit, attempt + 1);
+				return this.fetchContent(url, attempt + 1);
 			}
 
 			this.logger.warn(`Failed to fetch ${url} after ${attempt} attempt(s): ${message}`);

@@ -64,14 +64,12 @@
 -->
 <OrderListItemLayout class="p-4" {isExpanded}>
 	{#snippet header()}
-		<div class="flex items-center flex-wrap gap-1">
-			<h3 class="text-sm font-semibold truncate flex items-start gap-2">
-				<OrderBadge {order} class="mr-1" />
-				<span class="inline-block max-w-55 truncate">{order.attributes.hostname}</span>
-			</h3>
-			<span>
+		<div class="flex flex-col gap-1 min-w-0">
+			<div class="flex items-center gap-2">
+				<OrderBadge {order} class="shrink-0" />
 				<OrderStatus status={order.attributes.status} queuePosition={order.attributes.queuePosition} />
-			</span>
+			</div>
+			<span class="text-sm font-semibold truncate min-w-0">{order.attributes.hostname}</span>
 		</div>
 	{/snippet}
 

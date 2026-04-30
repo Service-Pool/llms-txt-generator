@@ -7,7 +7,6 @@ import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interfa
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
 import { Utils } from '@/utils/utils';
-import { AdaptiveLimit } from '@/utils/adaptive-limit';
 import { PageProcessorBase } from '@/modules/generations/services/page-processor.base';
 
 interface PageVector {
@@ -42,7 +41,7 @@ class PageProcessorClustered extends PageProcessorBase {
 	public async processPages(
 		hostname: string,
 		modelId: string,
-		crawlLimit: AdaptiveLimit,
+		concurrency: number,
 		limit?: number,
 		onProgress?: (processed: number, total: number, batchPages: ClusterPage[]) => Promise<void>
 	): Promise<PageVector[]> {
@@ -78,7 +77,7 @@ class PageProcessorClustered extends PageProcessorBase {
 
 		this.logger.log(`Cache hits: ${cachedVectors.length}, URLs to fetch: ${urlsToFetch.length}`);
 
-		// Краулинг чанками по crawlLimit.value — после каждого чанка лимит пересчитывается.
+		// Краулинг чанками по concurrency — фиксированный параллелизм из конфига.
 		// Успешные страницы накапливаются и флашатся эмбеддингами по embeddingBatchSize.
 		const newVectors: PageVector[] = [];
 		let processed = cachedVectors.length;
@@ -105,16 +104,12 @@ class PageProcessorClustered extends PageProcessorBase {
 			}
 		};
 
-		for (let i = 0; i < urlsToFetch.length;) {
-			const crawlBatchSize = crawlLimit.value;
-			const batchUrls = urlsToFetch.slice(i, i + crawlBatchSize);
-			i += batchUrls.length;
+		for (let i = 0; i < urlsToFetch.length; i += concurrency) {
+			const batchUrls = urlsToFetch.slice(i, i + concurrency);
 
-			const batchAll = await Utils.parallelMap(batchUrls, async (url) => {
-				const page = await this.fetchClusterPage(url, crawlLimit);
-				if (page.isSuccess()) crawlLimit.onSuccess();
-				return page;
-			}, crawlBatchSize);
+			const batchAll = await Utils.parallelMap(batchUrls, (url) => {
+				return this.fetchClusterPage(url);
+			}, concurrency);
 
 			pendingPages.push(...batchAll.filter(p => p.isSuccess()));
 			if (pendingPages.length >= embeddingBatchSize) {
@@ -179,10 +174,10 @@ class PageProcessorClustered extends PageProcessorBase {
 		return results;
 	}
 
-	private async fetchClusterPage(url: string, crawlLimit: AdaptiveLimit): Promise<ClusterPage> {
+	private async fetchClusterPage(url: string): Promise<ClusterPage> {
 		const { path } = this.parseUrl(url);
 		try {
-			const { title, content } = await this.fetchContent(url, crawlLimit);
+			const { title, content } = await this.fetchContent(url);
 			return ClusterPage.success(path, title, content);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
