@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type OrderResponseDto } from '@api/shared';
-	import { List, Li, Indicator, Button } from 'flowbite-svelte';
+	import { List, Li, Indicator, Button, Tooltip } from 'flowbite-svelte';
 	import { RedoOutline } from 'flowbite-svelte-icons';
 
 	interface Props {
@@ -26,14 +26,15 @@
 				<Indicator size="xs" color="red" />
 			</div>
 			<Button
-				size="xs"
+				size="sm"
 				color="light"
-				class="p-1 ml-1"
+				class="p-5 w-8 h-8 rounded-full border-none {wrapText ? 'bg-gray-200 dark:bg-gray-600' : 'bg-inherit'}"
 				title={wrapText ? 'Disable text wrapping' : 'Enable text wrapping'}
 				onclick={() => (wrapText = !wrapText)}
 			>
-				<RedoOutline class="w-4 h-4 rotate-180" />
+				<RedoOutline size="md" class="w-4 h-4 rotate-180 text-gray-800 dark:text-white" />
 			</Button>
+			<Tooltip>{wrapText ? 'Disable text wrapping' : 'Enable text wrapping'}</Tooltip>
 		</div>
 
 		<List tag="ul" class="py-2 space-y-1 overflow-auto max-h-60 font-mono {wrapText ? '' : 'whitespace-nowrap'}">

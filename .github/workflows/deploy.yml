@@ -3,6 +3,9 @@ name: Deploy
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: "Branch to deploy"
+        required: true
       app:
         description: "Application to deploy"
         required: true
@@ -16,47 +19,63 @@ on:
   #   branches: [main]
 
 jobs:
-  clone:
-    uses: Service-Pool/scripts/.github/workflows/reusable-deploy.yml@main
-    with:
-      repo_url: git@github.com:${{ github.repository }}.git
-      destination: /var/www/llms-txt
-      branch: ${{ github.ref_name }}
-    secrets: inherit
-
-  clean:
-    needs: clone
-    runs-on: [self-hosted, ubuntu-4gb-hel1-1]
+  deploy:
+    runs-on: [ self-hosted, ubuntu-4gb-hel1-1 ]
+    environment: production
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ github.event.inputs.branch }}
       - name: Cleanup Docker
         run: |
-          docker image prune -af
-          docker builder prune -af
+          docker builder prune -f
 
-  deploy-ui:
-    needs: [clean]
-    if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
-    runs-on: [self-hosted, ubuntu-4gb-hel1-1]
-    steps:
+      - name: Build UI .env
+        if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
+        env:
+          ENV_FILE: ${{ vars.UI_ENV_FILE }}
+        run: |
+          echo "$ENV_FILE" | sed 's/\r//' > apps/ui/.devcontainer/mapped/.env
+
+      - name: Build API .env
+        if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
+        env:
+          ENV_FILE: ${{ vars.API_ENV_FILE }}
+        run: |
+          echo "$ENV_FILE" \
+            | sed 's/\r//' \
+            | sed 's|__GEMINI_API_KEY__|${{ secrets.API_GEMINI_API_KEY }}|g' \
+            | sed 's|__STRIPE_SECRET_KEY__|${{ secrets.API_STRIPE_SECRET_KEY }}|g' \
+            | sed 's|__STRIPE_WEBHOOK_SECRET__|${{ secrets.API_STRIPE_WEBHOOK_SECRET }}|g' \
+            | sed 's|__DB_ROOT_PASSWORD__|${{ secrets.API_DB_ROOT_PASSWORD }}|g' \
+            | sed 's|__DB_PASSWORD__|${{ secrets.API_DB_PASSWORD }}|g' \
+            | sed 's|__SMTP_PASSWORD__|${{ secrets.API_SMTP_PASSWORD }}|g' \
+            | sed 's|__SESSION_SECRET__|${{ secrets.API_SESSION_SECRET }}|g' \
+            | sed 's|__AES_KEY__|${{ secrets.API_AES_KEY }}|g' \
+            | sed 's|__AES_IV__|${{ secrets.API_AES_IV }}|g' \
+            > apps/api/.devcontainer/mapped/.env
+
       - name: Deploy UI
+        if: ${{ github.event.inputs.app == 'ui' || github.event.inputs.app == 'both' }}
         run: |
           set -euo pipefail
-          echo "Deploying UI..."
-          cd /var/www/llms-txt/apps/ui/.devcontainer/mapped
+          cd apps/ui/.devcontainer/mapped
+          echo "DOCKER_UID=$(id -u)" >> .env
+          echo "DOCKER_GID=$(id -g)" >> .env
           docker compose down
           docker compose up --build -d --wait
           bash cmd-run.sh
 
-  deploy-api:
-    needs: [clean]
-    if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
-    runs-on: [self-hosted, ubuntu-4gb-hel1-1]
-    steps:
       - name: Deploy API
+        if: ${{ github.event.inputs.app == 'api' || github.event.inputs.app == 'both' }}
         run: |
           set -euo pipefail
-          echo "Deploying API..."
-          cd /var/www/llms-txt/apps/api/.devcontainer/mapped
+          cd apps/api/.devcontainer/mapped
+          echo "DOCKER_UID=$(id -u)" >> .env
+          echo "DOCKER_GID=$(id -g)" >> .env
           docker compose down
           docker compose up --build -d --wait
           bash cmd-run.sh

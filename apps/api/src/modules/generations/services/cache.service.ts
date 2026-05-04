@@ -88,6 +88,41 @@ class CacheService implements OnModuleInit {
 	}
 
 	/**
+	 * Получить значения для нескольких полей за один запрос.
+	 * Используется для получения текстов кластера по списку path-ов.
+	 */
+	public async hmget(hashKey: string, fields: string[]): Promise<(string | null)[]> {
+		try {
+			return await this.redis.hmget(hashKey, ...fields);
+		} catch (error) {
+			this.logger.error(`Error in hmget() for key=${hashKey}:`, error);
+			return fields.map(() => null);
+		}
+	}
+
+	/**
+	 * Итерация по всем полям HASH батчами через HSCAN.
+	 * Не загружает всё в память — безопасно для больших HASH.
+	 */
+	public async hscan(hashKey: string, onBatch: (entries: { field: string; value: string }[]) => Promise<void>): Promise<void> {
+		let cursor = '0';
+
+		do {
+			const [nextCursor, items] = await this.redis.hscan(hashKey, cursor, 'COUNT', 100);
+			cursor = nextCursor;
+
+			const entries: { field: string; value: string }[] = [];
+			for (let i = 0; i < items.length; i += 2) {
+				entries.push({ field: items[i], value: items[i + 1] });
+			}
+
+			if (entries.length > 0) {
+				await onBatch(entries);
+			}
+		} while (cursor !== '0');
+	}
+
+	/**
 	 * Очистить весь кэш (для тестирования)
 	 */
 	public async flushAll(): Promise<void> {

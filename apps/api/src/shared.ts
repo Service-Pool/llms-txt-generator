@@ -1,5 +1,6 @@
 // Enums
 export * from './enums/currency.enum';
+export * from './enums/generation-strategy.enum';
 export * from './enums/hateoas-action.enum';
 export * from './enums/order-status.enum';
 export * from './enums/response-code.enum';
@@ -20,6 +21,7 @@ export * from './modules/ai-models/dto/ai-model-response.dto';
 // Orders DTOs
 export * from './modules/orders/dto/order-request.dto';
 export * from './modules/orders/dto/order-response.dto';
+export * from './modules/orders/models/order-progress.model';
 
 // Payments DTOs
 export * from './modules/payments/dto/payment-request.dto';

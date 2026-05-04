@@ -30,6 +30,7 @@ export { default as OrderStepper } from './order/composites/OrderStepper.svelte'
 export { default as CalculateAction } from './order/actions/CalculateAction.svelte';
 export { default as PaymentAction } from './order/actions/PaymentAction.svelte';
 export { default as RunAction } from './order/actions/RunAction.svelte';
+export { default as LoadAction } from './order/actions/LoadAction.svelte';
 export { default as DownloadAction } from './order/actions/DownloadAction.svelte';
 export { default as DeleteAction } from './order/actions/DeleteAction.svelte';
 export { default as RefundAction } from './order/actions/RefundAction.svelte';

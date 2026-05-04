@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderStatus } from '@/enums/order-status.enum';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 import { CURRENCY_SYMBOLS } from '@/enums/currency.enum';
 import { HateoasAction } from '@/enums/hateoas-action.enum';
 import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
@@ -19,11 +21,8 @@ interface HateoasLink {
  * Truncate text to specified number of words
  */
 function truncateToWords(text: string | null, length: number): string | null {
-	if (!text) {
-		return text;
-	}
-
-	return text.length > length ? text.substring(0, length) + '...' : text;
+	if (!text) return text;
+	return text.length > length ? text.substring(0, length) + '\n<!-- truncated -->' : text;
 }
 
 /**
@@ -109,10 +108,15 @@ function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
 
 		case OrderStatus.COMPLETED:
 			if (entity.output) {
-				links[HateoasAction.DOWNLOAD] = {
-					href: `/api/orders/${entity.id}/output`,
+				links[HateoasAction.LOAD] = {
+					href: `/api/orders/${entity.id}/load`,
 					method: 'GET',
-					description: 'Download generated llms.txt'
+					description: 'Load full generated output content'
+				};
+				links[HateoasAction.DOWNLOAD] = {
+					href: `/api/orders/${entity.id}/download`,
+					method: 'GET',
+					description: 'Download generated output as ZIP archive'
 				};
 			}
 			break;
@@ -254,7 +258,7 @@ class CreateOrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): CreateOrderResponseDto {
 		const dto = new CreateOrderResponseDto();
 		dto.attributes = CreateOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
-		dto._links = json._links as Record<string, HateoasLink>;
+		dto._links = json._links;
 		return dto;
 	}
 }
@@ -311,10 +315,10 @@ class OrderAttributes {
 	priceTotal: number | null;
 
 	@ApiProperty({
-		description: 'Number of URLs processed',
-		example: 125
+		description: 'Processing progress',
+		example: null
 	})
-	processedUrls: number;
+	progress: OrderProgress | null;
 
 	@ApiProperty({
 		description: 'Position in queue (1-indexed). Null if not queued or already processing',
@@ -352,6 +356,9 @@ class OrderAttributes {
 	@ApiProperty({ description: 'Order completion date' })
 	completedAt: Date | null;
 
+	@ApiProperty({ description: 'Generation strategy', enum: GenerationStrategy })
+	strategy: GenerationStrategy;
+
 	@ApiProperty({ description: 'Order creation date' })
 	createdAt: Date;
 
@@ -369,13 +376,14 @@ class OrderAttributes {
 		attrs.output = truncateToWords(entity.output, 3000);
 		attrs.pricePerUrl = entity.pricePerUrl;
 		attrs.priceTotal = entity.priceTotal;
-		attrs.processedUrls = entity.processedUrls;
+		attrs.progress = entity.progress;
 		attrs.queuePosition = entity.queuePosition ?? null;
 		attrs.startedAt = entity.startedAt;
 		attrs.status = entity.status;
 		attrs.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
 		attrs.stripeSessionId = entity.stripeSessionId;
 		attrs.totalUrls = entity.totalUrls;
+		attrs.strategy = entity.strategy;
 		attrs.completedAt = entity.completedAt;
 		attrs.createdAt = entity.createdAt;
 		attrs.updatedAt = entity.updatedAt;
@@ -413,13 +421,14 @@ class OrderAttributes {
 		attrs.output = json.output as string | null;
 		attrs.pricePerUrl = json.pricePerUrl as number | null;
 		attrs.priceTotal = json.priceTotal as number | null;
-		attrs.processedUrls = json.processedUrls as number;
+		attrs.progress = (json.progress as OrderProgress) ?? null;
 		attrs.queuePosition = json.queuePosition as number | null | undefined;
 		attrs.startedAt = json.startedAt ? new Date(json.startedAt as string) : null;
 		attrs.status = json.status as OrderStatus;
 		attrs.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
 		attrs.stripeSessionId = json.stripeSessionId as string | null;
 		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.strategy = json.strategy as GenerationStrategy;
 		attrs.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
 		attrs.createdAt = new Date(json.createdAt as string);
 		attrs.updatedAt = new Date(json.updatedAt as string);
@@ -438,7 +447,7 @@ class OrderResponseDto {
 		description: 'HATEOAS navigation links based on order status',
 		example: {
 			self: { href: '/api/orders/123', method: 'GET' },
-			download: { href: '/api/orders/123/output', method: 'GET' }
+			load: { href: '/api/orders/123/output', method: 'GET' }
 		}
 	})
 	_links: Partial<Record<HateoasAction, HateoasLink>>;
@@ -453,58 +462,50 @@ class OrderResponseDto {
 	public static fromJSON(json: Record<string, unknown>): OrderResponseDto {
 		const dto = new OrderResponseDto();
 		dto.attributes = OrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
-		dto._links = json._links as Record<string, HateoasLink>;
+		dto._links = json._links;
 		return dto;
 	}
 }
 
 /**
- * Attributes for DownloadOrderResponseDto
+ * Attributes for LoadOrderOutputDto
  */
-class DownloadOrderAttributes {
-	@ApiProperty({
-		description: 'Downloaded file name',
-		example: 'llms-example.com.txt'
-	})
-	filename: string;
-
+class LoadOrderOutputAttributes {
 	@ApiProperty({
 		description: 'File content',
 		example: 'Generated llms.txt content...'
 	})
 	content: string;
 
-	public static create(filename: string, content: string): DownloadOrderAttributes {
-		const attrs = new DownloadOrderAttributes();
-		attrs.filename = filename;
+	public static create(content: string): LoadOrderOutputAttributes {
+		const attrs = new LoadOrderOutputAttributes();
 		attrs.content = content;
 		return attrs;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): DownloadOrderAttributes {
-		const attrs = new DownloadOrderAttributes();
-		attrs.filename = json.filename as string;
+	public static fromJSON(json: Record<string, unknown>): LoadOrderOutputAttributes {
+		const attrs = new LoadOrderOutputAttributes();
 		attrs.content = json.content as string;
 		return attrs;
 	}
 }
 
-class DownloadOrderResponseDto {
+class LoadOrderOutputDto {
 	@ApiProperty({
-		description: 'Download attributes',
-		type: DownloadOrderAttributes
+		description: 'Load attributes',
+		type: LoadOrderOutputAttributes
 	})
-	attributes: DownloadOrderAttributes;
+	attributes: LoadOrderOutputAttributes;
 
-	public static create(filename: string, content: string): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.attributes = DownloadOrderAttributes.create(filename, content);
+	public static create(content: string): LoadOrderOutputDto {
+		const dto = new LoadOrderOutputDto();
+		dto.attributes = LoadOrderOutputAttributes.create(content);
 		return dto;
 	}
 
-	public static fromJSON(json: Record<string, unknown>): DownloadOrderResponseDto {
-		const dto = new DownloadOrderResponseDto();
-		dto.attributes = DownloadOrderAttributes.fromJSON(json.attributes as Record<string, unknown>);
+	public static fromJSON(json: Record<string, unknown>): LoadOrderOutputDto {
+		const dto = new LoadOrderOutputDto();
+		dto.attributes = LoadOrderOutputAttributes.fromJSON(json.attributes as Record<string, unknown>);
 		return dto;
 	}
 }
@@ -578,4 +579,4 @@ class OrdersListResponseDto {
 	}
 }
 
-export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, DownloadOrderResponseDto };
+export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto };

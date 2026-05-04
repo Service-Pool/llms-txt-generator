@@ -41,7 +41,7 @@
 			onclick={() => handleModelClick(model)}
 		>
 			<div
-				class="absolute inset-0 opacity-10 dark:invert"
+				class="absolute inset-0 opacity-5 dark:invert"
 				style="background-image: url('/pattern-01.svg'); background-size: cover; background-repeat: repeat;"
 			></div>
 

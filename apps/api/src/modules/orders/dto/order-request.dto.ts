@@ -1,10 +1,11 @@
-import { IsString, IsNotEmpty, IsUrl, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsInt, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
 import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
 import { AiModelValidator } from '@/validators/ai-model.validator';
 import { Validate } from 'class-validator';
 import { Type } from 'class-transformer';
+import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 
 class CreateOrderRequestDto {
 	@ApiProperty({
@@ -29,11 +30,18 @@ class CalculateOrderRequestDto {
 	@IsNotEmpty()
 	@Validate(AiModelValidator)
 	modelId: string;
+
+	@ApiProperty({
+		description: 'Generation strategy',
+		enum: GenerationStrategy
+	})
+	@IsEnum(GenerationStrategy)
+	strategy: GenerationStrategy;
 }
 
-class DownloadOrderRequestDto {
+class LoadOrderRequestDto {
 	@ApiProperty({
-		description: 'Order ID for download',
+		description: 'Order ID for load',
 		example: 123
 	})
 	@Type(() => Number)
@@ -53,4 +61,15 @@ class DeleteOrderRequestDto {
 	id: number;
 }
 
-export { CreateOrderRequestDto, CalculateOrderRequestDto, DownloadOrderRequestDto, DeleteOrderRequestDto };
+class DownloadOrderRequestDto {
+	@ApiProperty({
+		description: 'Order ID to download',
+		example: 123
+	})
+	@Type(() => Number)
+	@IsInt()
+	@Validate(OrderHasOutputValidator)
+	id: number;
+}
+
+export { CreateOrderRequestDto, CalculateOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto };

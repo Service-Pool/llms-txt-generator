@@ -30,26 +30,26 @@
   Используется на странице /orders для списка заказов
 -->
 <Card class="max-w-none relative {className}">
-	<div class="flex flex-wrap items-start justify-between gap-2">
-		<!-- Header + Meta Section -->
-		<div class="flex-1 space-y-2">
+	<div class="flex flex-col gap-2 min-w-0">
+		<!-- Top row: header + actions -->
+		<div class="flex justify-between gap-2 min-w-0">
 			{#if header}
-				<div class="order-list-item-header">
+				<div class="order-list-item-header flex-1 min-w-0">
 					{@render header()}
 				</div>
 			{/if}
 
-			{#if meta}
-				<div class="order-list-item-meta">
-					{@render meta()}
+			{#if actionsTrigger}
+				<div class="shrink-0 flex gap-2">
+					{@render actionsTrigger()}
 				</div>
 			{/if}
 		</div>
 
-		<!-- Actions Trigger (SpeedDial) -->
-		{#if actionsTrigger}
-			<div class="shrink-0 flex gap-2">
-				{@render actionsTrigger()}
+		<!-- Bottom row: meta full width -->
+		{#if meta}
+			<div class="order-list-item-meta">
+				{@render meta()}
 			</div>
 		{/if}
 	</div>

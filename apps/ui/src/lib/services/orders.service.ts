@@ -1,13 +1,14 @@
 import { HttpClient } from './api.service';
-import { configService } from './config.service';
+import { configService } from '$lib/services/config.service';
 import {
 	CreateOrderRequestDto,
 	CreateOrderResponseDto,
 	OrderResponseDto,
 	OrdersListResponseDto,
 	AiModelResponseDto,
-	DownloadOrderResponseDto,
+	LoadOrderOutputDto,
 	HateoasAction,
+	GenerationStrategy,
 	type ApiResponse
 } from '@api/shared';
 
@@ -44,10 +45,10 @@ class OrdersService extends HttpClient {
 	/**
 	 * Calculate order with selected AI model
 	 */
-	async calculate(id: number, modelId: string): Promise<ApiResponse<OrderResponseDto>> {
+	async calculate(id: number, modelId: string, strategy: GenerationStrategy): Promise<ApiResponse<OrderResponseDto>> {
 		return this.fetch(configService.endpoints.orders.calculate(id), OrderResponseDto, {
 			method: 'POST',
-			body: JSON.stringify({ modelId })
+			body: JSON.stringify({ modelId, strategy })
 		});
 	}
 
@@ -76,11 +77,33 @@ class OrdersService extends HttpClient {
 	}
 
 	/**
-	 * Download generated LLMs.txt file
+	 * Load full generated output content
 	 * Returns file content and filename from API
 	 */
-	async download(id: number): Promise<ApiResponse<DownloadOrderResponseDto>> {
-		return this.fetch(configService.endpoints.orders.download(id), DownloadOrderResponseDto);
+	async load(id: number): Promise<ApiResponse<LoadOrderOutputDto>> {
+		return this.fetch(configService.endpoints.orders.load(id), LoadOrderOutputDto);
+	}
+
+	/**
+	 * Trigger ZIP download for order output.
+	 * Prompts user for optional pathPrefix, then navigates browser to download endpoint.
+	 * Returns false if user cancelled the prompt.
+	 */
+	downloadArchive(id: number): boolean {
+		const pathPrefix = window.prompt(
+			'Enter path prefix for .md file links (e.g. /docs), or leave empty for no prefix:',
+			''
+		);
+		if (pathPrefix === null) return false;
+
+		const a = document.createElement('a');
+		a.href = configService.endpoints.orders.download(id, pathPrefix || null);
+		a.setAttribute('data-sveltekit-reload', '');
+		a.style.display = 'none';
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		return true;
 	}
 
 	/**

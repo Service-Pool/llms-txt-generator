@@ -150,7 +150,7 @@
 						class={btnMinWidth}
 						disabled={!isActionEnabled}
 					/>
-				{:else if currentStepActionId === StepActionIdEnum.Download}
+				{:else if currentStepActionId === StepActionIdEnum.Load || currentStepActionId === StepActionIdEnum.Download}
 					<DownloadAction
 						{order}
 						transition={(currentTransition || fallbackConfig)!}

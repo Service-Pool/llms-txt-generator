@@ -1,15 +1,65 @@
-import { GoogleGenAI, Type, GenerateContentParameters } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
+import { Utils } from '@/utils/utils';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
+import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
+import { ApiError } from '@google/genai';
+
+interface ClusterPageOutput {
+	filename: string;
+	title: string;
+	summary: string;
+	md_content: string;
+}
+
+const INIT_PROMPT = `Instructions:
+- Choose a concise section name (lowercase with hyphens, e.g. "payment-methods") — this will be used as a URL namespace
+- Write a 1-2 sentence description of what this section covers
+- Decide how many output pages you will generate from this input (you may merge, split or skip pages as needed)
+- Return ONLY section_name, description, and total_pages (integer). Do NOT generate page content yet.`;
+
+const INIT_RESPONSE_SCHEMA = {
+	type: Type.OBJECT,
+	properties: {
+		section_name: { type: Type.STRING },
+		description: { type: Type.STRING },
+		total_pages: { type: Type.INTEGER }
+	},
+	required: ['section_name', 'description', 'total_pages']
+};
+
+const PAGE_META_RESPONSE_SCHEMA = {
+	type: Type.OBJECT,
+	properties: {
+		filename: { type: Type.STRING },
+		title: { type: Type.STRING },
+		summary: { type: Type.STRING }
+	},
+	required: ['filename', 'title', 'summary']
+};
+
+function formatUsage(label: string, r: GenerateContentResponse): string {
+	const m = r.usageMetadata;
+	const cached = m?.cachedContentTokenCount ?? 0;
+	const billed = (m?.promptTokenCount ?? 0) - cached;
+	const thinking = (m as Record<string, unknown>)?.thoughtsTokenCount as number | undefined;
+	const thinkingPart = thinking !== undefined ? ` thinkingTokens=${thinking}` : '';
+	return `${label}: billedInputTokens=${billed} cachedTokens=${cached} outputTokens=${m?.candidatesTokenCount}${thinkingPart} finishReason=${r.candidates?.[0]?.finishReason}`;
+}
 
 class GeminiService extends AbstractLlmService {
+	private static readonly CACHE_TTL = '600s';
+
 	private readonly ai: GoogleGenAI;
 	private readonly config: AiModelConfig;
+	private readonly requestQueue: RequestQueueService;
 
-	constructor(config: AiModelConfig) {
+	constructor(config: AiModelConfig, requestQueue: RequestQueueService) {
 		super();
 		this.config = config;
+		this.requestQueue = requestQueue;
 
 		if (!config.options?.apiKey) {
 			throw new Error('Gemini API key is required in model config options');
@@ -18,15 +68,12 @@ class GeminiService extends AbstractLlmService {
 		this.ai = new GoogleGenAI({ apiKey: config.options.apiKey });
 	}
 
-	/**
-	 * Генерирует саммари для батча страниц через Gemini API за один вызов
-	 */
 	public async generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]> {
 		const pagesText = pages
 			.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
 			.join('\n\n');
 
-		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
+		const prompt = `You are a technical documentation summarizer. Your task is to create concise summaries for multiple web pages.
 
 ${pagesText}
 
@@ -38,12 +85,12 @@ Instructions:
 - Write in present tense
 - Maintain the SAME ORDER as the pages above`;
 
-		// Получаем валидированный ответ от LLM
-		const validated = await this.withResilience<Array<{ summary: string }>>(
-			async (currentPrompt) => {
-				const request: GenerateContentParameters = {
+		const MAX_PARSE_ATTEMPTS = 3;
+		for (let attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
+			const response = await this.requestQueue.llm(this.config.id, () =>
+				this.generateContent({
 					model: this.config.modelName,
-					contents: currentPrompt,
+					contents: prompt,
 					config: {
 						temperature: this.config.options.temperature,
 						maxOutputTokens: this.config.options.maxTokens,
@@ -62,40 +109,26 @@ Instructions:
 							}
 						}
 					}
-				};
+				}));
 
-				const response = await this.ai.models.generateContent(request);
-				return response.text;
-			},
-			{
-				initialPrompt,
-				operationName: 'generateBatchSummaries',
-				validation: {
-					expectedCount: pages.length,
-					requireSummaryFields: true
-				}
+			try {
+				const parsed = this.parseJsonResponse<Array<{ summary: string }>>(response.text, 1);
+				const summaries = parsed.map(item => item.summary.trim());
+				this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+				return summaries;
+			} catch (err) {
+				if (attempt === MAX_PARSE_ATTEMPTS) throw err;
+				this.logger.warn(`Failed to parse batch summaries (attempt ${attempt}/${MAX_PARSE_ATTEMPTS}), retrying`);
 			}
-		);
-
-		// Трансформируем в финальный формат (после валидации)
-		const summaries = validated.map(item => item.summary.trim());
-
-		this.logger.debug(`Generated ${summaries.length} summaries in batch`);
-
-		return summaries;
+		}
 	}
 
-	/**
-	 * Генерирует общее описание сайта на основе всех саммари
-	 */
-	public async generateDescription(pages: ProcessedPage[]): Promise<string> {
-		const summariesText = pages
-			.map((page, idx) => `${idx + 1}. ${page.title}: ${page.summary}`)
-			.join('\n');
+	public async generateDescription(summaries: string[]): Promise<string> {
+		const summariesText = summaries.map((s, idx) => `${idx + 1}. ${s}`).join('\n');
 
-		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
+		const prompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
-Page summaries:
+Summaries:
 ${summariesText}
 
 Instructions:
@@ -105,43 +138,168 @@ Instructions:
 - Use professional language
 - Do not mention "this website" or similar phrases, write directly about the content`;
 
-		const result = await this.withResilience<{ description: string }>(
-			async (currentPrompt) => {
-				const response = await this.ai.models.generateContent({
-					model: this.config.modelName,
-					contents: currentPrompt,
-					config: {
-						temperature: this.config.options.temperature,
-						maxOutputTokens: this.config.options.maxTokens,
-						responseMimeType: 'application/json',
-						responseSchema: {
-							type: Type.OBJECT,
-							properties: {
-								description: {
-									type: Type.STRING,
-									description: 'Brief comprehensive website description'
-								}
-							},
-							required: ['description']
-						}
+		const response = await this.requestQueue.llm(this.config.id, () =>
+			this.generateContent({
+				model: this.config.modelName,
+				contents: prompt,
+				config: {
+					temperature: this.config.options.temperature,
+					maxOutputTokens: this.config.options.maxTokens,
+					responseMimeType: 'application/json',
+					responseSchema: {
+						type: Type.OBJECT,
+						properties: {
+							description: {
+								type: Type.STRING,
+								description: 'Brief comprehensive website description'
+							}
+						},
+						required: ['description']
 					}
-				});
-
-				return response.text;
-			},
-			{
-				initialPrompt,
-				operationName: 'generateDescription',
-				validation: {
-					requireDescriptionField: true
 				}
-			}
-		);
+			}));
 
+		const result = this.parseJsonResponse<{ description: string }>(response.text, 1);
 		const description = result.description.trim();
-		this.logger.log(`Generated website description from ${pages.length} page summaries`);
-
+		this.logger.log(`Generated website description from ${summaries.length} summaries`);
 		return description;
+	}
+
+	private async createCacheStrategy(model: string, systemInstruction: string, pagesText: string, baseConfig: Record<string, unknown>): Promise<{
+		config: Record<string, unknown>;
+		getContents: (prompt: string) => string;
+		dispose: () => Promise<void>;
+		refreshIfNeeded: () => void;
+	}> {
+		try {
+			const cached = await this.ai.caches.create({
+				model,
+				config: { ttl: GeminiService.CACHE_TTL, systemInstruction, contents: `Pages:\n${pagesText}` }
+			});
+			this.logger.debug(`createCacheStrategy: created cache "${cached.name}"`);
+			return {
+				config: { ...baseConfig, cachedContent: cached.name },
+				getContents: (prompt: string) => prompt,
+				dispose: async () => { await this.ai.caches.delete({ name: cached.name }).catch(() => { }); },
+				refreshIfNeeded: () => { void this.ai.caches.update({ name: cached.name, config: { ttl: GeminiService.CACHE_TTL } }).catch(() => { }); }
+			};
+		} catch (err) {
+			if (err instanceof ApiError && err.status === 400 && err.message.includes('min_total_token_count')) {
+				this.logger.debug(`createCacheStrategy: content too small, falling back to inline context`);
+				return {
+					config: { ...baseConfig, systemInstruction },
+					getContents: prompt => `Pages:\n${pagesText}\n\n${prompt}`,
+					dispose: () => Promise.resolve(),
+					refreshIfNeeded: () => { }
+				};
+			}
+			throw err;
+		}
+	}
+
+	public async generateClusterContent(pages: ClusterPage[], onPageProgress?: (pageCurrent: number, pageTotal: number) => Promise<void>): Promise<{
+		section_name: string;
+		description: string;
+		pages: ClusterPageOutput[];
+		truncatedPages: string[];
+	}> {
+		const pagesText = pages
+			.map((p, idx) => `Page ${idx + 1}:\nPath: ${p.path}\nTitle: ${p.title}\nContent:\n${p.text}`)
+			.join('\n\n---\n\n');
+
+		const baseConfig = {
+			temperature: this.config.options.temperature,
+			maxOutputTokens: this.config.options.maxTokens,
+			responseMimeType: 'application/json' as const,
+			thinkingConfig: { thinkingBudget: 0 }
+		};
+
+		const systemInstruction = 'You are analyzing a group of semantically related web pages. Create a documentation section for this group.';
+		const strategy = await this.createCacheStrategy(this.config.modelName, systemInstruction, pagesText, baseConfig);
+
+		try {
+			const initResponse = await this.requestQueue.llm(this.config.id, () =>
+				this.generateContent({
+					model: this.config.modelName,
+					contents: strategy.getContents(INIT_PROMPT),
+					config: { ...strategy.config, responseSchema: INIT_RESPONSE_SCHEMA }
+				}));
+
+			this.logger.debug(formatUsage('generateClusterContent init', initResponse));
+
+			const { section_name: raw_section_name, description, total_pages }
+				= this.parseJsonResponse<{ section_name: string; description: string; total_pages: number }>(initResponse.text, 1);
+			const section_name = Utils.slugify(raw_section_name);
+
+			this.logger.log(`generateClusterContent: section="${section_name}" total_pages=${total_pages} input_pages=${pages.length}`);
+
+			const pageNums = Array.from({ length: total_pages }, (_, i) => i + 1);
+			let pagesCompleted = 0;
+
+			const allPages = await Promise.all(pageNums.map(async (pageNum) => {
+				// Request 1: filename, title, summary — retry up to 3 times for valid meta
+				let rawMeta: { filename: string; title: string; summary: string } | undefined;
+				for (let metaAttempt = 1; metaAttempt <= 3; metaAttempt++) {
+					const metaResponse = await this.requestQueue.llm(this.config.id, () =>
+						this.generateContent({
+							model: this.config.modelName,
+							contents: strategy.getContents(`Generate page ${pageNum} of your documentation plan for this section. Return only filename (lowercase with hyphens, no extension, unique within section), title, and one-line summary.`),
+							config: { ...strategy.config, responseSchema: PAGE_META_RESPONSE_SCHEMA }
+						}));
+					this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} meta attempt ${metaAttempt}`, metaResponse));
+					try {
+						const parsed = this.parseJsonResponse<{ filename: string; title: string; summary: string }>(metaResponse.text, 1);
+						if (parsed.filename && parsed.title) {
+							rawMeta = parsed;
+							break;
+						}
+						this.logger.warn(`generateClusterContent page ${pageNum} meta attempt ${metaAttempt}: invalid response (filename=${parsed.filename}), retrying`);
+					} catch {
+						this.logger.warn(`generateClusterContent page ${pageNum} meta attempt ${metaAttempt}: failed to parse response, retrying`);
+					}
+				}
+				if (!rawMeta) {
+					this.logger.warn(`generateClusterContent page ${pageNum}: failed to get valid meta after 3 attempts, using fallback`);
+					rawMeta = { filename: `page-${pageNum}`, title: `Page ${pageNum}`, summary: '' };
+				}
+				const meta = { ...rawMeta, filename: Utils.slugify(rawMeta.filename) };
+
+				// Request 2: md_content as plain text
+				const contentResponse = await this.requestQueue.llm(this.config.id, () =>
+					this.generateContent({
+						model: this.config.modelName,
+						contents: strategy.getContents(`Generate the md_content for page ${pageNum} ("${meta.filename}") of your documentation plan. Return only the raw markdown text — no JSON, no code blocks, no explanation.`),
+						config: { ...strategy.config, responseMimeType: 'text/plain' }
+					}));
+				this.logger.debug(formatUsage(`generateClusterContent page ${pageNum} content`, contentResponse));
+
+				const contentFinishReason = contentResponse.candidates?.[0]?.finishReason;
+				const rawContent = (contentResponse.text ?? '').trim();
+				const truncated = String(contentFinishReason) === 'MAX_TOKENS';
+				const md_content = truncated ? `${rawContent}\n\n<!-- truncated by AI -->` : rawContent;
+				strategy.refreshIfNeeded();
+				const result = { ...meta, md_content, truncated };
+				if (onPageProgress) await onPageProgress(++pagesCompleted, total_pages);
+				return result;
+			}));
+
+			const truncatedPages = allPages
+				.filter((p): p is ClusterPageOutput & { truncated: true } => (p as { truncated: boolean }).truncated)
+				.map(p => p.filename);
+			if (truncatedPages.length > 0) {
+				this.logger.warn(`generateClusterContent: ${truncatedPages.length} page(s) truncated: ${truncatedPages.join(', ')}`);
+			}
+
+			this.logger.log(`Generated section "${section_name}" with ${allPages.length} pages for cluster of ${pages.length} input pages`);
+			const outputPages: ClusterPageOutput[] = allPages.map(({ truncated: _t, ...p }) => p);
+			return { section_name, description, pages: outputPages, truncatedPages };
+		} finally {
+			await strategy.dispose();
+		}
+	}
+
+	private async generateContent(params: Parameters<typeof this.ai.models.generateContent>[0]): ReturnType<typeof this.ai.models.generateContent> {
+		return this.ai.models.generateContent(params);
 	}
 }
 

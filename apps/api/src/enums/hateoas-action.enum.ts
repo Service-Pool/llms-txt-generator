@@ -29,7 +29,12 @@ enum HateoasAction {
 	PAYMENT_INTENT = 'paymentIntent',
 
 	/**
-	 * Download generated llms.txt (GET)
+	 * Load full generated output content (GET)
+	 */
+	LOAD = 'load',
+
+	/**
+	 * Download generated output as ZIP archive (GET)
 	 */
 	DOWNLOAD = 'download',
 

@@ -5,6 +5,10 @@ interface AiModelOptions {
 	baseUrl?: string;
 	temperature: number;
 	maxTokens: number;
+	/** Maximum LLM concurrency. null = unlimited (paid models). */
+	maxLlmConcurrency: number | null;
+	/** Maximum pages per summary batch. */
+	maxSummaryBatchSize: number;
 }
 
 /**
@@ -19,7 +23,6 @@ interface AiModelOptions {
 class AiModelConfig {
 	id: string;
 	baseRate: number;
-	batchSize: number;
 	category: string;
 	currency: Currency;
 	description: string;

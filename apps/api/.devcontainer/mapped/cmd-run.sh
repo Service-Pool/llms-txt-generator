@@ -18,15 +18,15 @@ CONTAINER_APP="${COMPOSE_PROJECT_NAME}-App"
 
 # Install dependencies and build
 echo "Install dependencies..."
-docker exec $CONTAINER_APP sh -c "npm install"
+docker exec -u "${DOCKER_UID:-0}:${DOCKER_GID:-0}" $CONTAINER_APP sh -c "npm install"
 echo "✅ Dependencies installed"
 
 echo "Building application..."
-docker exec $CONTAINER_APP sh -c "npm run build"
+docker exec -u "${DOCKER_UID:-0}:${DOCKER_GID:-0}" $CONTAINER_APP sh -c "npm run build"
 echo "✅ Application built"
 
 echo "Running database migrations..."
-docker exec $CONTAINER_APP sh -c "npm run typeorm -- migration:run"
+docker exec -u "${DOCKER_UID:-0}:${DOCKER_GID:-0}" $CONTAINER_APP sh -c "npm run typeorm -- migration:run"
 echo "✅ Migrations completed"
 
 # Start services via supervisorctl

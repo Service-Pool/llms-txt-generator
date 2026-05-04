@@ -11,35 +11,39 @@ import * as Joi from 'joi';
 dotenvConfig();
 
 interface ValidatedEnv {
+	AES_IV: string;
+	AES_KEY: string;
+	ALLOWED_DOMAINS: string;
 	DB_HOST: string;
 	DB_NAME: string;
 	DB_PASSWORD: string;
 	DB_PORT: number;
 	DB_USER: string;
+	GEMINI_API_KEY: string;
+	GEMINI_EMBEDDING_BATCH_SIZE: number;
+	GEMINI_EMBEDDING_MODEL: string;
+	LOGIN_LINK_EXPIRY_MINUTES: number;
+	MODELS_CONFIG: string;
+	QUEUES_CONFIG: string;
 	REDIS_HOST: string;
 	REDIS_PORT: number;
 	SESSION_COOKIE_NAME: string;
 	SESSION_MAX_AGE: number;
 	SESSION_SECRET: string;
-	SOCKET_PATH: string;
-	STRIPE_SECRET_KEY: string;
-	STRIPE_PUBLISHABLE_KEY: string;
-	STRIPE_WEBHOOK_SECRET: string;
-	STRIPE_MIN_PAYMENT: number;
-	STRIPE_CURRENCY: string;
-	ALLOWED_DOMAINS: string;
-	MODELS_CONFIG: string;
-	QUEUES_CONFIG: string;
+	SMTP_FROM: string;
 	SMTP_HOST: string;
+	SMTP_PASSWORD: string;
 	SMTP_PORT: number;
 	SMTP_USER: string;
-	SMTP_FROM: string;
-	SMTP_PASSWORD: string;
-	LOGIN_LINK_EXPIRY_MINUTES: number;
-	AES_KEY: string;
-	AES_IV: string;
-	THROTTLE_TTL: number;
+	SOCKET_PATH: string;
+	STRIPE_CURRENCY: string;
+	STRIPE_MIN_PAYMENT: number;
+	STRIPE_PUBLISHABLE_KEY: string;
+	STRIPE_SECRET_KEY: string;
+	STRIPE_WEBHOOK_SECRET: string;
 	THROTTLE_LIMIT: number;
+	THROTTLE_TTL: number;
+	CRAWL_CONCURRENCY: number;
 }
 
 const queueConfigSchema = Joi.object({
@@ -61,46 +65,51 @@ const aiModelConfigSchema = Joi.object({
 	pageLimit: Joi.alternatives().try(Joi.number().positive(), Joi.boolean().valid(false)).required(),
 	queueName: Joi.string().required(),
 	queueType: Joi.string().valid('local', 'cloud').required(),
-	batchSize: Joi.number().positive().required(),
 	enabled: Joi.boolean().required(),
 	options: Joi.object({
 		apiKey: Joi.string().optional(),
 		baseUrl: Joi.string().optional(),
 		temperature: Joi.number().min(0).max(2).required(),
-		maxTokens: Joi.number().positive().required()
+		maxTokens: Joi.number().positive().required(),
+		maxLlmConcurrency: Joi.alternatives().try(Joi.number().positive(), Joi.valid(null)).required(),
+		maxSummaryBatchSize: Joi.number().positive().required()
 	}).required()
 });
 
 const validationSchema = Joi.object<ValidatedEnv>({
+	AES_IV: Joi.string().base64().required(),
+	AES_KEY: Joi.string().base64().required(),
+	ALLOWED_DOMAINS: Joi.string().required(),
 	DB_HOST: Joi.string().required(),
 	DB_NAME: Joi.string().required(),
 	DB_PASSWORD: Joi.string().required(),
 	DB_PORT: Joi.number().port().required(),
 	DB_USER: Joi.string().required(),
+	GEMINI_API_KEY: Joi.string().required(),
+	GEMINI_EMBEDDING_BATCH_SIZE: Joi.number().integer().positive().required(),
+	GEMINI_EMBEDDING_MODEL: Joi.string().required(),
+	LOGIN_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required(),
+	MODELS_CONFIG: Joi.string().required(),
+	QUEUES_CONFIG: Joi.string().required(),
 	REDIS_HOST: Joi.string().required(),
 	REDIS_PORT: Joi.number().port().required(),
 	SESSION_COOKIE_NAME: Joi.string().required(),
 	SESSION_MAX_AGE: Joi.number().required(),
 	SESSION_SECRET: Joi.string().required(),
-	SOCKET_PATH: Joi.string(),
-	STRIPE_SECRET_KEY: Joi.string().required(),
-	STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
-	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
-	STRIPE_MIN_PAYMENT: Joi.number().positive().required(),
-	STRIPE_CURRENCY: Joi.string().uppercase().valid(...Object.values(Currency)).required(),
-	ALLOWED_DOMAINS: Joi.string().required(),
-	MODELS_CONFIG: Joi.string().required(),
-	QUEUES_CONFIG: Joi.string().required(),
+	SMTP_FROM: Joi.string().email().required(),
 	SMTP_HOST: Joi.string().required(),
+	SMTP_PASSWORD: Joi.string().required(),
 	SMTP_PORT: Joi.number().port().required(),
 	SMTP_USER: Joi.string().email().required(),
-	SMTP_FROM: Joi.string().email().required(),
-	SMTP_PASSWORD: Joi.string().required(),
-	LOGIN_LINK_EXPIRY_MINUTES: Joi.number().integer().min(5).max(60).required(),
-	AES_KEY: Joi.string().base64().required(),
-	AES_IV: Joi.string().base64().required(),
-	THROTTLE_TTL: Joi.number().integer().min(1).default(60),
-	THROTTLE_LIMIT: Joi.number().integer().min(1).default(10)
+	SOCKET_PATH: Joi.string(),
+	STRIPE_CURRENCY: Joi.string().uppercase().valid(...Object.values(Currency)).required(),
+	STRIPE_MIN_PAYMENT: Joi.number().positive().required(),
+	STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
+	STRIPE_SECRET_KEY: Joi.string().required(),
+	STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+	THROTTLE_LIMIT: Joi.number().integer().min(1),
+	THROTTLE_TTL: Joi.number().integer().min(1),
+	CRAWL_CONCURRENCY: Joi.number().integer().positive()
 });
 
 function validateEnv(): ValidatedEnv {
@@ -205,7 +214,6 @@ class AppConfigService {
 					pageLimit: json.pageLimit,
 					queueName: json.queueName,
 					queueType: json.queueType,
-					batchSize: json.batchSize,
 					options: json.options,
 					enabled: json.enabled
 				};
@@ -292,6 +300,14 @@ class AppConfigService {
 		ttl: env.THROTTLE_TTL,
 		limit: env.THROTTLE_LIMIT
 	};
+
+	public readonly embedding = {
+		apiKey: env.GEMINI_API_KEY,
+		model: env.GEMINI_EMBEDDING_MODEL,
+		batchSize: env.GEMINI_EMBEDDING_BATCH_SIZE
+	};
+
+	public readonly crawlConcurrency: number = env.CRAWL_CONCURRENCY;
 }
 
 // DataSource for TypeORM CLI (migrations)

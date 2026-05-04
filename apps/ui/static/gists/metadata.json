@@ -2,19 +2,33 @@
   "files": [
     {
       "gistname": "docs.stripe.com",
-      "path": "/gists/llms-https___docs.stripe.com.txt",
+      "path": "/gists/llms-https___docs.stripe.com__flat.txt",
+      "downloadPath": "/gists/llms-https___docs.stripe.com__flat.txt",
+      "strategy": "flat",
       "urlCount": 3888,
       "estimatedMinutes": 24
     },
     {
+      "gistname": "docs.stripe.com",
+      "path": "/gists/llms-https___docs.stripe.com__clustered.txt",
+      "downloadPath": "/gists/llms-https___docs.stripe.com__clustered.zip",
+      "strategy": "clustered",
+      "urlCount": 3888,
+      "estimatedMinutes": 58
+    },
+    {
       "gistname": "www.starbucks.com",
-      "path": "/gists/llms-https___www.starbucks.com.txt",
+      "path": "/gists/llms-https___www.starbucks.com_flat.txt",
+      "downloadPath": "/gists/llms-https___www.starbucks.com_flat.txt",
+      "strategy": "flat",
       "urlCount": 5,
       "estimatedMinutes": 0.1
     },
     {
       "gistname": "openai.com",
-      "path": "/gists/llms-https___openai.com.txt",
+      "path": "/gists/llms-https___openai.com_flat.txt",
+      "downloadPath": "/gists/llms-https___openai.com_flat.txt",
+      "strategy": "flat",
       "urlCount": 1158,
       "estimatedMinutes": 10
     }

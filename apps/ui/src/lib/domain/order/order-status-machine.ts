@@ -12,7 +12,7 @@ const ALL_STEPS: Omit<StepDescriptorInterface, 'id'>[] = [
 	{ label: 'Configure', description: 'Select AI model', actionId: StepActionIdEnum.Calculate },
 	{ label: 'Payment', description: 'Process payment', actionId: StepActionIdEnum.Payment },
 	{ label: 'Generate', description: 'Run generation', actionId: StepActionIdEnum.Run },
-	{ label: 'Complete', description: 'Download results', actionId: StepActionIdEnum.Download }
+	{ label: 'Complete', description: 'Download results', actionId: StepActionIdEnum.Load }
 ];
 
 // ─── Per-status configuration ─────────────────────────────────────────────────
@@ -67,8 +67,8 @@ const STATUS_CONFIG: Record<OrderStatus, StatusStepConfig> = {
 		navigableActionIds: [StepActionIdEnum.Run]
 	},
 	[OrderStatus.COMPLETED]: {
-		preferredActionId: () => StepActionIdEnum.Download,
-		navigableActionIds: [StepActionIdEnum.Download]
+		preferredActionId: () => StepActionIdEnum.Load,
+		navigableActionIds: [StepActionIdEnum.Load]
 	},
 	[OrderStatus.CANCELLED]: {
 		preferredActionId: () => StepActionIdEnum.Calculate,

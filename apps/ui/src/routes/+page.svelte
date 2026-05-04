@@ -16,13 +16,23 @@
 		StarSolid,
 		ShieldCheckSolid,
 		FileLinesOutline,
-		LinkOutline
+		LinkOutline,
+		DownloadOutline
 	} from 'flowbite-svelte-icons';
 	import type { AiModelResponseDto } from '@api/shared';
 
 	let models = $state<AiModelResponseDto[]>([]);
 	let isLoadingModels = $state(true);
-	let gistFiles = $state<Array<{ gistname: string; content: string; urlCount: number; estimatedMinutes: number }>>([]);
+	let gistFiles = $state<
+		Array<{
+			gistname: string;
+			content: string;
+			downloadPath: string;
+			strategy: string;
+			urlCount: number;
+			estimatedMinutes: number;
+		}>
+	>([]);
 
 	const freeModels = $derived(models.filter((m) => m.baseRate === 0));
 	const paidModels = $derived(models.filter((m) => m.baseRate > 0));
@@ -42,11 +52,20 @@
 		const metadata = await fetch('/gists/metadata.json').then((r) => r.json());
 		gistFiles = await Promise.all(
 			metadata.files.map(
-				async (file: { gistname: string; path: string; urlCount: number; estimatedMinutes: number }) => {
+				async (file: {
+					gistname: string;
+					path: string;
+					downloadPath: string;
+					strategy: string;
+					urlCount: number;
+					estimatedMinutes: number;
+				}) => {
 					const content = await fetch(file.path).then((r) => r.text());
 					return {
 						gistname: file.gistname,
 						content,
+						downloadPath: file.downloadPath,
+						strategy: file.strategy,
 						urlCount: file.urlCount,
 						estimatedMinutes: file.estimatedMinutes
 					};
@@ -100,6 +119,49 @@
 <div class="max-w-4xl mx-auto space-y-6">
 	<Hero />
 	<NewOrderForm />
+
+	<!-- Social Proof: Jeremy Howard Quote -->
+	<Card
+		class="max-w-none p-6 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800"
+	>
+		<div class="flex flex-col gap-4">
+			<div class="flex items-start gap-3">
+				<img src="/jeremy-howard.webp" alt="Jeremy Howard" class="w-12 h-12 rounded-full shrink-0 object-cover" />
+				<div>
+					<P class="text-base text-gray-800 dark:text-gray-200 leading-relaxed italic">
+						"Yeah it's actually a lot of work — it's not just writing an llms.txt, but writing complete agent-oriented
+						docs. It's basically like a parallel web — one designed for AI! An llms.txt is just AI's index.html
+						replacement — it contains links to other md pages, which themselves can have links. Have a look at how
+						'skills' work — basically the list of skills/descriptions is the llms.txt equivalent, the SKILLS.md are the
+						next layer down, and references/ contains more details."
+						<a
+							href="https://discord.com/channels/689892369998676007/1279960087221239808/1484298533485023232"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="not-italic text-xs text-amber-600 dark:text-amber-400 hover:underline ml-1">source ↗</a
+						>
+					</P>
+					<div class="mt-2">
+						<span class="text-sm font-semibold text-gray-900 dark:text-white">Jeremy Howard</span>
+						<span class="text-sm text-gray-500 dark:text-gray-400">
+							— creator of the llms.txt standard, fast.ai co-founder</span
+						>
+					</div>
+				</div>
+			</div>
+			<div class="border-t border-amber-200 dark:border-amber-700 pt-4">
+				<P class="text-sm text-gray-700 dark:text-gray-300">
+					Jeremy is right — building a proper agent-oriented doc structure is a lot of work. Our generator does it
+					automatically: pages are clustered by semantic similarity, each cluster gets a focused summary and its own <code
+						class="text-xs bg-amber-100 dark:bg-amber-900/40 px-1 rounded">.md</code
+					>
+					file, and the result is a hierarchical llms.txt that follows exactly this vision. A 4,000-page documentation site
+					like docs.stripe.com takes under an hour. See
+					<a href="#example-output" class="text-amber-600 dark:text-amber-400 hover:underline">example output ↓</a> below.
+				</P>
+			</div>
+		</div>
+	</Card>
 
 	<!-- SEO Content Section -->
 	<section class="mt-16 space-y-8">
@@ -382,18 +444,33 @@
 			{#if gistFiles.length > 0}
 				<Accordion class="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
 					{#each gistFiles as file}
-						<AccordionItem classes={{ button: 'relative z-10', content: 'p-0' }} transitionParams={{ duration: 400 }}>
+						<AccordionItem
+							classes={{ button: 'relative z-10 gap-4', content: 'p-0' }}
+							transitionParams={{ duration: 400 }}
+						>
 							{#snippet header()}
-								<div class="flex flex-col gap-2">
-									<div class="flex items-center gap-2">
-										<FileLinesOutline class="w-5 h-5 text-green-600 dark:text-green-400" />
-										<span class="font-semibold text-gray-900 dark:text-white">{file.gistname}</span>
+								<div class="flex items-center justify-between w-full gap-2">
+									<div class="flex flex-col gap-2">
+										<div class="flex items-center gap-2">
+											<FileLinesOutline class="w-5 h-5 text-green-600 dark:text-green-400" />
+											<span class="font-semibold text-gray-900 dark:text-white">{file.gistname}</span>
+											<Badge color={file.strategy === 'clustered' ? 'purple' : 'blue'} class="text-xs">{file.strategy}</Badge>
+										</div>
+										<div class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+											<span>{formatNumber(file.urlCount)} URLs</span>
+											<span>•</span>
+											<span>{file.estimatedMinutes} min</span>
+										</div>
 									</div>
-									<div class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-										<span>{formatNumber(file.urlCount)} URLs</span>
-										<span>•</span>
-										<span>{file.estimatedMinutes} min</span>
-									</div>
+									<a
+										href={file.downloadPath}
+										download={file.downloadPath.split('/').pop()}
+										onclick={(e) => e.stopPropagation()}
+										class="shrink-0 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline"
+									>
+										<DownloadOutline class="w-4 h-4" />
+										<span>Download</span>
+									</a>
 								</div>
 							{/snippet}
 							<pre

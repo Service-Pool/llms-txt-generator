@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { Modal, Button, Spinner } from 'flowbite-svelte';
+	import { Modal, Button, Spinner, P, Badge } from 'flowbite-svelte';
 	import { ordersService } from '$lib/services/orders.service';
 	import { ordersStore } from '$lib/stores/orders.store.svelte';
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
+	import StrategySelector from '$lib/components/order/StrategySelector.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AiModelResponseDto } from '@api/shared';
+	import { GenerationStrategy } from '@api/shared';
 
 	interface Props {
 		order: OrderResponseDto | CreateOrderResponseDto;
@@ -16,12 +18,13 @@
 	let { order, open = $bindable(false), onSuccess, onClose }: Props = $props();
 
 	const label = $derived(
-		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? 'Update Model' : 'Set Model'
+		'currentAiModel' in order.attributes && order.attributes.currentAiModel ? 'Update parameters' : 'Set parameters'
 	);
 
 	let availableModels = $state<AiModelResponseDto[]>([]);
 	let isLoadingModels = $state(false);
 	let selectedModelId = $state<string | null>(null);
+	let selectedStrategy = $state<GenerationStrategy | null>(null);
 	let isCalculating = $state(false);
 
 	// Load available models when modal opens
@@ -38,6 +41,12 @@
 			const data = response.getData();
 			if (data) {
 				availableModels = data;
+				if (!selectedModelId && 'currentAiModel' in order.attributes && order.attributes.currentAiModel) {
+					selectedModelId = order.attributes.currentAiModel.id;
+				}
+				if (!selectedStrategy && 'strategy' in order.attributes && order.attributes.strategy) {
+					selectedStrategy = order.attributes.strategy;
+				}
 			}
 		} catch (exception) {
 			throw exception;
@@ -47,14 +56,14 @@
 	};
 
 	const handleCalculate = async () => {
-		if (!selectedModelId) {
+		if (!selectedModelId || !selectedStrategy) {
 			return;
 		}
 
 		isCalculating = true;
 
 		try {
-			const response = await ordersService.calculate(order.attributes.id, selectedModelId);
+			const response = await ordersService.calculate(order.attributes.id, selectedModelId, selectedStrategy);
 			const updatedOrder = response.getData();
 
 			ordersStore.updateOrder(updatedOrder);
@@ -88,8 +97,8 @@
 	onclose={handleClose}
 	dismissable={!isCalculating}
 	outsideclose={!isCalculating}
-	bodyClass="space-y-4"
 	class="max-w-[min(1024px,calc(100vw-2rem))]!"
+	classes={{ body: 'space-y-4' }}
 >
 	{#if isLoadingModels}
 		<div class="flex justify-center py-8">
@@ -98,8 +107,9 @@
 			</DelayedRender>
 		</div>
 	{:else if availableModels.length === 0}
-		<p class="text-sm text-gray-500">No models available</p>
+		<P class="text-sm text-gray-500">No models available</P>
 	{:else}
+		<Badge rounded color="gray">AI Model</Badge>
 		<ModelSelector
 			{availableModels}
 			{selectedModelId}
@@ -107,16 +117,22 @@
 			onSelect={(modelId: string) => (selectedModelId = modelId)}
 		/>
 
-		{#if order.attributes.totalUrls}
-			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				Price calculated for {order.attributes.totalUrls} URLs
-			</p>
-		{/if}
+		<Badge rounded color="gray">Strategy</Badge>
+		<StrategySelector
+			{selectedStrategy}
+			disabled={isCalculating}
+			onSelect={(strategy) => (selectedStrategy = strategy)}
+		/>
 	{/if}
 
 	{#snippet footer()}
 		<Button onclick={handleClose} color="alternative" class="ml-auto">Cancel</Button>
-		<Button onclick={handleCalculate} disabled={!selectedModelId} loading={isCalculating} color="purple">
+		<Button
+			onclick={handleCalculate}
+			disabled={!selectedModelId || !selectedStrategy}
+			loading={isCalculating}
+			color="purple"
+		>
 			{label}
 		</Button>
 	{/snippet}
