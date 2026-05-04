@@ -9,6 +9,7 @@ import { GenerationStrategyFactory } from '@/modules/generations/strategies/gene
 import { GeminiService } from '@/modules/generations/services/models/gemini.service';
 import { OllamaService } from '@/modules/generations/services/models/ollama.service';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { Repository } from 'typeorm';
 
@@ -20,12 +21,13 @@ class OrderJobHandler {
 		private readonly aiModelsConfigService: AiModelsConfigService,
 		private readonly generationStrategyFactory: GenerationStrategyFactory,
 		private readonly ordersService: OrdersService,
+		private readonly requestQueue: RequestQueueService,
 		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
 	) {}
 
 	private createLlmProvider(modelConfig: AiModelConfig): AbstractLlmService {
-		if (modelConfig.serviceClass.includes('gemini')) return new GeminiService(modelConfig);
-		if (modelConfig.serviceClass.includes('ollama')) return new OllamaService(modelConfig);
+		if (modelConfig.serviceClass.includes('gemini')) return new GeminiService(modelConfig, this.requestQueue);
+		if (modelConfig.serviceClass.includes('ollama')) return new OllamaService(modelConfig, this.requestQueue);
 		throw new Error(`Unknown serviceClass: ${modelConfig.serviceClass}`);
 	}
 

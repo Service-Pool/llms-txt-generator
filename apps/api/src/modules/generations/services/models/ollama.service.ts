@@ -3,33 +3,31 @@ import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.enti
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
+import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
 
 class OllamaService extends AbstractLlmService {
 	private readonly ollama: Ollama;
 	private readonly config: AiModelConfig;
+	private readonly requestQueue: RequestQueueService;
 
-	constructor(config: AiModelConfig) {
+	constructor(config: AiModelConfig, requestQueue: RequestQueueService) {
 		super();
 		this.config = config;
+		this.requestQueue = requestQueue;
 
 		if (!config.options?.baseUrl) {
 			throw new Error('Ollama baseUrl is required in model config options');
 		}
 
-		this.ollama = new Ollama({
-			host: config.options.baseUrl
-		});
+		this.ollama = new Ollama({ host: config.options.baseUrl });
 	}
 
-	/**
-	 * Генерирует саммари для батча страниц через Ollama за один вызов
-	 */
 	public async generateBatchSummaries(pages: ProcessedPage[]): Promise<string[]> {
 		const pagesText = pages
 			.map((page, idx) => `Page ${idx + 1}:\nTitle: ${page.title}\nURL: ${page.url}\nContent:\n${page.content}\n`)
 			.join('\n\n');
 
-		const initialPrompt = `You are a technical documentation summarizer. Your task is to create concise summaries for web pages.
+		const prompt = `You are a technical documentation summarizer. Your task is to create concise summaries for web pages.
 
 ${pagesText}
 
@@ -46,66 +44,36 @@ Instructions:
 - Maintain the SAME ORDER as the pages above
 - Return an array of objects, each with a "summary" field`;
 
-		// Получаем валидированный ответ от LLM
-		const validated = await this.withResilience<Array<{ summary: string }>>(
-			async (currentPrompt) => {
-				const request: GenerateRequest & { stream: false } = {
-					model: this.config.modelName,
-					prompt: currentPrompt,
-					stream: false,
-					format: {
-						type: 'array',
-						items: {
-							type: 'object',
-							properties: {
-								summary: { type: 'string', description: 'Concise 2-3 sentence summary' }
-							},
-							required: ['summary']
-						}
-					},
-					options: {
-						temperature: this.config.options.temperature,
-						num_predict: this.config.options.maxTokens
+		const response = await this.requestQueue.llm(this.config.id, () =>
+			this.ollama.generate({
+				model: this.config.modelName,
+				prompt,
+				stream: false,
+				format: {
+					type: 'array',
+					items: {
+						type: 'object',
+						properties: { summary: { type: 'string', description: 'Concise 2-3 sentence summary' } },
+						required: ['summary']
 					}
-				};
-
-				// this.llmLogger.debug(`[Ollama] Sending prompt (${currentPrompt.length} chars):\n${currentPrompt}`);
-				// this.llmLogger.debug(`[Ollama] Request format: ${JSON.stringify(request.format)}`);
-
-				const response = await this.ollama.generate(request);
-
-				// this.llmLogger.debug(`[Ollama] Raw response (${response.response.length} chars):\n${response.response}`);
-				// this.llmLogger.debug(`[Ollama] Response metadata: model=${response.model}, done=${response.done}, total_duration=${response.total_duration}`);
-
-				return response.response;
-			},
-			{
-				initialPrompt,
-				operationName: 'generateBatchSummaries',
-				validation: {
-					expectedCount: pages.length,
-					requireSummaryFields: true
+				},
+				options: {
+					temperature: this.config.options.temperature,
+					num_predict: this.config.options.maxTokens
 				}
-			}
+			} as GenerateRequest & { stream: false })
 		);
 
-		// Трансформируем в финальный формат (после валидации)
-		const summaries = validated.map(item => item.summary.trim());
-
+		const parsed = this.parseJsonResponse<Array<{ summary: string }>>(response.response, 1);
+		const summaries = parsed.map(item => item.summary.trim());
 		this.logger.debug(`Generated ${summaries.length} summaries in batch`);
-
 		return summaries;
 	}
 
-	/**
-	 * Генерирует общее описание сайта на основе всех саммари
-	 */
 	public async generateDescription(summaries: string[]): Promise<string> {
-		const summariesText = summaries
-			.map((s, idx) => `${idx + 1}. ${s}`)
-			.join('\n');
+		const summariesText = summaries.map((s, idx) => `${idx + 1}. ${s}`).join('\n');
 
-		const initialPrompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
+		const prompt = `You are analyzing a website based on summaries of its pages. Create a brief, comprehensive description of what this website offers.
 
 Summaries:
 ${summariesText}
@@ -118,47 +86,26 @@ Instructions:
 - Do not mention "this website" or similar phrases, write directly about the content
 - Return a JSON object with a "description" field`;
 
-		const result = await this.withResilience<{ description: string }>(
-			async (currentPrompt) => {
-				const request: GenerateRequest & { stream: false } = {
-					model: this.config.modelName,
-					prompt: currentPrompt,
-					stream: false,
-					format: {
-						type: 'object',
-						properties: {
-							description: { type: 'string', description: 'Brief comprehensive website description' }
-						},
-						required: ['description']
-					},
-					options: {
-						temperature: this.config.options.temperature,
-						num_predict: this.config.options.maxTokens
-					}
-				};
-
-				// this.llmLogger.debug(`[Ollama] Sending description prompt (${currentPrompt.length} chars):\n${currentPrompt}`);
-				// this.llmLogger.debug(`[Ollama] Request format: ${JSON.stringify(request.format)}`);
-
-				const response = await this.ollama.generate(request);
-
-				// this.llmLogger.debug(`[Ollama] Raw description response (${response.response.length} chars):\n${response.response}`);
-				// this.llmLogger.debug(`[Ollama] Response metadata: model=${response.model}, done=${response.done}, total_duration=${response.total_duration}`);
-
-				return response.response;
-			},
-			{
-				initialPrompt,
-				operationName: 'generateDescription',
-				validation: {
-					requireDescriptionField: true
+		const response = await this.requestQueue.llm(this.config.id, () =>
+			this.ollama.generate({
+				model: this.config.modelName,
+				prompt,
+				stream: false,
+				format: {
+					type: 'object',
+					properties: { description: { type: 'string', description: 'Brief comprehensive website description' } },
+					required: ['description']
+				},
+				options: {
+					temperature: this.config.options.temperature,
+					num_predict: this.config.options.maxTokens
 				}
-			}
+			} as GenerateRequest & { stream: false })
 		);
 
+		const result = this.parseJsonResponse<{ description: string }>(response.response, 1);
 		const description = result.description.trim();
 		this.logger.log(`Generated website description from ${summaries.length} summaries`);
-
 		return description;
 	}
 

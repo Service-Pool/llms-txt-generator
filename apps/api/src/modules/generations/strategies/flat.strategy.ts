@@ -7,20 +7,17 @@ import { OrdersService } from '@/modules/orders/services/orders.service';
 import type { Order } from '@/modules/orders/entities/order.entity';
 import type { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
-import { AppConfigService } from '@/config/config.service';
-
 @Injectable()
 class FlatStrategy implements IGenerationStrategy {
 	private readonly logger = new Logger(FlatStrategy.name);
 
 	constructor(
 		private readonly pageProcessor: PageProcessorFlat,
-		private readonly ordersService: OrdersService,
-		private readonly configService: AppConfigService
+		private readonly ordersService: OrdersService
 	) { }
 
 	public async execute(order: Order, provider: AbstractLlmService, modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
-		const { batchSize } = modelConfig;
+		const batchSize = modelConfig.options.maxSummaryBatchSize;
 		await this.ordersService.updateProgress(order.id, {
 			step: 'Crawling',
 			attempt,
@@ -37,7 +34,6 @@ class FlatStrategy implements IGenerationStrategy {
 			order.modelId,
 			provider,
 			batchSize,
-			this.configService.crawlConcurrency,
 			order.totalUrls,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {

@@ -65,14 +65,14 @@ const aiModelConfigSchema = Joi.object({
 	pageLimit: Joi.alternatives().try(Joi.number().positive(), Joi.boolean().valid(false)).required(),
 	queueName: Joi.string().required(),
 	queueType: Joi.string().valid('local', 'cloud').required(),
-	batchSize: Joi.number().positive().required(),
 	enabled: Joi.boolean().required(),
 	options: Joi.object({
 		apiKey: Joi.string().optional(),
 		baseUrl: Joi.string().optional(),
 		temperature: Joi.number().min(0).max(2).required(),
 		maxTokens: Joi.number().positive().required(),
-		llmConcurrency: Joi.number().positive().required()
+		maxLlmConcurrency: Joi.alternatives().try(Joi.number().positive(), Joi.valid(null)).required(),
+		maxSummaryBatchSize: Joi.alternatives().try(Joi.number().positive(), Joi.valid(null)).required()
 	}).required()
 });
 
@@ -214,7 +214,6 @@ class AppConfigService {
 					pageLimit: json.pageLimit,
 					queueName: json.queueName,
 					queueType: json.queueType,
-					batchSize: json.batchSize,
 					options: json.options,
 					enabled: json.enabled
 				};

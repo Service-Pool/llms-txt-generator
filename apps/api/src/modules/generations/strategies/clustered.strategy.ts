@@ -9,8 +9,6 @@ import type { Order } from '@/modules/orders/entities/order.entity';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { LlmsTxtFormatter } from '@/modules/generations/utils/llms-txt-formatter';
 import type { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
-import { AppConfigService } from '@/config/config.service';
-
 type ClusterSection = Awaited<ReturnType<AbstractLlmService['generateClusterContent']>>;
 
 @Injectable()
@@ -20,8 +18,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 	constructor(
 		private readonly pageProcessor: PageProcessorClustered,
 		private readonly ordersService: OrdersService,
-		private readonly cacheService: CacheService,
-		private readonly configService: AppConfigService
+		private readonly cacheService: CacheService
 	) {}
 
 	public async execute(order: Order, provider: AbstractLlmService, _modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
@@ -36,7 +33,6 @@ class ClusteredStrategy implements IGenerationStrategy {
 		const pageVectors = await this.pageProcessor.processPages(
 			order.hostname,
 			order.modelId,
-			this.configService.crawlConcurrency,
 			order.totalUrls,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {

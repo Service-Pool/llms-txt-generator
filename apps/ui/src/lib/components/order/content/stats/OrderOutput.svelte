@@ -125,12 +125,15 @@
 			parsed.siteDescription.split('\n').length +
 			1 +
 			parsed.sections.reduce(
-				(acc, s) =>
+				(acc, s, si) =>
 					acc +
 					1 +
 					s.description.split('\n').length +
 					1 +
-					s.blocks.reduce((a, b) => a + 1 + b.content.split('\n').length, 0),
+					s.blocks.reduce((a, b, bi) => {
+						const isOpen = openBlocks.has(`${si}-${bi}`);
+						return a + 1 + (isOpen && b.content ? b.content.split('\n').length : 0);
+					}, 0),
 				0
 			)
 	);

@@ -4,30 +4,25 @@ import { AbstractLlmService } from '@/modules/generations/services/models/abstra
 import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
 import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
+import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
-import { Utils } from '@/utils/utils';
 
-/**
- * Сервис потоковой обработки страниц для Flat стратегии.
- * Pipeline: fetch → cache check → batch LLM summary → save cache
- */
 @Injectable()
 class PageProcessorFlat {
 	private readonly logger = new Logger(PageProcessorFlat.name);
-	private static readonly FETCH_MAX_ATTEMPTS = 5;
 
 	constructor(
 		private readonly contentExtractionService: ContentExtractionService,
 		private readonly crawlersService: CrawlersService,
-		private readonly cacheService: CacheService
+		private readonly cacheService: CacheService,
+		private readonly requestQueue: RequestQueueService
 	) { }
 
 	public async processPages(
 		hostname: string,
 		modelId: string,
 		llmProvider: AbstractLlmService,
-		batchSize: number,
-		concurrency: number,
+		batchSize: number | null,
 		limit?: number,
 		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
@@ -38,8 +33,6 @@ class PageProcessorFlat {
 		const allUrls = limit ? urls.slice(0, limit) : urls;
 		const hashKey = this.buildHashKey(modelId, hostname);
 
-		// Краулинг чанками по concurrency — фиксированный параллелизм из конфига.
-		// LLM суммаризация — по batchSize страниц за раз.
 		let pendingPages: ProcessedPage[] = [];
 
 		const flushSummaries = async () => {
@@ -47,18 +40,14 @@ class PageProcessorFlat {
 			await this.generateBatchSummary(pendingPages, llmProvider);
 			await Promise.all(pendingPages.map(page => this.saveCache(page, modelId, hostname)));
 			allPages.push(...pendingPages);
-			processedCount += pendingPages.length;
-			if (onProgress) {
-				await onProgress(processedCount, allUrls.length, pendingPages);
-			}
-			this.logger.debug(`Processed ${processedCount} pages so far`);
+			this.logger.debug(`Flushed ${pendingPages.length} summaries, total processed: ${processedCount}`);
 			pendingPages = [];
 		};
 
-		for (let i = 0; i < allUrls.length; i += concurrency) {
-			const chunkUrls = allUrls.slice(i, i + concurrency);
-
-			this.logger.debug(`Processing chunk of ${chunkUrls.length} URLs`);
+		// Check cache for all URLs in chunks to avoid memory pressure
+		const CHUNK = 200;
+		for (let i = 0; i < allUrls.length; i += CHUNK) {
+			const chunkUrls = allUrls.slice(i, i + CHUNK);
 
 			const cacheChecks = await Promise.all(chunkUrls.map(async (url) => {
 				const { path: pathname } = this.parseUrl(url);
@@ -66,7 +55,6 @@ class PageProcessorFlat {
 				return { url, cached };
 			}));
 
-			const cachedPages: ProcessedPage[] = [];
 			const urlsToFetch: string[] = [];
 
 			for (const { url, cached } of cacheChecks) {
@@ -74,33 +62,30 @@ class PageProcessorFlat {
 					try {
 						const data = JSON.parse(cached) as CacheEntry;
 						if (data.summary) {
-							cachedPages.push(ProcessedPage.success(url, data.title ?? '', data.text, data.summary));
-						} else {
-							urlsToFetch.push(url);
+							pendingPages.push(ProcessedPage.success(url, data.title ?? '', data.text, data.summary));
+							continue;
 						}
-					} catch {
-						urlsToFetch.push(url);
-					}
-				} else {
-					urlsToFetch.push(url);
+					} catch { /* fall through */ }
 				}
+				urlsToFetch.push(url);
 			}
 
-			this.logger.debug(`Cache hits: ${cachedPages.length}, URLs to fetch: ${urlsToFetch.length}`);
-
-			let fetchedPages: ProcessedPage[] = [];
 			if (urlsToFetch.length > 0) {
-				fetchedPages = await Utils.parallelMap(urlsToFetch, url => this.fetchContent(url), concurrency);
+				const fetched = await Promise.all(
+					urlsToFetch.map(async (url) => {
+						const page = await this.requestQueue.crawl(() => this.fetchContent(url));
+						processedCount++;
+						if (onProgress) await onProgress(processedCount, allUrls.length, [page]);
+						return page;
+					})
+				);
+				pendingPages.push(...fetched);
 			}
 
-			pendingPages.push(...cachedPages, ...fetchedPages);
-			if (pendingPages.length >= batchSize) {
-				await flushSummaries();
-			}
+			if (batchSize !== null && pendingPages.length >= batchSize) await flushSummaries();
 		}
 
 		await flushSummaries();
-
 		return allPages;
 	}
 
@@ -118,31 +103,19 @@ class PageProcessorFlat {
 		});
 	}
 
-	private async fetchContent(url: string, attempt = 1): Promise<ProcessedPage> {
-		const maxAttempts = PageProcessorFlat.FETCH_MAX_ATTEMPTS;
+	private async fetchContent(url: string): Promise<ProcessedPage> {
 		try {
 			const { title, content } = await this.contentExtractionService.extractContent(url);
 			return ProcessedPage.success(url, title, content);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			const isRetryable = message.includes('HTTP 429') || message.includes('HTTP 503') || message.includes('timeout');
-
-			if (isRetryable && attempt < maxAttempts) {
-				const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30000);
-				this.logger.warn(`Retry ${attempt}/${maxAttempts - 1} for ${url} in ${delayMs}ms: ${message}`);
-				await new Promise(resolve => setTimeout(resolve, delayMs));
-				return this.fetchContent(url, attempt + 1);
-			}
-
-			this.logger.warn(`Failed to fetch ${url} after ${attempt} attempt(s): ${message}`);
+			this.logger.warn(`Failed to fetch ${url}: ${message}`);
 			return ProcessedPage.failure(url, message);
 		}
 	}
 
 	private async saveCache(page: ProcessedPage, modelId: string, hostname: string): Promise<void> {
-		if (page.isFailure() || !page.summary) {
-			return;
-		}
+		if (page.isFailure() || !page.summary) return;
 
 		const hashKey = this.buildHashKey(modelId, hostname);
 		const { path: pathname } = this.parseUrl(page.url);
@@ -158,13 +131,9 @@ class PageProcessorFlat {
 
 	private async generateBatchSummary(pages: ProcessedPage[], llmProvider: AbstractLlmService): Promise<void> {
 		const validPages = pages.filter(p => p && p.isSuccess() && !p.summary);
-
-		if (validPages.length === 0) {
-			return;
-		}
+		if (validPages.length === 0) return;
 
 		const summaries = await llmProvider.generateBatchSummaries(validPages);
-
 		for (let i = 0; i < validPages.length; i++) {
 			validPages[i].summary = summaries[i];
 		}
