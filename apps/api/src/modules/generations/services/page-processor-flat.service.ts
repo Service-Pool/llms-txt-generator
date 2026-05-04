@@ -24,7 +24,8 @@ class PageProcessorFlat {
 		llmProvider: AbstractLlmService,
 		batchSize: number,
 		limit?: number,
-		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
+		onCrawlProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>,
+		onSummarizeProgress?: (summarized: number, total: number) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
 		const allPages: ProcessedPage[] = [];
 		let processedCount = 0;
@@ -33,69 +34,72 @@ class PageProcessorFlat {
 		const allUrls = limit ? urls.slice(0, limit) : urls;
 		const hashKey = this.buildHashKey(modelId, hostname);
 
-		const pendingPages: ProcessedPage[] = [];
-		let flushInProgress = false;
+		// Prefetch all cache entries in one Redis request
+		const paths = allUrls.map(url => this.parseUrl(url).path);
+		const cachedValues = await this.cacheService.hmget(hashKey, paths);
 
-		const flushSummaries = async () => {
-			if (pendingPages.length === 0 || flushInProgress) return;
-			flushInProgress = true;
+		const pendingPages: ProcessedPage[] = [];
+		const urlsToFetch: string[] = [];
+		let cacheHits = 0;
+		let contentCacheHits = 0;
+
+		for (let i = 0; i < allUrls.length; i++) {
+			const raw = cachedValues[i];
+			if (raw) {
+				try {
+					const data = JSON.parse(raw) as CacheEntry;
+					if (data.summary) {
+						allPages.push(ProcessedPage.success(allUrls[i], data.title ?? '', data.text, data.summary));
+						cacheHits++;
+						processedCount++;
+						continue;
+					}
+					if (data.text) {
+						pendingPages.push(ProcessedPage.success(allUrls[i], data.title ?? '', data.text));
+						contentCacheHits++;
+						processedCount++;
+						continue;
+					}
+				} catch { /* fall through */ }
+			}
+			urlsToFetch.push(allUrls[i]);
+		}
+
+		this.logger.log(`Cache hits: ${cacheHits} with summary, ${contentCacheHits} content-only, URLs to fetch: ${urlsToFetch.length}`);
+		if (onCrawlProgress && (cacheHits + contentCacheHits) > 0) await onCrawlProgress(processedCount, allUrls.length, []);
+
+		let summarizedCount = cacheHits;
+		const totalToSummarize = allUrls.length;
+		let flushChain = Promise.resolve();
+
+		let crawlingDone = false;
+
+		const flushSummaries = () => {
 			const batch = pendingPages.splice(0);
-			try {
+			if (batch.length === 0) return;
+			flushChain = flushChain.then(async () => {
 				await this.generateBatchSummary(batch, llmProvider);
 				await Promise.all(batch.map(page => this.saveCache(page, modelId, hostname)));
 				allPages.push(...batch);
-				this.logger.debug(`Flushed ${batch.length} summaries, total processed: ${processedCount}`);
-			} finally {
-				flushInProgress = false;
-			}
+				summarizedCount += batch.length;
+				this.logger.debug(`Flushed ${batch.length} summaries, total summarized: ${summarizedCount}/${totalToSummarize}`);
+				if (crawlingDone && onSummarizeProgress) await onSummarizeProgress(summarizedCount, totalToSummarize);
+			});
 		};
 
-		// Check cache for all URLs in chunks to avoid memory pressure
-		const CHUNK = 200;
-		for (let i = 0; i < allUrls.length; i += CHUNK) {
-			const chunkUrls = allUrls.slice(i, i + CHUNK);
+		await Promise.all(urlsToFetch.map(async (url) => {
+			const page = await this.requestQueue.crawl(() => this.fetchContent(url));
+			processedCount++;
+			pendingPages.push(page);
+			if (page.isSuccess()) await this.saveCache(page, modelId, hostname);
+			if (onCrawlProgress) await onCrawlProgress(processedCount, allUrls.length, [page]);
+			if (pendingPages.length >= batchSize) flushSummaries();
+		}));
 
-			const cacheChecks = await Promise.all(chunkUrls.map(async (url) => {
-				const { path: pathname } = this.parseUrl(url);
-				const cached = await this.cacheService.get(hashKey, pathname);
-				return { url, cached };
-			}));
-
-			const urlsToFetch: string[] = [];
-			let chunkCacheHits = 0;
-
-			for (const { url, cached } of cacheChecks) {
-				if (cached) {
-					try {
-						const data = JSON.parse(cached) as CacheEntry;
-						if (data.summary) {
-							pendingPages.push(ProcessedPage.success(url, data.title ?? '', data.text, data.summary));
-							chunkCacheHits++;
-							processedCount++;
-							if (onProgress) await onProgress(processedCount, allUrls.length, []);
-							continue;
-						}
-					} catch { /* fall through */ }
-				}
-				urlsToFetch.push(url);
-			}
-
-			if (chunkCacheHits > 0) {
-				this.logger.log(`Cache hits: ${chunkCacheHits}, URLs to fetch: ${urlsToFetch.length}`);
-			}
-
-			if (urlsToFetch.length > 0) {
-				await Promise.all(urlsToFetch.map(async (url) => {
-					const page = await this.requestQueue.crawl(() => this.fetchContent(url));
-					processedCount++;
-					pendingPages.push(page);
-					if (onProgress) await onProgress(processedCount, allUrls.length, [page]);
-					if (pendingPages.length >= batchSize) await flushSummaries();
-				}));
-			}
-		}
-
-		await flushSummaries();
+		crawlingDone = true;
+		flushSummaries();
+		if (onSummarizeProgress) await onSummarizeProgress(summarizedCount, totalToSummarize);
+		await flushChain;
 		return allPages;
 	}
 
@@ -125,7 +129,7 @@ class PageProcessorFlat {
 	}
 
 	private async saveCache(page: ProcessedPage, modelId: string, hostname: string): Promise<void> {
-		if (page.isFailure() || !page.summary) return;
+		if (page.isFailure()) return;
 
 		const hashKey = this.buildHashKey(modelId, hostname);
 		const { path: pathname } = this.parseUrl(page.url);

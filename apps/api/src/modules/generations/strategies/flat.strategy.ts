@@ -49,7 +49,20 @@ class FlatStrategy implements IGenerationStrategy {
 					pageTotal: null
 				});
 				await job.updateProgress({});
-				this.logger.debug(`Progress: ${processed}/${total} URLs processed`);
+				this.logger.debug(`Progress: ${processed}/${total} URLs crawled`);
+			},
+			async (summarized, total) => {
+				await this.ordersService.updateProgress(order.id, {
+					step: 'Summarizing',
+					attempt,
+					processedUrls: null,
+					clusterCurrent: null,
+					clusterTotal: null,
+					pageCurrent: summarized,
+					pageTotal: total
+				});
+				await job.updateProgress({});
+				this.logger.debug(`Progress: ${summarized}/${total} URLs summarized`);
 			}
 		);
 

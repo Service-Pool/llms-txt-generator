@@ -26,6 +26,9 @@
 {#if progress.step === 'Crawling'}
 	<div class="text-xs opacity-75 mb-1">Crawling URLs <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
 	<ProgressBar current={progress.processedUrls ?? 0} total={totalUrls ?? 0} size="h-1.5" showNumbers={true} />
+{:else if progress.step === 'Summarizing'}
+	<div class="text-xs opacity-75 mb-1">Summarizing pages <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
+	<ProgressBar current={progress.pageCurrent ?? 0} total={progress.pageTotal ?? 0} size="h-1.5" showNumbers={true} />
 {:else if progress.step === 'Generating'}
 	<div class="text-xs opacity-75 mb-1">
 		Cluster {progress.clusterCurrent ?? 0}/{progress.clusterTotal ?? 0}, processing pages <span class="text-purple-500">{BRAILLE_FRAMES[frame]}</span>
