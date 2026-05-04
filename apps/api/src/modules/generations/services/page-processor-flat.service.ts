@@ -22,7 +22,7 @@ class PageProcessorFlat {
 		hostname: string,
 		modelId: string,
 		llmProvider: AbstractLlmService,
-		batchSize: number | null,
+		batchSize: number,
 		limit?: number,
 		onProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
@@ -33,15 +33,21 @@ class PageProcessorFlat {
 		const allUrls = limit ? urls.slice(0, limit) : urls;
 		const hashKey = this.buildHashKey(modelId, hostname);
 
-		let pendingPages: ProcessedPage[] = [];
+		const pendingPages: ProcessedPage[] = [];
+		let flushInProgress = false;
 
 		const flushSummaries = async () => {
-			if (pendingPages.length === 0) return;
-			await this.generateBatchSummary(pendingPages, llmProvider);
-			await Promise.all(pendingPages.map(page => this.saveCache(page, modelId, hostname)));
-			allPages.push(...pendingPages);
-			this.logger.debug(`Flushed ${pendingPages.length} summaries, total processed: ${processedCount}`);
-			pendingPages = [];
+			if (pendingPages.length === 0 || flushInProgress) return;
+			flushInProgress = true;
+			const batch = pendingPages.splice(0);
+			try {
+				await this.generateBatchSummary(batch, llmProvider);
+				await Promise.all(batch.map(page => this.saveCache(page, modelId, hostname)));
+				allPages.push(...batch);
+				this.logger.debug(`Flushed ${batch.length} summaries, total processed: ${processedCount}`);
+			} finally {
+				flushInProgress = false;
+			}
 		};
 
 		// Check cache for all URLs in chunks to avoid memory pressure
@@ -56,6 +62,7 @@ class PageProcessorFlat {
 			}));
 
 			const urlsToFetch: string[] = [];
+			let chunkCacheHits = 0;
 
 			for (const { url, cached } of cacheChecks) {
 				if (cached) {
@@ -63,6 +70,9 @@ class PageProcessorFlat {
 						const data = JSON.parse(cached) as CacheEntry;
 						if (data.summary) {
 							pendingPages.push(ProcessedPage.success(url, data.title ?? '', data.text, data.summary));
+							chunkCacheHits++;
+							processedCount++;
+							if (onProgress) await onProgress(processedCount, allUrls.length, []);
 							continue;
 						}
 					} catch { /* fall through */ }
@@ -70,19 +80,19 @@ class PageProcessorFlat {
 				urlsToFetch.push(url);
 			}
 
-			if (urlsToFetch.length > 0) {
-				const fetched = await Promise.all(
-					urlsToFetch.map(async (url) => {
-						const page = await this.requestQueue.crawl(() => this.fetchContent(url));
-						processedCount++;
-						if (onProgress) await onProgress(processedCount, allUrls.length, [page]);
-						return page;
-					})
-				);
-				pendingPages.push(...fetched);
+			if (chunkCacheHits > 0) {
+				this.logger.log(`Cache hits: ${chunkCacheHits}, URLs to fetch: ${urlsToFetch.length}`);
 			}
 
-			if (batchSize !== null && pendingPages.length >= batchSize) await flushSummaries();
+			if (urlsToFetch.length > 0) {
+				await Promise.all(urlsToFetch.map(async (url) => {
+					const page = await this.requestQueue.crawl(() => this.fetchContent(url));
+					processedCount++;
+					pendingPages.push(page);
+					if (onProgress) await onProgress(processedCount, allUrls.length, [page]);
+					if (pendingPages.length >= batchSize) await flushSummaries();
+				}));
+			}
 		}
 
 		await flushSummaries();

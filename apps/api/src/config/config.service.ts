@@ -72,7 +72,7 @@ const aiModelConfigSchema = Joi.object({
 		temperature: Joi.number().min(0).max(2).required(),
 		maxTokens: Joi.number().positive().required(),
 		maxLlmConcurrency: Joi.alternatives().try(Joi.number().positive(), Joi.valid(null)).required(),
-		maxSummaryBatchSize: Joi.alternatives().try(Joi.number().positive(), Joi.valid(null)).required()
+		maxSummaryBatchSize: Joi.number().positive().required()
 	}).required()
 });
 

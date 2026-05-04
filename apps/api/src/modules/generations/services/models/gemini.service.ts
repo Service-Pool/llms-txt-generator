@@ -85,34 +85,42 @@ Instructions:
 - Write in present tense
 - Maintain the SAME ORDER as the pages above`;
 
-		const response = await this.requestQueue.llm(this.config.id, () =>
-			this.generateContent({
-				model: this.config.modelName,
-				contents: prompt,
-				config: {
-					temperature: this.config.options.temperature,
-					maxOutputTokens: this.config.options.maxTokens,
-					responseMimeType: 'application/json',
-					responseSchema: {
-						type: Type.ARRAY,
-						items: {
-							type: Type.OBJECT,
-							properties: {
-								summary: {
-									type: Type.STRING,
-									description: 'Concise 2-3 sentence summary of the page content'
-								}
-							},
-							required: ['summary']
+		const MAX_PARSE_ATTEMPTS = 3;
+		for (let attempt = 1; attempt <= MAX_PARSE_ATTEMPTS; attempt++) {
+			const response = await this.requestQueue.llm(this.config.id, () =>
+				this.generateContent({
+					model: this.config.modelName,
+					contents: prompt,
+					config: {
+						temperature: this.config.options.temperature,
+						maxOutputTokens: this.config.options.maxTokens,
+						responseMimeType: 'application/json',
+						responseSchema: {
+							type: Type.ARRAY,
+							items: {
+								type: Type.OBJECT,
+								properties: {
+									summary: {
+										type: Type.STRING,
+										description: 'Concise 2-3 sentence summary of the page content'
+									}
+								},
+								required: ['summary']
+							}
 						}
 					}
-				}
-			}));
+				}));
 
-		const parsed = this.parseJsonResponse<Array<{ summary: string }>>(response.text, 1);
-		const summaries = parsed.map(item => item.summary.trim());
-		this.logger.debug(`Generated ${summaries.length} summaries in batch`);
-		return summaries;
+			try {
+				const parsed = this.parseJsonResponse<Array<{ summary: string }>>(response.text, 1);
+				const summaries = parsed.map(item => item.summary.trim());
+				this.logger.debug(`Generated ${summaries.length} summaries in batch`);
+				return summaries;
+			} catch (err) {
+				if (attempt === MAX_PARSE_ATTEMPTS) throw err;
+				this.logger.warn(`Failed to parse batch summaries (attempt ${attempt}/${MAX_PARSE_ATTEMPTS}), retrying`);
+			}
+		}
 	}
 
 	public async generateDescription(summaries: string[]): Promise<string> {

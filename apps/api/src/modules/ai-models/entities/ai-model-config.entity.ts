@@ -7,8 +7,8 @@ interface AiModelOptions {
 	maxTokens: number;
 	/** Maximum LLM concurrency. null = unlimited (paid models). */
 	maxLlmConcurrency: number | null;
-	/** Maximum pages per summary batch. null = unlimited. */
-	maxSummaryBatchSize: number | null;
+	/** Maximum pages per summary batch. */
+	maxSummaryBatchSize: number;
 }
 
 /**
