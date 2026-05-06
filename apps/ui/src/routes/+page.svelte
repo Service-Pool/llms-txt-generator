@@ -454,23 +454,26 @@
 										<div class="flex items-center gap-2">
 											<FileLinesOutline class="w-5 h-5 text-green-600 dark:text-green-400" />
 											<span class="font-semibold text-gray-900 dark:text-white">{file.gistname}</span>
-											<Badge color={file.strategy === 'clustered' ? 'purple' : 'blue'} class="text-xs">{file.strategy}</Badge>
+											<Badge color={file.strategy === 'clustered' ? 'purple' : 'blue'} class="text-xs"
+												>{file.strategy}</Badge
+											>
 										</div>
 										<div class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
 											<span>{formatNumber(file.urlCount)} URLs</span>
 											<span>•</span>
 											<span>{file.estimatedMinutes} min</span>
+											<span>•</span>
+											<a
+												href={file.downloadPath}
+												download={file.downloadPath.split('/').pop()}
+												onclick={(e) => e.stopPropagation()}
+												class="shrink-0 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline"
+											>
+												<DownloadOutline class="w-4 h-4" />
+												<span>Download</span>
+											</a>
 										</div>
 									</div>
-									<a
-										href={file.downloadPath}
-										download={file.downloadPath.split('/').pop()}
-										onclick={(e) => e.stopPropagation()}
-										class="shrink-0 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline"
-									>
-										<DownloadOutline class="w-4 h-4" />
-										<span>Download</span>
-									</a>
 								</div>
 							{/snippet}
 							<pre
