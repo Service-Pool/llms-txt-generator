@@ -17,7 +17,8 @@
 		ShieldCheckSolid,
 		FileLinesOutline,
 		LinkOutline,
-		DownloadOutline
+		DownloadOutline,
+		AdjustmentsHorizontalSolid
 	} from 'flowbite-svelte-icons';
 	import type { AiModelResponseDto } from '@api/shared';
 
@@ -567,4 +568,39 @@
 			</Card>
 		</details>
 	</section>
+
+	<Card class="max-w-none p-8 bg-linear-to-br from-red-50 to-orange-100 dark:from-red-950 dark:to-orange-950">
+		<div class="mb-10">
+			<P class="text-xs font-semibold tracking-widest uppercase text-center text-blue-500 dark:text-blue-400 mb-3"
+				>What's next</P
+			>
+			<Heading tag="h2" class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-3">Roadmap</Heading>
+			<P class="text-gray-500 dark:text-gray-400 text-center"
+				>Features we're building to make your llms.txt even more powerful</P
+			>
+		</div>
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+			<Card class="max-w-none p-6 flex flex-col gap-3">
+				<div class="flex items-center gap-2">
+					<AdjustmentsHorizontalSolid class="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0" />
+					<Heading tag="h3" class="text-base font-bold text-gray-900 dark:text-white">Custom AI instructions</Heading>
+				</div>
+				<P class="text-sm text-gray-500 dark:text-gray-400"
+					>Tell the AI exactly what to focus on when summarizing your pages — highlight pricing, emphasize technical
+					depth, or keep it brief. Your instructions, your tone.</P
+				>
+			</Card>
+			<Card class="max-w-none p-6 flex flex-col gap-3">
+				<div class="flex items-center gap-2">
+					<GlobeSolid class="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0" />
+					<Heading tag="h3" class="text-base font-bold text-gray-900 dark:text-white">Multilingual site support</Heading
+					>
+				</div>
+				<P class="text-sm text-gray-500 dark:text-gray-400"
+					>Filter which URLs get processed by language or region, so your llms.txt reflects only the content that
+					matters.</P
+				>
+			</Card>
+		</div>
+	</Card>
 </div>
