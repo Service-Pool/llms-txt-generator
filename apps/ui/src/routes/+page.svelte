@@ -475,6 +475,15 @@
 											</a>
 										</div>
 									</div>
+									<a
+										href={file.downloadPath}
+										download={file.downloadPath.split('/').pop()}
+										onclick={(e) => e.stopPropagation()}
+										class="shrink-0 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline"
+									>
+										<DownloadOutline class="w-4 h-4" />
+										<span>Download</span>
+									</a>
 								</div>
 							{/snippet}
 							<pre
