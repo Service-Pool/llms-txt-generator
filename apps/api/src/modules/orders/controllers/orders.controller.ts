@@ -144,7 +144,7 @@ class OrdersController {
 	@Get(':id/load')
 	@HttpCode(HttpStatus.OK)
 	public async loadOutput(@Param() dto: LoadOrderRequestDto): Promise<ApiResponse<LoadOrderOutputDto>> {
-		const order = await this.ordersService.getUserOrder(dto.id);
+		const order = await this.ordersService.getUserOrder(dto.id, ['output']);
 		return ApiResponse.success(LoadOrderOutputDto.create(order.output ?? ''));
 	}
 

@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import type { OrderError } from '@/modules/orders/entities/order-error.entity';
 import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { Currency } from '@/enums/currency.enum';
 import { OrderStatus } from '@/enums/order-status.enum';
@@ -69,13 +70,13 @@ class Order {
 	@Column({ type: 'datetime', nullable: true, utc: true })
 	completedAt: Date | null;
 
-	@Column({ type: 'longtext', nullable: true })
+	@Column({ type: 'longtext', nullable: true, select: false })
 	output: string | null;
 
-	@Column({ type: 'json', nullable: true })
-	errors: string[] | null;
+	@OneToMany('OrderError', 'order')
+	errors: OrderError[];
 
-	@ManyToOne(() => User, user => user.orders)
+	@ManyToOne('User', 'orders')
 	@JoinColumn({ name: 'userId' })
 	user: User;
 

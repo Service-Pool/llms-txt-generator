@@ -18,14 +18,6 @@ interface HateoasLink {
 }
 
 /**
- * Truncate text to specified number of words
- */
-function truncateToWords(text: string | null, length: number): string | null {
-	if (!text) return text;
-	return text.length > length ? text.substring(0, length) + '\n<!-- truncated -->' : text;
-}
-
-/**
  * Build HATEOAS links based on order status
  */
 function buildOrderLinks(entity: Order): Record<string, HateoasLink> {
@@ -371,9 +363,9 @@ class OrderAttributes {
 		attrs.currentAiModel = null;
 		attrs.currency = entity.priceCurrency;
 		attrs.currencySymbol = CURRENCY_SYMBOLS[entity.priceCurrency];
-		attrs.errors = entity.errors;
+		attrs.errors = entity.errors?.map(e => e.message) || null;
 		attrs.hostname = entity.hostname;
-		attrs.output = truncateToWords(entity.output, 3000);
+		attrs.output = entity.output;
 		attrs.pricePerUrl = entity.pricePerUrl;
 		attrs.priceTotal = entity.priceTotal;
 		attrs.progress = entity.progress;

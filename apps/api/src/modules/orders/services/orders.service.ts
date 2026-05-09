@@ -12,29 +12,31 @@ import { QueueManagerService } from '@/modules/queue/services/queue-manager.serv
 import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 import { UsersService } from '@/modules/users/services/users.service';
 import { StripeService } from '@/modules/payments/services/stripe.service';
-import { InjectRepository } from '@nestjs/typeorm';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
+import { OrderError } from '@/modules/orders/entities/order-error.entity';
+import { OrderRepository } from '@/modules/orders/repositories/order.repository';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { GenerationStrategy } from '@/enums/generation-strategy.enum';
 import { OrderStatusMachine } from '@/modules/orders/utils/order-status-machine';
 import { StripeSessionStatus } from '@/enums/stripe-session-status.enum';
-import { Repository, DataSource, IsNull } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
 
 @Injectable()
 class OrdersService {
 	private readonly logger = new Logger(OrdersService.name);
 
 	constructor(
-		@InjectRepository(Order)
-		private readonly orderRepository: Repository<Order>,
+		private readonly orderRepository: OrderRepository,
+		@InjectRepository(OrderError)
+		private readonly orderErrorRepository: Repository<OrderError>,
 		private readonly crawlersService: CrawlersService,
 		private readonly usersService: UsersService,
 		private readonly queueManagerService: QueueManagerService,
 		private readonly aiModelsConfigService: AiModelsConfigService,
-		private readonly stripeService: StripeService,
-		private readonly dataSource: DataSource
+		private readonly stripeService: StripeService
 	) { }
 
 	/**
@@ -133,7 +135,7 @@ class OrdersService {
 			if (order.jobId) {
 				await this.queueManagerService.removeJob(modelConfig.queueName, order.jobId, ['completed', 'failed']);
 			}
-			order.errors = null;
+			await this.orderErrorRepository.delete({ orderId: order.id });
 			order.progress = null;
 			order.output = null;
 			order.startedAt = null;
@@ -172,13 +174,20 @@ class OrdersService {
 			await this.orderRepository.update(order.id, { jobId });
 		} catch (error) {
 			await this.orderRepository.update(order.id, {
-				status: OrderStatus.FAILED,
-				errors: [`Failed to add to queue: ${error instanceof Error ? error.message : String(error)}`]
+				status: OrderStatus.FAILED
 			});
+			const errorMessage = `Failed to add to queue: ${error instanceof Error ? error.message : String(error)}`;
+			await this.orderErrorRepository.save({
+				orderId: order.id,
+				message: errorMessage
+			} as OrderError);
 			throw error;
 		}
 
-		const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+		const updatedOrder = await this.orderRepository.findOne({
+			where: { id: order.id },
+			relations: ['errors']
+		});
 		if (!updatedOrder) {
 			throw new Error(`Order ${order.id} not found after update`);
 		}
@@ -191,7 +200,8 @@ class OrdersService {
 	 */
 	public async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
 		const order = await this.orderRepository.findOne({
-			where: { id: orderId }
+			where: { id: orderId },
+			relations: ['errors']
 		});
 
 		if (!order) {
@@ -243,10 +253,13 @@ class OrdersService {
 	 * Validates ownership via SQL where clause
 	 * Auto-syncs payment status from Stripe if order is in PENDING_PAYMENT
 	 */
-	public async getUserOrder(id: number): Promise<Order> {
+	public async getUserOrder(id: number, withFull: (keyof Order)[] = []): Promise<Order> {
 		const session = this.usersService.getSessionData();
 
-		const order = await this.orderRepository.findOne({ where: { id } });
+		const order = await this.orderRepository.findOne({
+			where: { id },
+			relations: ['errors']
+		}, withFull);
 
 		if (!order) {
 			throw new NotFoundException(`Order with ID ${id} not found`);
@@ -259,7 +272,10 @@ class OrdersService {
 		if (order.status === OrderStatus.PENDING_PAYMENT) {
 			await this.syncPaymentStatus(order);
 			// Reload order after potential status update
-			const updatedOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+			const updatedOrder = await this.orderRepository.findOne({
+				where: { id: order.id },
+				relations: ['errors']
+			}, withFull);
 			const finalOrder = updatedOrder || order;
 			await this.enrichWithQueuePosition(finalOrder);
 			return finalOrder;
@@ -287,7 +303,8 @@ class OrdersService {
 			where: ownershipWhere,
 			order: { createdAt: 'DESC' },
 			skip,
-			take: limit
+			take: limit,
+			relations: ['errors']
 		});
 
 		// Auto-sync payment status for orders in PENDING_PAYMENT
@@ -303,7 +320,8 @@ class OrdersService {
 				where: ownershipWhere,
 				order: { createdAt: 'DESC' },
 				skip,
-				take: limit
+				take: limit,
+				relations: ['errors']
 			});
 
 			await this.enrichWithQueuePosition(updatedOrders);
@@ -363,7 +381,8 @@ class OrdersService {
 			return await manager.findOne(Order, {
 				where: { id },
 				withDeleted,
-				lock: { mode: 'pessimistic_read' }
+				lock: { mode: 'pessimistic_read' },
+				relations: ['errors']
 			});
 		});
 
@@ -508,38 +527,27 @@ class OrdersService {
 
 	/**
 	 * Add error to order
-	 * Uses transaction with FOR UPDATE lock to prevent race conditions when modifying errors array
 	 */
 	public async addError(orderId: number, error: string): Promise<void> {
-		const queryRunner = this.dataSource.createQueryRunner();
-		await queryRunner.connect();
-		await queryRunner.startTransaction();
+		// Verify order exists
+		const order = await this.orderRepository.findOne({
+			where: { id: orderId },
+			relations: ['errors']
+		});
+		if (!order) {
+			throw new NotFoundException(`Order with ID ${orderId} not found`);
+		}
 
-		try {
-			// Lock row for update to prevent race conditions
-			const order = await queryRunner.manager.findOne(Order, {
-				where: { id: orderId },
-				lock: { mode: 'pessimistic_write' }
-			});
+		// Check if this error already exists for this order
+		const existingError = await this.orderErrorRepository.findOne({
+			where: { orderId, message: error }
+		});
 
-			if (!order) {
-				throw new NotFoundException(`Order with ID ${orderId} not found`);
-			}
-
-			const errors = order.errors ?? [];
-
-			// Добавляем только уникальные ошибки
-			if (!errors.includes(error)) {
-				errors.push(error);
-			}
-
-			await queryRunner.manager.update(Order, orderId, { errors });
-			await queryRunner.commitTransaction();
-		} catch (err) {
-			await queryRunner.rollbackTransaction();
-			throw err;
-		} finally {
-			await queryRunner.release();
+		if (!existingError) {
+			await this.orderErrorRepository.save({
+				orderId,
+				message: error
+			} as OrderError);
 		}
 	}
 
@@ -604,7 +612,10 @@ class OrdersService {
 					await this.updateOrderStatus(order.id, OrderStatus.PAID);
 				} catch (error) {
 					// Webhook already processed - ignore transition error
-					const currentOrder = await this.orderRepository.findOne({ where: { id: order.id } });
+					const currentOrder = await this.orderRepository.findOne({
+						where: { id: order.id },
+						relations: ['errors']
+					});
 					if (currentOrder && [OrderStatus.PAID, OrderStatus.QUEUED, OrderStatus.PROCESSING].includes(currentOrder.status)) {
 						return; // Already processed by webhook
 					}
@@ -624,7 +635,7 @@ class OrdersService {
 	 * For flat strategy: plain llms.txt buffer.
 	 */
 	public async buildDownload(orderId: number, pathPrefix: string): Promise<{ filename: string; contentType: string; buffer: Buffer }> {
-		const order = await this.getUserOrder(orderId);
+		const order = await this.getUserOrder(orderId, ['output']);
 		const raw = order.output ?? '';
 		const prefix = pathPrefix ? pathPrefix.replace(/\/+$/, '') : '';
 
@@ -672,7 +683,8 @@ class OrdersService {
 		// Get order with deleted (to prevent double deletion)
 		const order = await this.orderRepository.findOne({
 			where: { id: orderId },
-			withDeleted: true
+			withDeleted: true,
+			relations: ['errors']
 		});
 
 		if (!order) {
