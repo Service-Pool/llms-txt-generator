@@ -78,6 +78,10 @@
 	function handleAnchorClick() {
 		window.location.hash = 'example-output';
 	}
+
+	function formatDate(iso: string): string {
+		return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+	}
 </script>
 
 <SEO
@@ -282,7 +286,7 @@
 
 			<Card class="max-w-none select-none p-6 hover:shadow-lg transition-shadow">
 				<div class="flex items-start gap-3">
-					<RocketSolid class="w-6 h-6 text-yellow-600 dark:text-yellow-400 shrink-0 mt-1" />
+					<RocketSolid class="w-6 h-6 text-yellow-600 dark:text-yellow-600 shrink-0 mt-1" />
 					<div>
 						<Heading tag="h4" class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Fast Generation</Heading>
 						<P class="text-sm text-gray-600 dark:text-gray-400">
@@ -475,15 +479,6 @@
 											</a>
 										</div>
 									</div>
-									<a
-										href={file.downloadPath}
-										download={file.downloadPath.split('/').pop()}
-										onclick={(e) => e.stopPropagation()}
-										class="shrink-0 flex items-center gap-1 text-xs text-green-600 dark:text-green-400 hover:underline"
-									>
-										<DownloadOutline class="w-4 h-4" />
-										<span>Download</span>
-									</a>
 								</div>
 							{/snippet}
 							<pre
@@ -578,9 +573,9 @@
 		</details>
 	</section>
 
-	<Card class="max-w-none p-8 bg-linear-to-br from-red-50 to-orange-100 dark:from-red-950 dark:to-orange-950">
+	<Card class="max-w-none p-8 border-4 border-yellow-400 dark:border-yellow-400">
 		<div class="mb-10">
-			<P class="text-xs font-semibold tracking-widest uppercase text-center text-blue-500 dark:text-blue-400 mb-3"
+			<P class="text-xs font-semibold tracking-widest uppercase text-center text-gray-400 dark:text-gray-500 mb-3"
 				>What's next</P
 			>
 			<Heading tag="h2" class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-3">Roadmap</Heading>
@@ -588,28 +583,58 @@
 				>Features we're building to make your llms.txt even more powerful</P
 			>
 		</div>
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-			<Card class="max-w-none p-6 flex flex-col gap-3">
-				<div class="flex items-center gap-2">
-					<AdjustmentsHorizontalSolid class="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0" />
-					<Heading tag="h3" class="text-base font-bold text-gray-900 dark:text-white">Custom AI instructions</Heading>
-				</div>
-				<P class="text-sm text-gray-500 dark:text-gray-400"
-					>Tell the AI exactly what to focus on when summarizing your pages — highlight pricing, emphasize technical
-					depth, or keep it brief. Your instructions, your tone.</P
-				>
-			</Card>
-			<Card class="max-w-none p-6 flex flex-col gap-3">
-				<div class="flex items-center gap-2">
-					<GlobeSolid class="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0" />
-					<Heading tag="h3" class="text-base font-bold text-gray-900 dark:text-white">Multilingual site support</Heading
+		<div class="flex flex-col">
+			<div class="roadmap-item done border-b border-gray-100 dark:border-gray-800">
+				<CheckCircleSolid class="w-5 h-5 shrink-0 mt-0.5" />
+				<div class="flex-1">
+					<div class="flex items-center gap-3 mb-1">
+						<Heading tag="h3" class="text-base font-semibold line-through"
+							>Flat & Clustered generation strategies</Heading
+						>
+						<span class="text-xs whitespace-nowrap">{formatDate('2026-03-12')}</span>
+					</div>
+					<P class="text-sm"
+						>Two generation modes: flat (one summary per page) and clustered (pages grouped by semantic similarity into
+						sections with shared context).</P
 					>
 				</div>
-				<P class="text-sm text-gray-500 dark:text-gray-400"
-					>Filter which URLs get processed by language or region, so your llms.txt reflects only the content that
-					matters.</P
-				>
-			</Card>
+			</div>
+			<div class="roadmap-item done border-b border-gray-100 dark:border-gray-800">
+				<CheckCircleSolid class="w-5 h-5 shrink-0 mt-0.5" />
+				<div class="flex-1">
+					<div class="flex items-center gap-3 mb-1">
+						<Heading tag="h3" class="text-base font-semibold line-through">Multilingual site support</Heading>
+						<span class="text-xs whitespace-nowrap">{formatDate('2026-05-10')}</span>
+					</div>
+					<P class="text-sm"
+						>Filter which URLs get processed by language or region, so your llms.txt reflects only the content that
+						matters.</P
+					>
+				</div>
+			</div>
+			<div class="roadmap-item">
+				<AdjustmentsHorizontalSolid class="w-5 h-5 shrink-0 mt-0.5 text-yellow-600" />
+				<div class="flex-1">
+					<Heading tag="h3" class="text-base font-semibold text-yellow-600 mb-1">Custom AI instructions</Heading>
+					<P class="text-sm text-gray-500 dark:text-gray-400"
+						>Tell the AI exactly what to focus on when summarizing your pages — highlight pricing, emphasize technical
+						depth, or keep it brief. Your instructions, your tone.</P
+					>
+				</div>
+			</div>
 		</div>
 	</Card>
 </div>
+
+<style>
+	.roadmap-item {
+		display: flex;
+		align-items: flex-start;
+		gap: 1rem;
+		padding: 1rem 0;
+	}
+	.roadmap-item.done {
+		filter: grayscale(1);
+		opacity: 0.5;
+	}
+</style>

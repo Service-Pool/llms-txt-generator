@@ -1,4 +1,4 @@
-import {
+﻿import {
 	Injectable,
 	NotFoundException,
 	ForbiddenException,
@@ -14,6 +14,7 @@ import { UsersService } from '@/modules/users/services/users.service';
 import { StripeService } from '@/modules/payments/services/stripe.service';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
+import { OrderUrlsResponseDto } from '@/modules/orders/dto/order-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
 import { OrderError } from '@/modules/orders/entities/order-error.entity';
 import { OrderRepository } from '@/modules/orders/repositories/order.repository';
@@ -43,6 +44,28 @@ class OrdersService {
 	 * Calculate order price and save model configuration
 	 * Can be called multiple times while order is in CREATED or CALCULATED status
 	 */
+	public async filterOrderUrls(orderId: number, filter?: string): Promise<OrderUrlsResponseDto> {
+		const order = await this.getUserOrder(orderId, ['urlList']);
+
+		let regex: RegExp | null = null;
+		if (filter) {
+			try {
+				regex = new RegExp(filter);
+			} catch {
+				throw new BadRequestException(`Invalid regex: ${filter}`);
+			}
+		}
+
+		const all = (order.urlList ?? '').split('\n').filter(Boolean);
+		const filtered = regex ? all.filter(u => regex.test(u)) : all;
+
+		order.urlListFilter = filter || null;
+		order.urlsFiltered = filtered.length;
+
+		await this.orderRepository.save(order);
+		return OrderUrlsResponseDto.create(all, filtered);
+	}
+
 	public async calculateOrder(orderId: number, modelId: string, strategy: GenerationStrategy): Promise<Order> {
 		const order = await this.getUserOrder(orderId);
 
@@ -50,7 +73,7 @@ class OrdersService {
 		OrderStatusMachine.validateTransition(order.status, OrderStatus.CALCULATED);
 
 		// Get pricing information from AI models service
-		const pricing = this.aiModelsConfigService.getModelPricing(modelId, order.totalUrls);
+		const pricing = this.aiModelsConfigService.getModelPricing(modelId, order.urlsFiltered);
 
 		order.modelId = pricing.modelConfig.id;
 		order.strategy = strategy;
@@ -157,7 +180,7 @@ class OrdersService {
 
 		// Set pricing only if not already set (free orders) or model changed
 		if (!order.modelId || order.modelId !== modelConfig.id) {
-			const pricing = this.aiModelsConfigService.getModelPricing(modelConfig.id, order.totalUrls);
+			const pricing = this.aiModelsConfigService.getModelPricing(modelConfig.id, order.urlsTotal);
 
 			order.modelId = pricing.modelConfig.id;
 			order.priceTotal = pricing.priceTotal;
@@ -241,7 +264,10 @@ class OrdersService {
 			hostname,
 			sessionId: session.sessionId,
 			userId: session.userId,
-			totalUrls: urls.length,
+			urlsTotal: urls.length,
+			urlsFiltered: urls.length,
+			urlListFilter: null,
+			urlList: [...urls].sort().join('\n'),
 			status: OrderStatus.CREATED
 		});
 
@@ -363,11 +389,11 @@ class OrdersService {
 
 	/**
 	 * Get available AI models for an order based on its context
-	 * Models are calculated based on totalUrls and user authentication status
+	 * Models are calculated based on urlsTotal and user authentication status
 	 */
 	public getAvailableAiModels(order: Order): AiModelResponseDto[] {
 		return this.aiModelsConfigService.getAvailableModels(
-			order.totalUrls,
+			order.urlsFiltered,
 			!!order.userId
 		);
 	}
@@ -377,13 +403,10 @@ class OrdersService {
 	 * @param withDeleted - if true, includes soft-deleted orders (for webhooks)
 	 */
 	public async findById(id: number, withDeleted = false): Promise<Order> {
-		const order = await this.orderRepository.manager.transaction(async (manager) => {
-			return await manager.findOne(Order, {
-				where: { id },
-				withDeleted,
-				lock: { mode: 'pessimistic_read' },
-				relations: ['errors']
-			});
+		const order = await this.orderRepository.findOne({
+			where: { id },
+			withDeleted,
+			relations: ['errors']
 		});
 
 		if (!order) {

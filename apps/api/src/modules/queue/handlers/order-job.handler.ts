@@ -1,9 +1,8 @@
 import { AiModelsConfigService } from '@/modules/ai-models/services/ai-models-config.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bullmq';
-import { Order } from '@/modules/orders/entities/order.entity';
 import { OrdersService } from '@/modules/orders/services/orders.service';
+import { OrderRepository } from '@/modules/orders/repositories/order.repository';
 import { OrderStatus } from '@/enums/order-status.enum';
 import { GenerationStrategyFactory } from '@/modules/generations/strategies/generation-strategy.factory';
 import { GeminiService } from '@/modules/generations/services/models/gemini.service';
@@ -11,7 +10,6 @@ import { OllamaService } from '@/modules/generations/services/models/ollama.serv
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 class OrderJobHandler {
@@ -22,7 +20,7 @@ class OrderJobHandler {
 		private readonly generationStrategyFactory: GenerationStrategyFactory,
 		private readonly ordersService: OrdersService,
 		private readonly requestQueue: RequestQueueService,
-		@InjectRepository(Order) private readonly orderRepository: Repository<Order>
+		private readonly orderRepository: OrderRepository
 	) {}
 
 	private createLlmProvider(modelConfig: AiModelConfig): AbstractLlmService {
@@ -40,7 +38,7 @@ class OrderJobHandler {
 			throw new Error(`Job ${job.id} has no orderId in data: ${JSON.stringify(job.data)}`);
 		}
 
-		const order = await this.orderRepository.findOne({ where: { id: orderId } });
+		const order = await this.orderRepository.findOne({ where: { id: orderId } }, ['urlList']);
 
 		if (!order) {
 			throw new Error(`Order ${orderId} not found`);

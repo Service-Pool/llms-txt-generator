@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
 	import { OrderStatus } from '@api/shared';
 	import {
@@ -79,7 +79,7 @@
 	{#snippet progress()}
 		{#if order.attributes.status === OrderStatus.PROCESSING && order.attributes.progress}
 			<div transition:slide={{ duration: 200 }}>
-				<OrderProgress progress={order.attributes.progress} totalUrls={order.attributes.totalUrls} />
+				<OrderProgress progress={order.attributes.progress} urlsFiltered={order.attributes.urlsFiltered ?? order.attributes.urlsTotal} />
 			</div>
 		{/if}
 	{/snippet}
@@ -144,3 +144,4 @@
 		@apply border-gray-800 bg-gray-800;
 	}
 </style>
+

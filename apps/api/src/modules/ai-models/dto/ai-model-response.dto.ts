@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+﻿import { ApiProperty } from '@nestjs/swagger';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
 import { Currency, CURRENCY_SYMBOLS } from '@/enums/currency.enum';
 
@@ -84,7 +84,7 @@ class AiModelResponseDto {
 	/**
 	 * Create DTO from model config with calculated pricing (including Stripe minimum)
 	 */
-	public static fromModelConfig(config: AiModelConfig, totalUrls: number, calculatedTotalPrice: number): AiModelResponseDto {
+	public static fromModelConfig(config: AiModelConfig, urlsTotal: number, calculatedTotalPrice: number): AiModelResponseDto {
 		const dto = new AiModelResponseDto();
 		dto.id = config.id;
 		dto.displayName = config.displayName;
@@ -96,10 +96,10 @@ class AiModelResponseDto {
 		dto.currency = config.currency;
 		dto.currencySymbol = CURRENCY_SYMBOLS[config.currency];
 		dto.enabled = config.enabled;
-		dto.available = config.enabled && (config.pageLimit === false || totalUrls <= config.pageLimit);
+		dto.available = config.enabled && (config.pageLimit === false || urlsTotal <= config.pageLimit);
 		dto.unavailableReason = !config.enabled
 			? 'Model is disabled'
-			: config.pageLimit !== false && totalUrls > config.pageLimit
+			: config.pageLimit !== false && urlsTotal > config.pageLimit
 				? `Page limit exceeded (max ${config.pageLimit} pages)`
 				: null;
 

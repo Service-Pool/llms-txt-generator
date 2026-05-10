@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+﻿import { ApiProperty } from '@nestjs/swagger';
 import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { Order } from '@/modules/orders/entities/order.entity';
@@ -189,7 +189,7 @@ class CreateOrderAttributes {
 		description: 'Total number of URLs to process',
 		example: 150
 	})
-	totalUrls: number | null;
+	urlsTotal: number | null;
 
 	@ApiProperty({ description: 'Order creation date' })
 	createdAt: Date;
@@ -204,7 +204,7 @@ class CreateOrderAttributes {
 		attrs.hostname = entity.hostname;
 		attrs.modelId = entity.modelId;
 		attrs.status = entity.status;
-		attrs.totalUrls = entity.totalUrls;
+		attrs.urlsTotal = entity.urlsTotal;
 		attrs.createdAt = entity.createdAt;
 		attrs.updatedAt = entity.updatedAt;
 		return attrs;
@@ -217,7 +217,7 @@ class CreateOrderAttributes {
 		attrs.hostname = json.hostname as string;
 		attrs.modelId = json.modelId as string | null;
 		attrs.status = json.status as OrderStatus;
-		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.urlsTotal = json.urlsTotal as number | null;
 		attrs.createdAt = new Date(json.createdAt as string);
 		attrs.updatedAt = new Date(json.updatedAt as string);
 		return attrs;
@@ -340,10 +340,23 @@ class OrderAttributes {
 	stripeSessionId: string | null;
 
 	@ApiProperty({
-		description: 'Total number of URLs to process',
-		example: 150
+		description: 'Total number of URLs in sitemap',
+		example: 4385
 	})
-	totalUrls: number | null;
+	urlsTotal: number | null;
+
+	@ApiProperty({
+		description: 'Number of URLs after applying filter. Equals urlsTotal when no filter is set',
+		example: 847
+	})
+	urlsFiltered: number | null;
+
+	@ApiProperty({
+		description: 'Regex filter applied to URL list. Null if no filter is set',
+		example: '/en/',
+		required: false
+	})
+	urlListFilter: string | null;
 
 	@ApiProperty({ description: 'Order completion date' })
 	completedAt: Date | null;
@@ -374,7 +387,9 @@ class OrderAttributes {
 		attrs.status = entity.status;
 		attrs.stripePaymentIntentSecret = entity.stripePaymentIntentSecret;
 		attrs.stripeSessionId = entity.stripeSessionId;
-		attrs.totalUrls = entity.totalUrls;
+		attrs.urlsTotal = entity.urlsTotal;
+		attrs.urlsFiltered = entity.urlsFiltered;
+		attrs.urlListFilter = entity.urlListFilter;
 		attrs.strategy = entity.strategy;
 		attrs.completedAt = entity.completedAt;
 		attrs.createdAt = entity.createdAt;
@@ -419,7 +434,9 @@ class OrderAttributes {
 		attrs.status = json.status as OrderStatus;
 		attrs.stripePaymentIntentSecret = json.stripePaymentIntentSecret as string | null;
 		attrs.stripeSessionId = json.stripeSessionId as string | null;
-		attrs.totalUrls = json.totalUrls as number | null;
+		attrs.urlsTotal = json.urlsTotal as number | null;
+		attrs.urlsFiltered = json.urlsFiltered as number | null;
+		attrs.urlListFilter = json.urlListFilter as string | null;
 		attrs.strategy = json.strategy as GenerationStrategy;
 		attrs.completedAt = json.completedAt ? new Date(json.completedAt as string) : null;
 		attrs.createdAt = new Date(json.createdAt as string);
@@ -571,4 +588,43 @@ class OrdersListResponseDto {
 	}
 }
 
-export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto };
+class OrderUrlsAttributes {
+	@ApiProperty({ description: 'All URLs from sitemap', type: [String] })
+	all: string[];
+
+	@ApiProperty({ description: 'URLs after applying filter. Equals all when no filter is set', type: [String] })
+	filtered: string[];
+
+	public static create(all: string[], filtered: string[]): OrderUrlsAttributes {
+		const attrs = new OrderUrlsAttributes();
+		attrs.all = all;
+		attrs.filtered = filtered;
+		return attrs;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrderUrlsAttributes {
+		const attrs = new OrderUrlsAttributes();
+		attrs.all = json.all as string[];
+		attrs.filtered = json.filtered as string[];
+		return attrs;
+	}
+}
+
+class OrderUrlsResponseDto {
+	@ApiProperty({ type: OrderUrlsAttributes })
+	attributes: OrderUrlsAttributes;
+
+	public static create(all: string[], filtered: string[]): OrderUrlsResponseDto {
+		const dto = new OrderUrlsResponseDto();
+		dto.attributes = OrderUrlsAttributes.create(all, filtered);
+		return dto;
+	}
+
+	public static fromJSON(json: Record<string, unknown>): OrderUrlsResponseDto {
+		const dto = new OrderUrlsResponseDto();
+		dto.attributes = OrderUrlsAttributes.fromJSON(json.attributes as Record<string, unknown>);
+		return dto;
+	}
+}
+
+export { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto, OrderUrlsResponseDto };

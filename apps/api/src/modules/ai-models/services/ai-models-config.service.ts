@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { AiModelConfigRepository } from '@/modules/ai-models/repositories/ai-model-config.repository';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
 import { AiModelConfig } from '@/modules/ai-models/entities/ai-model-config.entity';
@@ -33,7 +33,7 @@ class AiModelsConfigService {
 		return models
 			.filter(model => model.enabled)
 			.map((model) => {
-				// Use totalUrls = 0 to show base configuration without order context
+				// Use urlsTotal = 0 to show base configuration without order context
 				const pricing = this.getModelPricing(model.id, 0);
 				return AiModelResponseDto.fromModelConfig(model, 0, pricing.priceTotal);
 			});
@@ -58,14 +58,14 @@ class AiModelsConfigService {
 	 * Get available models for specific order parameters
 	 * Uses getModelPricing to ensure consistent pricing with Stripe minimum applied
 	 */
-	public getAvailableModels(totalUrls: number, _isAuthenticated: boolean): AiModelResponseDto[] {
+	public getAvailableModels(urlsTotal: number, _isAuthenticated: boolean): AiModelResponseDto[] {
 		const models = this.getAllModels();
 
 		return models
 			.filter(model => model.enabled)
 			.map((model) => {
-				const pricing = this.getModelPricing(model.id, totalUrls);
-				return AiModelResponseDto.fromModelConfig(model, totalUrls, pricing.priceTotal);
+				const pricing = this.getModelPricing(model.id, urlsTotal);
+				return AiModelResponseDto.fromModelConfig(model, urlsTotal, pricing.priceTotal);
 			});
 	}
 
@@ -73,7 +73,7 @@ class AiModelsConfigService {
 	 * Get model pricing information with Stripe minimum payment applied
 	 * Returns all data needed for order calculation
 	 */
-	public getModelPricing(modelId: string, totalUrls: number): {
+	public getModelPricing(modelId: string, urlsTotal: number): {
 		modelConfig: AiModelConfig;
 		pricePerUrl: number;
 		priceCurrency: Currency;
@@ -88,7 +88,7 @@ class AiModelsConfigService {
 		const priceCurrency = modelConfig.currency;
 		const minPayment = this.configService.stripe.minPayment;
 
-		let priceTotal = pricePerUrl * totalUrls;
+		let priceTotal = pricePerUrl * urlsTotal;
 
 		// Apply Stripe minimum payment if price is below threshold
 		if (priceTotal > 0 && priceTotal < minPayment) {

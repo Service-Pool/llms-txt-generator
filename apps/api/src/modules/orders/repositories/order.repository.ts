@@ -6,6 +6,15 @@ import { Order } from '@/modules/orders/entities/order.entity';
 export class OrderRepository extends Repository<Order> {
 	private readonly OUTPUT_PREVIEW_LENGTH = 3000;
 
+	private readonly hiddenFieldConfig: Record<string, (alias: string, db: string, full: boolean) => string | null> = {
+		output: (alias, db, full) => full
+			? `\`${alias}\`.\`${db}\``
+			: `CASE WHEN CHAR_LENGTH(\`${alias}\`.\`${db}\`) > ${this.OUTPUT_PREVIEW_LENGTH} THEN CONCAT(SUBSTRING(\`${alias}\`.\`${db}\`, 1, ${this.OUTPUT_PREVIEW_LENGTH}), '\n<!-- truncated -->') ELSE \`${alias}\`.\`${db}\` END`,
+		urlList: (alias, db, full) => full
+			? `\`${alias}\`.\`${db}\``
+			: null
+	};
+
 	constructor(dataSource: DataSource) {
 		super(Order, dataSource.createEntityManager());
 	}
@@ -85,27 +94,42 @@ export class OrderRepository extends Repository<Order> {
 
 	private get selectFields(): string[] {
 		return this.metadata.columns
-			.filter(col => col.isSelect !== false && col.propertyName !== 'output')
+			.filter(col => col.isSelect !== false)
 			.map(col => `order.${col.propertyName}`);
 	}
 
 	private addHiddenSelects(query: ReturnType<typeof this.createQueryBuilder>, withFull: (keyof Order)[]): void {
 		const alias = query.alias;
-		if (withFull.includes('output')) {
-			query.addSelect(`\`${alias}\`.\`output\``, 'output');
-		} else {
-			query.addSelect(
-				`CASE WHEN CHAR_LENGTH(\`${alias}\`.\`output\`) > ${this.OUTPUT_PREVIEW_LENGTH} THEN CONCAT(SUBSTRING(\`${alias}\`.\`output\`, 1, ${this.OUTPUT_PREVIEW_LENGTH}), '\n<!-- truncated -->') ELSE \`${alias}\`.\`output\` END`,
-				'output'
-			);
-		}
+		this.metadata.columns
+			.filter(col => col.isSelect === false)
+			.forEach((col) => {
+				const handler = this.hiddenFieldConfig[col.propertyName];
+				if (!handler) return;
+				const sql = handler(alias, col.databaseName, withFull.includes(col.propertyName as keyof Order));
+				if (sql) query.addSelect(sql, col.propertyName);
+			});
 	}
 
 	private async mapHiddenFields(query: ReturnType<typeof this.createQueryBuilder>): Promise<Order[]> {
 		const { entities, raw } = await query.getRawAndEntities();
+		const hiddenProps = this.metadata.columns
+			.filter(col => col.isSelect === false)
+			.map(col => col.propertyName);
 		return entities.map((entity) => {
-			const rawRow = (raw as Record<string, unknown>[]).find(r => r.order_id === entity.id);
-			(entity as unknown as Record<string, unknown>).output = rawRow?.output;
+			const rawRow = (raw as Record<string, string | null>[]).find(r => String(r.order_id) === String(entity.id));
+			const record = entity as unknown as Record<string, unknown>;
+			hiddenProps.forEach((prop) => {
+				if (prop in (rawRow ?? {})) record[prop] = rawRow[prop];
+			});
+			if (entity.urlList != null) {
+				const all = entity.urlList.split('\n').filter(Boolean);
+				try {
+					const regex = entity.urlListFilter ? new RegExp(entity.urlListFilter) : null;
+					entity.filteredUrls = regex ? all.filter(u => regex.test(u)) : all;
+				} catch {
+					entity.filteredUrls = all;
+				}
+			}
 			return entity;
 		});
 	}

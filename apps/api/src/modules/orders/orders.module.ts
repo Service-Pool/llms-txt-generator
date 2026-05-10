@@ -41,7 +41,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 		OrderHasOutputValidator,
 		OrderCanBeDeletedValidator
 	],
-	exports: [OrdersService]
+	exports: [OrdersService, OrderRepository]
 })
 
 export class OrdersModule { }

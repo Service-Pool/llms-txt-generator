@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUrl, IsInt, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsInt, IsEnum, IsOptional, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
 import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
@@ -37,6 +37,19 @@ class CalculateOrderRequestDto {
 	})
 	@IsEnum(GenerationStrategy)
 	strategy: GenerationStrategy;
+
+}
+
+class FilterOrderRequestDto {
+	@ApiProperty({
+		description: 'Regex filter applied to the URL list. Empty string removes the filter.',
+		example: '/en/',
+		required: false
+	})
+	@IsString()
+	@IsOptional()
+	@MaxLength(500)
+	filter?: string;
 }
 
 class LoadOrderRequestDto {
@@ -72,4 +85,4 @@ class DownloadOrderRequestDto {
 	id: number;
 }
 
-export { CreateOrderRequestDto, CalculateOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto };
+export { CreateOrderRequestDto, CalculateOrderRequestDto, FilterOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto };

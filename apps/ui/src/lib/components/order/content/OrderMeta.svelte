@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import type { OrderResponseDto } from '@api/shared';
 	import { formatNumber, formatPrice } from '$lib/utils/number-format';
 
@@ -12,11 +12,11 @@
 	const metadataItems = $derived.by(() => {
 		const items: string[] = [];
 
-		if (order.attributes.totalUrls) {
-			items.push(`${formatNumber(order.attributes.totalUrls)} Urls (total)`);
+		if (order.attributes.urlsTotal) {
+			items.push(`${formatNumber(order.attributes.urlsTotal)} Urls (total)`);
 		}
-		if (order.attributes.processedUrls) {
-			items.push(`${formatNumber(order.attributes.processedUrls)} Urls (processed)`);
+		if (order.attributes.progress?.processedUrls) {
+			items.push(`${formatNumber(order.attributes.progress.processedUrls)} Urls (processed)`);
 		}
 		if (order.attributes.currentAiModel) {
 			items.push(order.attributes.currentAiModel.displayName);
@@ -43,3 +43,4 @@
 		{/if}
 	{/each}
 </div>
+

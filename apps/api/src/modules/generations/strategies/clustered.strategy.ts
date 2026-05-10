@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { IGenerationStrategy } from '@/modules/generations/interfaces/generation-strategy.interface';
 import { PageProcessorClustered } from '@/modules/generations/services/page-processor-clustered.service';
@@ -19,7 +19,7 @@ class ClusteredStrategy implements IGenerationStrategy {
 		private readonly pageProcessor: PageProcessorClustered,
 		private readonly ordersService: OrdersService,
 		private readonly cacheService: CacheService
-	) {}
+	) { }
 
 	public async execute(order: Order, provider: AbstractLlmService, _modelConfig: AiModelConfig, job: Job, attempt: number): Promise<string> {
 		const hashKey = this.pageProcessor.buildHashKey(order.modelId, order.hostname);
@@ -30,10 +30,12 @@ class ClusteredStrategy implements IGenerationStrategy {
 		this.logger.log(`Starting crawl + vectorization for order ${order.id}`);
 		await setProgress({ step: 'Crawling', processedUrls: 0, clusterCurrent: null, clusterTotal: null, pageCurrent: null, pageTotal: null });
 		await job.updateProgress({});
+		const urls = order.filteredUrls;
+
 		const pageVectors = await this.pageProcessor.processPages(
 			order.hostname,
 			order.modelId,
-			order.totalUrls,
+			urls,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.path}: ${page.error}`);

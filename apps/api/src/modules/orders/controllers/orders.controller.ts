@@ -3,9 +3,9 @@ import { HttpStatus } from '@/enums/response-code.enum';
 import { Controller, Post, Get, Query, Body, Param, HttpCode, ParseIntPipe, Delete, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ApiTags, ApiOperation, ApiResponse as SwaggerResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { CreateOrderRequestDto, CalculateOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
+import { CreateOrderRequestDto, CalculateOrderRequestDto, FilterOrderRequestDto, LoadOrderRequestDto, DeleteOrderRequestDto, DownloadOrderRequestDto } from '@/modules/orders/dto/order-request.dto';
 import { AiModelResponseDto } from '@/modules/ai-models/dto/ai-model-response.dto';
-import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto } from '@/modules/orders/dto/order-response.dto';
+import { CreateOrderResponseDto, OrderResponseDto, OrdersListResponseDto, LoadOrderOutputDto, OrderUrlsResponseDto } from '@/modules/orders/dto/order-response.dto';
 import { OrdersService } from '@/modules/orders/services/orders.service';
 import { CanonicalizeHostnamePipe } from '@/modules/orders/pipes/canonicalize-hostname.pipe';
 
@@ -38,7 +38,7 @@ class OrdersController {
 	 */
 	@ApiOperation({ summary: 'Calculate order price', description: 'Calculates order pricing for the selected AI model' })
 	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
-	@ApiBody({ type: CalculateOrderRequestDto, description: 'Model selection for price calculation' })
+	@ApiBody({ type: CalculateOrderRequestDto, description: 'Model selection data' })
 	@SwaggerResponse({
 		status: HttpStatus.OK,
 		schema: ApiResponse.getSuccessSchema(OrderResponseDto)
@@ -109,8 +109,53 @@ class OrdersController {
 	@HttpCode(HttpStatus.OK)
 	public async getOrder(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<OrderResponseDto>> {
 		const order = await this.ordersService.getUserOrder(id);
-
 		return ApiResponse.success(OrderResponseDto.create(order));
+	}
+
+	/**
+	 * Get URL list for order (all + filtered by stored urlListFilter)
+	 * GET /api/orders/:id/urls
+	 */
+	@ApiOperation({ summary: 'Get order URL list', description: 'Returns all URLs and filtered URLs based on stored urlListFilter' })
+	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		schema: ApiResponse.getSuccessSchema(OrderUrlsResponseDto)
+	})
+	@Get(':id/urls')
+	@HttpCode(HttpStatus.OK)
+	public async getOrderUrls(@Param('id', ParseIntPipe) id: number): Promise<ApiResponse<OrderUrlsResponseDto>> {
+		const order = await this.ordersService.getUserOrder(id, ['urlList']);
+		const all = (order.urlList ?? '').split('\n').filter(Boolean);
+		let filtered = all;
+		if (order.urlListFilter) {
+			try {
+				const regex = new RegExp(order.urlListFilter);
+				filtered = all.filter(u => regex.test(u));
+			} catch { /* invalid regex — return all */ }
+		}
+		return ApiResponse.success(OrderUrlsResponseDto.create(all, filtered));
+	}
+
+	/**
+	 * Set URL filter for order
+	 * POST /api/orders/:id/filter
+	 */
+	@ApiOperation({ summary: 'Set URL filter', description: 'Applies a regex filter to the URL list. Affects urlsFiltered count used for pricing. Pass empty filter to clear.' })
+	@ApiParam({ name: 'id', type: 'number', description: 'Order ID' })
+	@ApiBody({ type: FilterOrderRequestDto, description: 'Regex filter string' })
+	@SwaggerResponse({
+		status: HttpStatus.OK,
+		schema: ApiResponse.getSuccessSchema(OrderUrlsResponseDto)
+	})
+	@Post(':id/filter')
+	@HttpCode(HttpStatus.OK)
+	public async filterOrderUrls(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() dto: FilterOrderRequestDto
+	): Promise<ApiResponse<OrderUrlsResponseDto>> {
+		const result = await this.ordersService.filterOrderUrls(id, dto.filter);
+		return ApiResponse.success(result);
 	}
 
 	/**

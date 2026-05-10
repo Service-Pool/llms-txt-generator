@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { Card, Input, Label, Button, Helper, Alert, Spinner, P } from 'flowbite-svelte';
 	import { ExclamationCircleOutline, ArrowLeftOutline } from 'flowbite-svelte-icons';
 	import { goto } from '$app/navigation';
@@ -15,6 +15,7 @@
 	import ErrorList from '$lib/components/ui/error-list.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
 	import StrategySelector from '$lib/components/order/StrategySelector.svelte';
+	import UrlFilter from '$lib/components/order/UrlFilter.svelte';
 	import type { OrderResponseDto, AiModelResponseDto } from '@api/shared';
 	import { GenerationStrategy } from '@api/shared';
 
@@ -26,6 +27,11 @@
 	let selectedModelId = $state<string | null>(null);
 	let selectedStrategy = $state<GenerationStrategy | null>(null);
 	let isLoadingModels = $state(false);
+
+	// URL filter state
+	let filterInput = $state('');
+	let filterError = $state<string | null>(null);
+	let isApplyingFilter = $state(false);
 
 	// Form state
 	let hostname = $state('');
@@ -112,6 +118,26 @@
 
 	const handleModelSelect = (modelId: string) => {
 		selectedModelId = modelId;
+	};
+
+	const handleApplyFilter = async (filter: string) => {
+		if (!createdOrder) return;
+
+		isApplyingFilter = true;
+		filterError = null;
+
+		try {
+			await ordersService.filterUrls(createdOrder.attributes.id, filter || undefined);
+			const orderResponse = await ordersService.getById(createdOrder.attributes.id);
+			createdOrder = orderResponse.getData();
+			const modelsResponse = await ordersService.getAvailableModels(createdOrder.attributes.id);
+			const data = modelsResponse.getData();
+			if (data) availableModels = data;
+		} catch (e) {
+			filterError = e instanceof Error ? e.message : 'Failed to apply filter';
+		} finally {
+			isApplyingFilter = false;
+		}
 	};
 
 	const handleSetModel = async () => {
@@ -204,7 +230,7 @@
 					<P space="tight" size="xs" height="6" class="text-gray-600 dark:text-gray-400 mb-1">
 						<span>Order <strong>#{createdOrder?.attributes.id}</strong></span>
 						<span>•</span>
-						<span>{createdOrder?.attributes.totalUrls} URLs</span>
+						<span>{createdOrder?.attributes.urlsTotal} URLs</span>
 						<span>•</span>
 						<span class="font-semibold">{createdOrder?.attributes.hostname}</span>
 					</P>
@@ -228,6 +254,18 @@
 				{:else if availableModels.length === 0}
 					<p class="text-sm text-gray-500 text-center py-8">No models available</p>
 				{:else}
+					<UrlFilter
+						orderId={createdOrder?.attributes.id ?? 0}
+						urlsTotal={createdOrder?.attributes.urlsTotal ?? null}
+						urlsFiltered={createdOrder?.attributes.urlsFiltered ?? null}
+						urlListFilter={createdOrder?.attributes.urlListFilter ?? null}
+						bind:filter={filterInput}
+						disabled={isCalculating || isApplyingFilter}
+						error={filterError}
+						onApply={handleApplyFilter}
+						class="mb-6"
+					/>
+
 					<h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Select AI Model</h2>
 					<ModelSelector
 						{availableModels}
