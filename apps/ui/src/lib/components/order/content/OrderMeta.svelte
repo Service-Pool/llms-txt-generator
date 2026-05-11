@@ -15,6 +15,11 @@
 		if (order.attributes.urlsTotal) {
 			items.push(`${formatNumber(order.attributes.urlsTotal)} Urls (total)`);
 		}
+		if (order.attributes.urlListFilter != null) {
+			items.push(`filter: ${order.attributes.urlListFilter}`);
+		} else if (order.attributes.urlsTotal) {
+			items.push('filter: none');
+		}
 		if (order.attributes.progress?.processedUrls) {
 			items.push(`${formatNumber(order.attributes.progress.processedUrls)} Urls (processed)`);
 		}
