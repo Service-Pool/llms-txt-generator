@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ProcessedPage } from '@/modules/generations/models/processed-page.model';
 import { AbstractLlmService } from '@/modules/generations/services/models/abstractLlm.service';
 import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
-import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
 import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interface';
@@ -13,7 +12,6 @@ class PageProcessorFlat {
 
 	constructor(
 		private readonly contentExtractionService: ContentExtractionService,
-		private readonly crawlersService: CrawlersService,
 		private readonly cacheService: CacheService,
 		private readonly requestQueue: RequestQueueService
 	) { }
@@ -23,15 +21,14 @@ class PageProcessorFlat {
 		modelId: string,
 		llmProvider: AbstractLlmService,
 		batchSize: number,
-		limit?: number,
+		urls: string[],
 		onCrawlProgress?: (processed: number, total: number, batchPages: ProcessedPage[]) => void | Promise<void>,
 		onSummarizeProgress?: (summarized: number, total: number) => void | Promise<void>
 	): Promise<ProcessedPage[]> {
 		const allPages: ProcessedPage[] = [];
 		let processedCount = 0;
 
-		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
-		const allUrls = limit ? urls.slice(0, limit) : urls;
+		const allUrls = urls;
 		const hashKey = this.buildHashKey(modelId, hostname);
 
 		// Prefetch all cache entries in one Redis request

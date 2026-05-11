@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ContentExtractionService } from '@/modules/content/services/content-extraction.service';
-import { CrawlersService } from '@/modules/crawlers/services/crawlers.service';
 import { CacheService } from '@/modules/generations/services/cache.service';
 import { EmbeddingService } from '@/modules/generations/services/models/embedding.service';
 import { RequestQueueService } from '@/modules/generations/services/request-queue/request-queue.service';
@@ -8,7 +7,6 @@ import { CacheEntry } from '@/modules/generations/interfaces/cache-entry.interfa
 import { ClusterPage } from '@/modules/generations/models/cluster-page.model';
 import { AppConfigService } from '@/config/config.service';
 import { PageProcessorBase } from '@/modules/generations/services/page-processor.base';
-
 
 interface PageVector {
 	path: string;
@@ -21,7 +19,6 @@ class PageProcessorClustered extends PageProcessorBase {
 
 	constructor(
 		contentExtractionService: ContentExtractionService,
-		private readonly crawlersService: CrawlersService,
 		private readonly cacheService: CacheService,
 		private readonly embeddingService: EmbeddingService,
 		private readonly configService: AppConfigService,
@@ -33,16 +30,14 @@ class PageProcessorClustered extends PageProcessorBase {
 	public async processPages(
 		hostname: string,
 		modelId: string,
-		limit?: number,
+		urls: string[],
 		onProgress?: (processed: number, total: number, batchPages: ClusterPage[]) => Promise<void>
 	): Promise<PageVector[]> {
 		const hashKey = this.buildHashKey(modelId, hostname);
 
-		const urls = await this.crawlersService.getAllSitemapUrls(hostname);
-		const limitedUrls = limit ? urls.slice(0, limit) : urls;
-		const total = limitedUrls.length;
+		const total = urls.length;
 
-		const allPaths = limitedUrls.map(url => this.parseUrl(url).path);
+		const allPaths = urls.map(url => this.parseUrl(url).path);
 		const allCached = allPaths.length > 0
 			? await this.cacheService.hmget(hashKey, allPaths.map(p => `vectors:${p}`))
 			: [];
@@ -50,7 +45,7 @@ class PageProcessorClustered extends PageProcessorBase {
 		const cachedVectors: PageVector[] = [];
 		const urlsToFetch: string[] = [];
 
-		for (let i = 0; i < limitedUrls.length; i++) {
+		for (let i = 0; i < urls.length; i++) {
 			const raw = allCached[i];
 			if (raw) {
 				try {
@@ -61,7 +56,7 @@ class PageProcessorClustered extends PageProcessorBase {
 					}
 				} catch { /* fall through */ }
 			}
-			urlsToFetch.push(limitedUrls[i]);
+			urlsToFetch.push(urls[i]);
 		}
 
 		this.logger.log(`Cache hits: ${cachedVectors.length}, URLs to fetch: ${urlsToFetch.length}`);
@@ -76,8 +71,7 @@ class PageProcessorClustered extends PageProcessorBase {
 			for (let offset = 0; offset < pages.length; offset += this.configService.embedding.batchSize) {
 				const chunk = pages.slice(offset, offset + this.configService.embedding.batchSize);
 				const embeddings = await this.requestQueue.embed(modelId, () =>
-					this.embeddingService.embedTexts(chunk.map(p => p.text))
-				);
+					this.embeddingService.embedTexts(chunk.map(p => p.text)));
 				for (let j = 0; j < chunk.length; j++) {
 					const { path, text, title } = chunk[j];
 					const entry: CacheEntry = {
@@ -94,15 +88,13 @@ class PageProcessorClustered extends PageProcessorBase {
 		};
 
 		// Crawl all URLs concurrently through the queue (queue manages concurrency)
-		await Promise.all(
-			urlsToFetch.map(async (url) => {
-				const page = await this.requestQueue.crawl(() => this.fetchClusterPage(url));
-				if (page.isSuccess()) pendingPages.push(page);
-				processed++;
-				if (onProgress) await onProgress(processed, total, [page]);
-				if (pendingPages.length >= this.configService.embedding.batchSize) await flushEmbeddings();
-			})
-		);
+		await Promise.all(urlsToFetch.map(async (url) => {
+			const page = await this.requestQueue.crawl(() => this.fetchClusterPage(url));
+			if (page.isSuccess()) pendingPages.push(page);
+			processed++;
+			if (onProgress) await onProgress(processed, total, [page]);
+			if (pendingPages.length >= this.configService.embedding.batchSize) await flushEmbeddings();
+		}));
 
 		await flushEmbeddings();
 
@@ -171,7 +163,10 @@ class PageProcessorClustered extends PageProcessorBase {
 				let nearest = 0;
 				for (let c = 0; c < centroids.length; c++) {
 					const dist = 1 - this.cosineSimilarity(v, centroids[c]);
-					if (dist < minDist) { minDist = dist; nearest = c; }
+					if (dist < minDist) {
+						minDist = dist;
+						nearest = c;
+					}
 				}
 				return nearest;
 			});

@@ -13,7 +13,7 @@
 
 	let { current = 0, total = 100, showNumbers = true, showPercentage = true, size = 'h-2.5', label }: Props = $props();
 
-	const percentage = $derived(total > 0 ? Math.round((current / total) * 100) : 0);
+	const percentage = $derived(total > 0 ? (current / total) * 100 : 0);
 
 	let prevPercentage = $state(0);
 	let animate = $state(true);
@@ -21,7 +21,9 @@
 	$effect(() => {
 		if (percentage < prevPercentage) {
 			animate = false;
-			requestAnimationFrame(() => { animate = true; });
+			requestAnimationFrame(() => {
+				animate = true;
+			});
 		}
 		prevPercentage = percentage;
 	});
@@ -41,7 +43,7 @@
 				<span></span>
 			{/if}
 			{#if showPercentage}
-				<span>{percentage}%</span>
+				<span>{percentage.toFixed(2)}%</span>
 			{/if}
 		</div>
 	{/if}
@@ -50,7 +52,7 @@
 		tweenDuration={400}
 		{animate}
 		labelInside={false}
-		progress={percentage.toString()}
+		progress={percentage.toFixed(2)}
 		{size}
 		color="primary"
 	/>

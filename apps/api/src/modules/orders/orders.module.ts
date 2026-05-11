@@ -7,9 +7,11 @@ import { PaymentsModule } from '@/modules/payments/payments.module';
 import { Module, forwardRef } from '@nestjs/common';
 import { ClsModule } from 'nestjs-cls';
 import { Order } from '@/modules/orders/entities/order.entity';
+import { OrderError } from '@/modules/orders/entities/order-error.entity';
 import { OrdersController } from '@/modules/orders/controllers/orders.controller';
 import { OrdersService } from '@/modules/orders/services/orders.service';
 import { OrderSubscriber } from '@/modules/orders/subscribers/order.subscriber';
+import { OrderRepository } from '@/modules/orders/repositories/order.repository';
 import { RobotsAccessibleValidator, SitemapAccessibleValidator } from '@/validators/host.validator';
 import { AiModelValidator } from '@/validators/ai-model.validator';
 import { OrderHasOutputValidator, OrderCanBeDeletedValidator } from '@/validators/order.validator';
@@ -18,7 +20,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([Order]),
+		TypeOrmModule.forFeature([Order, OrderError, OrderRepository]),
 		ClsModule,
 		CrawlersModule,
 		AiModelsModule,
@@ -29,6 +31,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 	],
 	controllers: [OrdersController],
 	providers: [
+		OrderRepository,
 		OrdersService,
 		OrderSubscriber,
 		CanonicalizeHostnamePipe,
@@ -38,7 +41,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 		OrderHasOutputValidator,
 		OrderCanBeDeletedValidator
 	],
-	exports: [OrdersService]
+	exports: [OrdersService, OrderRepository]
 })
 
 export class OrdersModule { }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Order } from '@/modules/orders/entities/order.entity';
+import type { Order } from '@/modules/orders/entities/order.entity';
 
 @Entity('users')
 class User {
@@ -15,7 +15,7 @@ class User {
 	@Column({ type: 'datetime', nullable: true })
 	loginTokenExpiresAt: Date | null;
 
-	@OneToMany(() => Order, order => order.user)
+	@OneToMany('Order', 'user')
 	orders: Order[];
 
 	@CreateDateColumn({ utc: true })

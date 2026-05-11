@@ -52,6 +52,17 @@ class OrdersService extends HttpClient {
 		});
 	}
 
+	async filterUrls(id: number, filter?: string): Promise<ApiResponse<{ attributes: { all: string[]; filtered: string[] } }>> {
+		return this.fetch(configService.endpoints.orders.filter(id), undefined, {
+			method: 'POST',
+			body: JSON.stringify({ filter })
+		});
+	}
+
+	async getUrls(id: number): Promise<ApiResponse<{ attributes: { all: string[]; filtered: string[] } }>> {
+		return this.fetch(configService.endpoints.orders.urls(id), undefined);
+	}
+
 	/**
 	 * Get all user orders (history)
 	 */

@@ -3,6 +3,7 @@
 
 # Compiled output
 /dist
+/src/metadata.ts
 
 # Node
 /node_modules

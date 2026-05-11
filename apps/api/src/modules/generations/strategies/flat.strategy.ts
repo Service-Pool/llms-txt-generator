@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { IGenerationStrategy } from '@/modules/generations/interfaces/generation-strategy.interface';
 import { PageProcessorFlat } from '@/modules/generations/services/page-processor-flat.service';
@@ -29,12 +29,14 @@ class FlatStrategy implements IGenerationStrategy {
 		});
 		await job.updateProgress({});
 
+		const urls = order.filteredUrls;
+
 		const allPages = await this.pageProcessor.processPages(
 			order.hostname,
 			order.modelId,
 			provider,
 			batchSize,
-			order.totalUrls,
+			urls,
 			async (processed, total, batchPages) => {
 				for (const page of batchPages.filter(p => p.isFailure())) {
 					await this.ordersService.addError(order.id, `Failed to process ${page.url}: ${page.error}`);

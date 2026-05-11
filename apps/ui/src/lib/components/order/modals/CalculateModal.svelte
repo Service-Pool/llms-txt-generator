@@ -5,6 +5,7 @@
 	import DelayedRender from '$lib/components/ui/delayed-render.svelte';
 	import ModelSelector from '$lib/components/order/ModelSelector.svelte';
 	import StrategySelector from '$lib/components/order/StrategySelector.svelte';
+	import UrlFilter from '$lib/components/order/UrlFilter.svelte';
 	import type { OrderResponseDto, CreateOrderResponseDto, AiModelResponseDto } from '@api/shared';
 	import { GenerationStrategy } from '@api/shared';
 
@@ -26,6 +27,13 @@
 	let selectedModelId = $state<string | null>(null);
 	let selectedStrategy = $state<GenerationStrategy | null>(null);
 	let isCalculating = $state(false);
+	let filterInput = $state('currentAiModel' in order.attributes ? (order.attributes.urlListFilter ?? '') : '');
+	let filterError = $state<string | null>(null);
+	let isApplyingFilter = $state(false);
+
+	const urlsTotal = $derived('urlsTotal' in order.attributes ? order.attributes.urlsTotal : null);
+	const urlsFiltered = $derived('urlsFiltered' in order.attributes ? order.attributes.urlsFiltered : null);
+	const urlListFilter = $derived('urlListFilter' in order.attributes ? order.attributes.urlListFilter : null);
 
 	// Load available models when modal opens
 	$effect(() => {
@@ -52,6 +60,21 @@
 			throw exception;
 		} finally {
 			isLoadingModels = false;
+		}
+	};
+
+	const handleApplyFilter = async (filter: string) => {
+		isApplyingFilter = true;
+		filterError = null;
+
+		try {
+			await ordersService.filterUrls(order.attributes.id, filter || undefined);
+			await ordersStore.refreshOrder(order.attributes.id);
+			await loadAvailableModels();
+		} catch (e) {
+			filterError = e instanceof Error ? e.message : 'Failed to apply filter';
+		} finally {
+			isApplyingFilter = false;
 		}
 	};
 
@@ -100,6 +123,17 @@
 	class="max-w-[min(1024px,calc(100vw-2rem))]!"
 	classes={{ body: 'space-y-4' }}
 >
+	<UrlFilter
+		orderId={order.attributes.id}
+		{urlsTotal}
+		{urlsFiltered}
+		{urlListFilter}
+		bind:filter={filterInput}
+		disabled={isCalculating || isApplyingFilter}
+		error={filterError}
+		onApply={handleApplyFilter}
+	/>
+
 	{#if isLoadingModels}
 		<div class="flex justify-center py-8">
 			<DelayedRender>

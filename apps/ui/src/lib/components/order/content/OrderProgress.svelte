@@ -1,13 +1,13 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import type { OrderProgress } from '@api/shared';
 	import ProgressBar from '$lib/components/ui/progress-bar.svelte';
 
 	interface Props {
 		progress: OrderProgress;
-		totalUrls: number | null;
+		urlsFiltered: number | null;
 	}
 
-	let { progress, totalUrls }: Props = $props();
+	let { progress, urlsFiltered }: Props = $props();
 
 	const BRAILLE_FRAMES = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
 	let frame = $state(0);
@@ -25,7 +25,7 @@
 
 {#if progress.step === 'Crawling'}
 	<div class="text-xs opacity-75 mb-1">Crawling URLs <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
-	<ProgressBar current={progress.processedUrls ?? 0} total={totalUrls ?? 0} size="h-1.5" showNumbers={true} />
+	<ProgressBar current={progress.processedUrls ?? 0} total={urlsFiltered ?? 0} size="h-1.5" showNumbers={true} />
 {:else if progress.step === 'Summarizing'}
 	<div class="text-xs opacity-75 mb-1">Summarizing pages <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
 	<ProgressBar current={progress.pageCurrent ?? 0} total={progress.pageTotal ?? 0} size="h-1.5" showNumbers={true} />
@@ -43,3 +43,4 @@
 {:else}
 	<div class="text-xs opacity-75">{progress.step} <span class="text-blue-500">{BRAILLE_FRAMES[frame]}</span></div>
 {/if}
+

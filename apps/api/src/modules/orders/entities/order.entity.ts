@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+﻿import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import type { OrderError } from '@/modules/orders/entities/order-error.entity';
 import { OrderProgress } from '@/modules/orders/models/order-progress.model';
 import { Currency } from '@/enums/currency.enum';
 import { OrderStatus } from '@/enums/order-status.enum';
@@ -58,7 +59,7 @@ class Order {
 	jobId: string | null;
 
 	@Column({ type: 'int', nullable: true })
-	totalUrls: number | null;
+	urlsTotal: number | null;
 
 	@Column({ type: 'json', nullable: true })
 	progress: OrderProgress | null;
@@ -69,13 +70,22 @@ class Order {
 	@Column({ type: 'datetime', nullable: true, utc: true })
 	completedAt: Date | null;
 
-	@Column({ type: 'longtext', nullable: true })
+	@Column({ type: 'longtext', nullable: true, select: false })
 	output: string | null;
 
-	@Column({ type: 'json', nullable: true })
-	errors: string[] | null;
+	@Column({ type: 'varchar', length: 500, nullable: true })
+	urlListFilter: string | null;
 
-	@ManyToOne(() => User, user => user.orders)
+	@Column({ type: 'int', nullable: true })
+	urlsFiltered: number | null;
+
+	@Column({ type: 'longtext', nullable: true, select: false })
+	urlList: string | null;
+
+	@OneToMany('OrderError', 'order')
+	errors: OrderError[];
+
+	@ManyToOne('User', 'orders')
 	@JoinColumn({ name: 'userId' })
 	user: User;
 
@@ -93,6 +103,13 @@ class Order {
 	 * Contains model configuration if modelId is set.
 	 */
 	aiModelConfig: AiModelConfig | null = null;
+
+	/**
+	 * Synthetic property populated by OrderRepository.mapHiddenFields().
+	 * Contains urlList split and filtered by urlListFilter regex.
+	 * Only populated when urlList is explicitly loaded via withFull: ['urlList'].
+	 */
+	filteredUrls?: string[];
 
 	/**
 	 * Synthetic property populated by OrdersService.findById().

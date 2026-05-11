@@ -81,6 +81,8 @@ class ConfigService {
 			byId: (id: number) => `/api/orders/${id}`,
 			availableModels: (id: number) => `/api/orders/${id}/available-models`,
 			calculate: (id: number) => `/api/orders/${id}/calculate`,
+			filter: (id: number) => `/api/orders/${id}/filter`,
+			urls: (id: number) => `/api/orders/${id}/urls`,
 			run: (id: number) => `/api/orders/${id}/run`,
 			load: (id: number) => `/api/orders/${id}/load`,
 			download: (id: number, pathPrefix: string | null) => `/api/orders/${id}/download?pathPrefix=${encodeURIComponent(pathPrefix ?? '')}`
