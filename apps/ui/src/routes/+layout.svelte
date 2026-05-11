@@ -117,28 +117,16 @@
 					<div>
 						<h4 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h4>
 						<ul class="space-y-2">
-							<li>
-								<a
-									href={configService.routes.home}
-									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
-									>New Generation</a
-								>
-							</li>
-							<li>
-								<a
-									href={configService.routes.orders}
-									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
-									>Your Generations</a
-								>
-							</li>
-							<li>
-								<a
-									href={configService.routes.api}
-									target="_blank"
-									class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
-									>API Documentation</a
-								>
-							</li>
+							{#each configService.navItems as item}
+								<li>
+									<a
+										href={item.href}
+										target={item.target}
+										class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm"
+										>{item.label}</a
+									>
+								</li>
+							{/each}
 						</ul>
 					</div>
 

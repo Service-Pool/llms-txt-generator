@@ -18,12 +18,7 @@
 
 	let { class: className = '', fluid = true, fullWidth = false, sticky = false }: Props = $props();
 
-	const navItems = [
-		// { href: configService.routes.home, label: 'Home' },
-		{ href: configService.routes.home, label: 'New LLMs.txt' },
-		{ href: configService.routes.orders, label: 'Your Generations' },
-		{ href: configService.routes.api, label: 'API', target: '_blank' }
-	];
+	const navItems = configService.navItems;
 
 	let currentPath = $derived(page.url.pathname);
 	let user = $derived($authStore.user);
