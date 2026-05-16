@@ -67,7 +67,7 @@ class ConfigService {
 	public readonly seo = {
 		title: 'Generate Optimized LLMs.txt Files with AI - Quick & Efficient',
 		description: 'Create perfect LLMs.txt files for your websites using advanced AI models. Fast, efficient content generation optimized for LLM consumption and SEO.',
-		image: '/og-image.png',
+		image: `${env.PUBLIC_SITE_URL}/og-image.png`,
 		pageTitle: (pageTitle: string) => `${pageTitle} - LLMs.txt Generator`
 	};
 
