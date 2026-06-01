@@ -11,7 +11,8 @@ export const GET: RequestHandler = () => {
 		{ url: configService.routes.orders, priority: '0.8', changefreq: 'weekly' },
 		{ url: configService.routes.contact, priority: '0.7', changefreq: 'monthly' },
 		{ url: configService.routes.api, priority: '0.6', changefreq: 'monthly' },
-		{ url: configService.routes.terms, priority: '0.4', changefreq: 'monthly' }
+		{ url: configService.routes.terms, priority: '0.4', changefreq: 'monthly' },
+		{ url: '/llms.txt', priority: '0.3', changefreq: 'monthly' }
 	];
 
 	const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
