@@ -1,9 +1,9 @@
 # LLMs.txt Generator
 
-Монорепозиторий для генератора llms.txt файлов.
+Monorepo for the llms.txt file generator service.
 
-## Структура проекта
+## Project Structure
 
-- **[apps/api](./apps/api/README.md)** - Backend API (NestJS)
-- **[apps/ui](./apps/ui/README.md)** - Frontend UI (SvelteKit)
+- **[apps/api](./apps/api/README.md)** — Backend API (NestJS)
+- **[apps/ui](./apps/ui/README.md)** — Frontend UI (SvelteKit)
 
