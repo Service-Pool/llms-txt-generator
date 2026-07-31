@@ -45,6 +45,7 @@ services:
       redis:
         condition: service_healthy
     networks:
+      app-network:
       npm-network:
 
   #ollama:
@@ -136,7 +137,7 @@ services:
       retries: 10
       start_period: 10s
     networks:
-      npm-network:
+      app-network:
 
   redis:
     image: ${COMPOSE_PROJECT_NAME}-redis
@@ -164,7 +165,8 @@ services:
       retries: 10
       start_period: 5s
     networks:
-      npm-network:
+      # Project-private only — same hostname-collision reason as mysql above.
+      app-network:
 
   redisinsight:
     image: ${COMPOSE_PROJECT_NAME}-redisinsight
@@ -206,6 +208,9 @@ services:
       redis:
         condition: service_healthy
     networks:
+      # app-network to reach redis (RI_REDIS_HOST), npm-network so the panel can
+      # be proxied by NPM.
+      app-network:
       npm-network:
 
 volumes:
@@ -219,5 +224,8 @@ volumes:
   vscode_server:
 
 networks:
+  app-network:
+    driver: bridge
+    name: ${COMPOSE_PROJECT_NAME}-network
   npm-network:
     external: true

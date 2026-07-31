@@ -21,6 +21,8 @@ services:
       llms-txt-generator-ui:
         condition: service_healthy
     networks:
+      # app-network to reach the ui app privately; npm-network so NPM proxies it.
+      app-network:
       npm-network:
 
   llms-txt-generator-ui:
@@ -55,7 +57,10 @@ services:
       retries: 10
       start_period: 10s
     networks:
-      npm-network:
+      # Project-private only — the `app` hostname would otherwise collide with the
+      # api project's `app` on the shared npm-network. Caddy reaches it here; NPM
+      # proxies via Caddy, so the app itself needn't be on npm-network.
+      app-network:
 
 volumes:
   node_modules:
@@ -65,5 +70,8 @@ volumes:
   vscode_server:
 
 networks:
+  app-network:
+    driver: bridge
+    name: ${COMPOSE_PROJECT_NAME}-network
   npm-network:
     external: true
