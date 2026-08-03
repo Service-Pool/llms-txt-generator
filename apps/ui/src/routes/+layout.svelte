@@ -154,7 +154,7 @@
 
 		<Footer class="rounded-none! border-t border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-950">
 			<div class="container mx-auto px-4">
-				<FooterCopyright href={configService.routes.home} by="LLMs.txt Generator" year={2026} />
+				<FooterCopyright href="https://github.com/outcomer" by="David Evdoshchenko" year={new Date().getFullYear()} />
 			</div>
 		</Footer>
 	</div>
