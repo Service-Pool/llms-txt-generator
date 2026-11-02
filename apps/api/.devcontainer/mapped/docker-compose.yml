@@ -47,6 +47,8 @@ services:
     networks:
       app-network:
       npm-network:
+        aliases:
+          - ${COMPOSE_PROJECT_NAME}-App
 
   #ollama:
   #  image: ${COMPOSE_PROJECT_NAME}-ollama
