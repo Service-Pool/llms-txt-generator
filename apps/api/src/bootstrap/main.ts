@@ -137,7 +137,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
 		.setVersion('1.0')
 		.setContact('Outcomer', 'https://github.com/outcomer', 'david.evdoshchenko@softgroupsolution.com')
 		.setOpenAPIVersion('3.1.0')
-		.addServer('https://llmstxtgenerator.svcpool.com', 'Production server')
+		.addServer('https://llmstxtgenerator.outcomer.work', 'Production server')
 		.setBasePath('/api')
 		.addCookieAuth(
 			configService.session.cookieName,

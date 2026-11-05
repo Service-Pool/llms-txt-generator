@@ -135,7 +135,7 @@ export default defineConfig({
 		host: '0.0.0.0',
 		port: port,
 		strictPort: true,
-		allowedHosts: ['.svcpool.com'],
+		allowedHosts: ['.outcomer.work'],
 		// Прогрев модулей при старте сервера для ускорения первой загрузки
 		warmup: {
 			clientFiles: [

@@ -122,7 +122,7 @@ class ConfigService {
 		{ href: this.routes.home, label: 'New order' },
 		{ href: this.routes.orders, label: 'My Orders' },
 		{ href: this.routes.api, label: 'API', target: '_blank' },
-		{ href: 'https://svcpool.com', label: 'More Tools', target: '_blank' }
+		{ href: 'https://outcomer.work', label: 'More Tools', target: '_blank' }
 	];
 
 	// Order statuses config
