@@ -55,12 +55,12 @@ services:
       interval: 2s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 20s
     networks:
-      # Project-private only — the `app` hostname would otherwise collide with the
-      # api project's `app` on the shared npm-network. Caddy reaches it here; NPM
-      # proxies via Caddy, so the app itself needn't be on npm-network.
       app-network:
+      npm-network:
+        aliases:
+          - ${COMPOSE_PROJECT_NAME}-App
 
 volumes:
   node_modules:
